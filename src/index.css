@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --accent-color: #3b82f6;
+    --accent-rgb: 59, 130, 246;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Syne', 'Plus Jakarta Sans', sans-serif;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* =========================================================================
+   METALLIC CHROME & LIQUID TITANIUM DESIGN SYSTEM
+   Rule: Flat plain backgrounds; metallic gradient sheen ONLY on elevated surfaces:
+   - Primary cards (data-surface="primary-metallic")
+   - Progress rings and bars (.metallic-progress-fill, .metallic-ring)
+   - Active accent fills
+   Secondary cards (data-surface="secondary-flat") and body text stay completely flat and clean.
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   1. ELEVATED METALLIC SURFACES - LIGHT MODE (Polished Platinum & Sterling Silver)
+   Specifically tuned for light mode: light, clean, highly luminous specular sheen
+   ------------------------------------------------------------------------- */
+html:not(.dark) [data-surface="primary-metallic"] {
+  background-image:
+    radial-gradient(ellipse 90% 60% at 18% -10%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.5) 35%, transparent 70%),
+    linear-gradient(135deg, #ffffff 0%, #f1f5f9 22%, #e2e8f0 48%, #f8fafc 72%, #e2e8f0 100%);
+  background-color: #f1f5f9;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  box-shadow:
+    0 10px 25px -5px rgba(15, 23, 42, 0.08),
+    0 2px 6px -1px rgba(15, 23, 42, 0.04),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 1),
+    inset 0 -1.5px 1px 0 rgba(203, 213, 225, 0.65);
+  position: relative;
+  overflow: hidden;
+}
+
+html:not(.dark) [data-surface="primary-metallic"]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 1) 25%, rgba(255, 255, 255, 0.9) 55%, transparent 95%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* -------------------------------------------------------------------------
+   2. ELEVATED METALLIC SURFACES - DARK MODE (Brushed Space Chrome & Liquid Titanium)
+   Inspired by luxury dark finance/fitness UI: specular angled beam over graphite steel
+   ------------------------------------------------------------------------- */
+html.dark [data-surface="primary-metallic"] {
+  background-image:
+    radial-gradient(ellipse 85% 55% at 20% -10%, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.07) 40%, transparent 75%),
+    linear-gradient(135deg, #2c303a 0%, #1a1c24 28%, #252833 52%, #14161d 80%, #20232d 100%);
+  background-color: #171922;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 16px 36px -6px rgba(0, 0, 0, 0.75),
+    0 4px 12px -2px rgba(0, 0, 0, 0.5),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+html.dark [data-surface="primary-metallic"]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent 5%, rgba(255, 255, 255, 0.8) 25%, rgba(255, 255, 255, 0.35) 65%, transparent 95%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* -------------------------------------------------------------------------
+   3. SURFACE INTENSITY MODIFIERS (Low, Medium, High)
+   ------------------------------------------------------------------------- */
+/* Low intensity */
+html:not(.dark)[data-surface-intensity="low"] [data-surface="primary-metallic"] {
+  background-image:
+    linear-gradient(135deg, #ffffff 0%, #f8fafc 40%, #edf2f7 100%);
+  border-color: rgba(203, 213, 225, 0.7);
+  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+html.dark[data-surface-intensity="low"] [data-surface="primary-metallic"] {
+  background-image:
+    linear-gradient(135deg, #22252e 0%, #16181f 50%, #1c1e27 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* High intensity (Maximum Chrome Sheen) */
+html:not(.dark)[data-surface-intensity="high"] [data-surface="primary-metallic"] {
+  background-image:
+    radial-gradient(ellipse 90% 70% at 15% -15%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.6) 40%, transparent 80%),
+    linear-gradient(135deg, #ffffff 0%, #f1f5f9 20%, #cbd5e1 45%, #ffffff 65%, #cbd5e1 100%);
+  border-color: rgba(148, 163, 184, 0.75);
+  box-shadow:
+    0 14px 34px -4px rgba(15, 23, 42, 0.14),
+    inset 0 2px 1.5px 0 rgba(255, 255, 255, 1),
+    inset 0 -2px 1.5px 0 rgba(148, 163, 184, 0.6);
+}
+html.dark[data-surface-intensity="high"] [data-surface="primary-metallic"] {
+  background-image:
+    radial-gradient(ellipse 85% 60% at 20% -10%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.12) 42%, transparent 80%),
+    linear-gradient(135deg, #373c49 0%, #1c1e27 25%, #303544 50%, #13151c 78%, #292d3b 100%);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 20px 45px -8px rgba(0, 0, 0, 0.85),
+    inset 0 2px 1.5px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.8);
+}
+
+/* -------------------------------------------------------------------------
+   4. SECONDARY CARDS - PURE FLAT (Zero Sheen, Maximum Cleanliness)
+   ------------------------------------------------------------------------- */
+html:not(.dark) [data-surface="secondary-flat"] {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+html.dark [data-surface="secondary-flat"] {
+  background-color: #12141a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* -------------------------------------------------------------------------
+   5. PROGRESS BARS & CHARTS - METALLIC CHROME SHEEN
+   Brushed metal fill with specular white highlight center
+   ------------------------------------------------------------------------- */
+/* Light Mode Metallic Progress */
+html:not(.dark) .metallic-progress-fill {
+  background-image: linear-gradient(
+    90deg,
+    #64748b 0%,
+    #cbd5e1 25%,
+    #ffffff 50%,
+    #94a3b8 75%,
+    #475569 100%
+  );
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
+}
+
+/* Light Mode Metallic Accent Fill */
+html:not(.dark) .metallic-accent-fill {
+  background-image: linear-gradient(
+    90deg,
+    var(--accent-color) 0%,
+    #ffffff 45%,
+    var(--accent-color) 80%,
+    #334155 100%
+  );
+  box-shadow:
+    0 1px 4px rgba(15, 23, 42, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.85);
+}
+
+/* Dark Mode Metallic Progress (Chrome / Titanium) */
+html.dark .metallic-progress-fill {
+  background-image: linear-gradient(
+    90deg,
+    #64748b 0%,
+    #cbd5e1 28%,
+    #ffffff 50%,
+    #94a3b8 72%,
+    #475569 100%
+  );
+  box-shadow:
+    0 0 12px rgba(255, 255, 255, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.85);
+}
+
+/* Dark Mode Metallic Accent Fill */
+html.dark .metallic-accent-fill {
+  background-image: linear-gradient(
+    90deg,
+    var(--accent-color) 0%,
+    #ffffff 48%,
+    var(--accent-color) 82%,
+    #1e293b 100%
+  );
+  box-shadow:
+    0 0 14px rgba(var(--accent-rgb, 59, 130, 246), 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.9);
+}
+
+/* Metallic Ring Stroke Filter */
+.metallic-ring-svg {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
+}

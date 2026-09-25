@@ -1,0 +1,8 @@
+{
+  "name": "liftr",
+  "description": "Interactive anatomical body gym and fitness tracking app with Supabase Postgres and metallic chrome design system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
