@@ -18,10 +18,10 @@ const MainApp: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-[#0b0d13]">
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa] dark:bg-[#0c0c0c]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-700 border-t-blue-500 animate-spin" />
-          <span className="text-xs font-mono text-slate-700 dark:text-slate-400 font-bold">Connecting to liftr...</span>
+          <div className="w-8 h-8 rounded-full border-2 border-neutral-300 dark:border-neutral-700 border-t-neutral-900 dark:border-t-white animate-spin" />
+          <span className="text-xs font-athletic uppercase tracking-widest text-neutral-600 dark:text-neutral-400 font-bold">Connecting to liftr...</span>
         </div>
       </div>
     );
@@ -30,7 +30,7 @@ const MainApp: React.FC = () => {
   // Unauthenticated view: Auth Screen (Sign in / Sign up)
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-[#0b0d13] text-slate-900 dark:text-slate-100 flex flex-col">
+      <div className="min-h-screen bg-[#fafafa] dark:bg-[#0c0c0c] text-neutral-900 dark:text-neutral-100 flex flex-col">
         <SupabaseMigrationBanner />
         <main className="flex-1 flex items-center justify-center">
           <AuthScreen />
@@ -41,7 +41,7 @@ const MainApp: React.FC = () => {
 
   // Authenticated Application Shell
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-[#0b0d13] text-slate-900 dark:text-slate-100 flex flex-col antialiased">
+    <div className="min-h-screen bg-[#fafafa] dark:bg-[#0c0c0c] text-neutral-900 dark:text-neutral-100 flex flex-col antialiased">
       {/* Schema Migration Notice if needed */}
       <SupabaseMigrationBanner />
 

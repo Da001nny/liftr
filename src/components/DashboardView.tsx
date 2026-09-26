@@ -34,13 +34,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-24 md:pb-12">
       
-      {/* Page Header (Clean typography, no pill badges) */}
+      {/* Page Header (Clean, bold athletic typography) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white font-display">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-neutral-900 dark:text-white font-display uppercase">
             {t('dashboard.title')}
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mt-0.5">
             {t('dashboard.subtitle')}
           </p>
         </div>
@@ -48,7 +48,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
         <div className="flex items-center gap-2">
           <button
             onClick={() => onNavigateTab('workouts')}
-            className="px-4 py-2 text-xs font-semibold text-white rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-white rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center gap-1.5 cursor-pointer font-athletic"
             style={{ backgroundColor: accentColor }}
           >
             <Dumbbell className="w-4 h-4" />
@@ -59,48 +59,48 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
 
       {/* =========================================================================
           PRIMARY ELEVATED METALLIC CARD
-          Metallic gradient sheen ONLY on elevated surfaces per Section 2.2 of PRD
-          Brushed platinum (light) / Liquid titanium (dark) with specular corner beam
+          Dark: Cool silver/chrome brushed sheen against neutral near-black (#161616)
+          Light: Airy, soft grey card with faint pearl/platinum specular sheen
           ========================================================================= */}
       <div 
         data-surface="primary-metallic"
-        className="rounded-2xl p-6 sm:p-8 transition-all"
+        className="rounded-2xl p-6 sm:p-8 bg-[#f5f5f7] dark:bg-[#161616] text-neutral-900 dark:text-neutral-100 border border-neutral-200/90 dark:border-white/15 shadow-sm dark:shadow-2xl transition-all"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-              <Sparkles className="w-4 h-4 shrink-0" style={{ color: accentColor }} />
-              <span className="tracking-wide uppercase text-[11px] font-bold text-slate-800 dark:text-slate-200">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: accentColor }} />
+              <span className="text-neutral-800 dark:text-neutral-200">
                 {t('dashboard.heroCardTitle')}
               </span>
-              <span aria-hidden="true" className="text-slate-400 dark:text-slate-600">·</span>
-              <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">Phase 0 Baseline</span>
+              <span aria-hidden="true" className="text-neutral-400 dark:text-neutral-600">·</span>
+              <span className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">Phase 0 Baseline</span>
             </div>
             
             <div className="flex items-baseline gap-3">
-              <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white font-mono tabular-nums">
+              <span className="text-6xl sm:text-7xl font-black tracking-tight text-neutral-900 dark:text-white font-stat">
                 {totalVolume}
               </span>
-              <span className="text-lg font-bold text-slate-700 dark:text-slate-300">
+              <span className="text-xl font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic">
                 {t('common.kg')}
               </span>
             </div>
 
-            <p className="text-xs text-slate-700 dark:text-slate-300 max-w-md leading-relaxed">
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 max-w-md leading-relaxed font-medium">
               {t('dashboard.noWorkoutsDesc')}
             </p>
           </div>
 
-          {/* Quick Readout & Circular Metallic Ring (Inspired by Reference UI) */}
-          <div className="flex items-center gap-6 sm:gap-8 border-t md:border-t-0 md:border-l border-slate-300/80 dark:border-white/10 pt-4 md:pt-0 md:pl-8">
-            <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+          {/* Quick Readout & Circular Metallic Ring (Matching Fintech Card UI) */}
+          <div className="flex items-center gap-6 sm:gap-8 border-t md:border-t-0 md:border-l border-neutral-200 dark:border-neutral-800 pt-4 md:pt-0 md:pl-8">
+            <div className="space-y-0.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 block font-athletic">
                 {t('dashboard.completedSessionsLabel')}
               </span>
-              <span className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+              <span className="text-4xl font-black text-neutral-900 dark:text-white font-stat">
                 {sessionsCompleted}
               </span>
-              <span className="text-[11px] text-slate-600 dark:text-slate-400 block">
+              <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block font-medium">
                 Current cycle
               </span>
             </div>
@@ -111,16 +111,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                 <svg className="w-16 h-16 transform -rotate-90 metallic-ring-svg" viewBox="0 0 64 64">
                   <defs>
                     <linearGradient id="metallicRingGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#475569" />
+                      <stop offset="0%" stopColor="#71717a" />
                       <stop offset="35%" stopColor="#ffffff" />
-                      <stop offset="70%" stopColor="#94a3b8" />
-                      <stop offset="100%" stopColor="#334155" />
+                      <stop offset="70%" stopColor="#a1a1aa" />
+                      <stop offset="100%" stopColor="#3f3f46" />
                     </linearGradient>
                     <linearGradient id="metallicRingGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#94a3b8" />
+                      <stop offset="0%" stopColor="#737373" />
                       <stop offset="30%" stopColor="#ffffff" />
-                      <stop offset="65%" stopColor="#cbd5e1" />
-                      <stop offset="100%" stopColor="#64748b" />
+                      <stop offset="65%" stopColor="#d4d4d4" />
+                      <stop offset="100%" stopColor="#404040" />
                     </linearGradient>
                   </defs>
                   {/* Track */}
@@ -131,7 +131,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                     stroke="currentColor"
                     strokeWidth="4.5"
                     fill="transparent"
-                    className="text-slate-200 dark:text-white/10"
+                    className="text-neutral-200 dark:text-neutral-800"
                   />
                   {/* Metallic Brushed Arc */}
                   <circle
@@ -147,17 +147,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-xs font-bold font-mono text-slate-900 dark:text-white">
+                  <span className="text-xs font-black font-stat text-neutral-900 dark:text-white">
                     {consistencyPercent}%
                   </span>
                 </div>
               </div>
 
               <div className="space-y-0.5 hidden sm:block">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                <span className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 block font-athletic">
                   {t('dashboard.consistencyLabel')}
                 </span>
-                <span className="text-[11px] text-slate-600 dark:text-slate-400 block">
+                <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block font-medium">
                   Default: 100%
                 </span>
               </div>
@@ -166,12 +166,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
         </div>
 
         {/* Metallic progress bar fill */}
-        <div className="mt-6 pt-5 border-t border-slate-300/80 dark:border-white/10 relative z-10">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+        <div className="mt-6 pt-5 border-t border-neutral-200 dark:border-neutral-800 relative z-10">
+          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 mb-2 font-athletic">
             <span>Weekly Goal Progress</span>
-            <span className="font-mono tabular-nums text-slate-900 dark:text-white">0%</span>
+            <span className="font-stat tabular-nums text-neutral-900 dark:text-white text-sm">0%</span>
           </div>
-          <div className="h-3 w-full bg-slate-200/90 dark:bg-slate-900/90 rounded-full p-0.5 border border-slate-300/80 dark:border-white/10 shadow-inner overflow-hidden">
+          <div className="h-2.5 w-full bg-neutral-200 dark:bg-neutral-800 rounded-full p-0.5 border border-neutral-300/50 dark:border-neutral-700/50 shadow-inner overflow-hidden">
             <div 
               className="h-full rounded-full transition-all duration-500 metallic-progress-fill"
               style={{ width: '0%' }}
@@ -181,24 +181,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
       </div>
 
       {/* =========================================================================
-          SECONDARY FLAT CARDS GRID (Pure flat plain background, clean typography)
-          Zero gradient sheen on secondary surfaces
+          SECONDARY FLAT CARDS GRID
+          Light: Soft light-grey cards (#f4f5f7) with delicate border
+          Dark: Pure flat neutral charcoal (#141414)
           ========================================================================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Stat Card 1: Volume */}
         <div 
           data-surface="secondary-flat"
-          className="rounded-xl p-5 transition-all"
+          className="rounded-xl p-5 bg-neutral-100/90 dark:bg-[#141414] border border-neutral-200/90 dark:border-[#242424] text-neutral-900 dark:text-white shadow-sm dark:shadow-md transition-all"
         >
-          <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider">{t('dashboard.totalVolumeLabel')}</span>
-            <TrendingUp className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <div className="flex items-center justify-between text-neutral-600 dark:text-neutral-400 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider font-athletic">{t('dashboard.totalVolumeLabel')}</span>
+            <TrendingUp className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+          <div className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white font-stat">
             {t('dashboard.totalVolumeEmpty')}
           </div>
-          <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 block font-medium">
+          <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block font-medium">
             Across all completed sets
           </span>
         </div>
@@ -206,16 +207,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
         {/* Stat Card 2: Sessions */}
         <div 
           data-surface="secondary-flat"
-          className="rounded-xl p-5 transition-all"
+          className="rounded-xl p-5 bg-neutral-100/90 dark:bg-[#141414] border border-neutral-200/90 dark:border-[#242424] text-neutral-900 dark:text-white shadow-sm dark:shadow-md transition-all"
         >
-          <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider">{t('dashboard.completedSessionsLabel')}</span>
-            <CheckCircle2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <div className="flex items-center justify-between text-neutral-600 dark:text-neutral-400 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider font-athletic">{t('dashboard.completedSessionsLabel')}</span>
+            <CheckCircle2 className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+          <div className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white font-stat">
             {t('dashboard.completedSessionsEmpty')}
           </div>
-          <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 block font-medium">
+          <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block font-medium">
             Logged in current cycle
           </span>
         </div>
@@ -223,16 +224,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
         {/* Stat Card 3: Consistency */}
         <div 
           data-surface="secondary-flat"
-          className="rounded-xl p-5 transition-all"
+          className="rounded-xl p-5 bg-neutral-100/90 dark:bg-[#141414] border border-neutral-200/90 dark:border-[#242424] text-neutral-900 dark:text-white shadow-sm dark:shadow-md transition-all"
         >
-          <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider">{t('dashboard.consistencyLabel')}</span>
-            <Flame className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <div className="flex items-center justify-between text-neutral-600 dark:text-neutral-400 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider font-athletic">{t('dashboard.consistencyLabel')}</span>
+            <Flame className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
           </div>
-          <div className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono tabular-nums">
+          <div className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white font-stat">
             {consistencyPercent}%
           </div>
-          <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 block font-medium">
+          <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block font-medium">
             Completed / Scheduled ratio
           </span>
         </div>
@@ -240,16 +241,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
         {/* Stat Card 4: Active Split */}
         <div 
           data-surface="secondary-flat"
-          className="rounded-xl p-5 transition-all"
+          className="rounded-xl p-5 bg-neutral-100/90 dark:bg-[#141414] border border-neutral-200/90 dark:border-[#242424] text-neutral-900 dark:text-white shadow-sm dark:shadow-md transition-all"
         >
-          <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider">{t('dashboard.activeSplitLabel')}</span>
-            <Layers className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <div className="flex items-center justify-between text-neutral-600 dark:text-neutral-400 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider font-athletic">{t('dashboard.activeSplitLabel')}</span>
+            <Layers className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
           </div>
-          <div className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-1">
+          <div className="text-lg font-bold text-neutral-800 dark:text-neutral-200 mt-1 font-athletic uppercase">
             {t('dashboard.activeSplitEmpty')}
           </div>
-          <span className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 block font-medium">
+          <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block font-medium">
             Configurable in Calendar
           </span>
         </div>
@@ -258,30 +259,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
       {/* Lower Dual Section: Honest Empty States */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Recent Sessions (Honest empty state) */}
+        {/* Recent Sessions */}
         <div 
           data-surface="secondary-flat"
-          className="rounded-xl p-6 transition-all"
+          className="rounded-xl p-6 bg-neutral-100/90 dark:bg-[#141414] border border-neutral-200/90 dark:border-[#242424] text-neutral-900 dark:text-white shadow-sm dark:shadow-md transition-all"
         >
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-neutral-800">
+            <h2 className="text-lg font-black text-neutral-900 dark:text-white font-display uppercase tracking-wide">
               {t('dashboard.recentActivityTitle')}
             </h2>
           </div>
 
           <div className="py-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800/80 mx-auto flex items-center justify-center text-slate-600 dark:text-slate-400 mb-3 border border-slate-200 dark:border-slate-700">
-              <Dumbbell className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-xl premium-icon-container mx-auto mb-3">
+              <Dumbbell className="w-5 h-5 text-neutral-700 dark:text-neutral-300 premium-icon-embedded" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+            <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 font-athletic uppercase">
               {t('dashboard.noWorkoutsTitle')}
             </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 max-w-xs mx-auto leading-relaxed font-medium">
               {t('dashboard.noRecentActivity')}
             </p>
             <button
               onClick={() => onNavigateTab('workouts')}
-              className="mt-4 px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="mt-4 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-sm font-athletic"
             >
               <span>{t('dashboard.startFirstWorkout')}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -289,30 +290,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
           </div>
         </div>
 
-        {/* Anatomical Volume Share (Honest empty state) */}
+        {/* Anatomical Volume Share */}
         <div 
           data-surface="secondary-flat"
-          className="rounded-xl p-6 transition-all"
+          className="rounded-xl p-6 bg-neutral-100/90 dark:bg-[#141414] border border-neutral-200/90 dark:border-[#242424] text-neutral-900 dark:text-white shadow-sm dark:shadow-md transition-all"
         >
-          <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between pb-4 border-b border-neutral-200 dark:border-neutral-800">
+            <h2 className="text-lg font-black text-neutral-900 dark:text-white font-display uppercase tracking-wide">
               {t('dashboard.muscleDistributionTitle')}
             </h2>
           </div>
 
           <div className="py-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800/80 mx-auto flex items-center justify-center text-slate-600 dark:text-slate-400 mb-3 border border-slate-200 dark:border-slate-700">
-              <Layers className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-xl premium-icon-container mx-auto mb-3">
+              <Layers className="w-5 h-5 text-neutral-700 dark:text-neutral-300 premium-icon-embedded" />
             </div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+            <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 font-athletic uppercase">
               {t('common.emptyTitle')}
             </h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 max-w-xs mx-auto leading-relaxed font-medium">
               {t('dashboard.noMuscleData')}
             </p>
             <button
               onClick={() => onNavigateTab('body')}
-              className="mt-4 px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="mt-4 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-sm font-athletic"
             >
               <span>Explore Anatomical Body</span>
               <ArrowUpRight className="w-3.5 h-3.5" />

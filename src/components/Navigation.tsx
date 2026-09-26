@@ -51,20 +51,20 @@ export const Navigation: React.FC<NavigationProps> = ({
           Zone 2: Desktop clean nav links
           Zone 3: Persistent avatar / settings button
           ========================================================================= */}
-      <header className="sticky top-0 z-30 h-14 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
+      <header className="sticky top-0 z-30 h-14 bg-[#fafafa]/90 dark:bg-[#0c0c0c]/90 backdrop-blur-md border-b border-neutral-200 dark:border-[#222222] transition-colors">
         <div className="max-w-6xl mx-auto h-full px-4 flex items-center justify-between">
           
-          {/* Zone 1: Single text element wordmark */}
+          {/* Zone 1: Single text element wordmark with athletic energy */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => onSelectTab('dashboard')}
-              className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2 group cursor-pointer"
+              className="text-2xl font-black tracking-widest uppercase text-neutral-900 dark:text-white flex items-center gap-2 group cursor-pointer font-display"
             >
               <span 
                 className="w-2.5 h-2.5 rounded-full inline-block transition-transform group-hover:scale-125"
                 style={{ backgroundColor: accentColor }}
               />
-              <span className="font-display tracking-wider">liftr</span>
+              <span>liftr</span>
             </button>
           </div>
 
@@ -77,14 +77,14 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => onSelectTab(tab.id)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
+                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-2 cursor-pointer font-athletic ${
                     isActive
-                      ? 'bg-slate-200/80 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold shadow-sm'
-                      : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                      ? 'bg-neutral-200 dark:bg-[#202020] text-neutral-900 dark:text-white shadow-sm'
+                      : 'text-neutral-700 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-[#1a1a1a]'
                   }`}
                   style={isActive ? { borderBottom: `2px solid ${accentColor}` } : {}}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
                 </button>
               );
@@ -99,8 +99,8 @@ export const Navigation: React.FC<NavigationProps> = ({
               title={t('nav.profile')}
               className={`min-h-[44px] min-w-[44px] p-1.5 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                 isProfileOpen
-                  ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-950'
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'ring-2 ring-offset-2 ring-neutral-400 dark:ring-offset-[#0c0c0c]'
+                  : 'hover:bg-neutral-100 dark:hover:bg-[#1a1a1a]'
               }`}
             >
               <div 
@@ -121,7 +121,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           ========================================================================= */}
       <nav 
         aria-label="Mobile Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-white/95 dark:bg-slate-950/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 pb-safe transition-colors"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[#fafafa]/95 dark:bg-[#0c0c0c]/95 backdrop-blur-lg border-t border-neutral-200 dark:border-[#222222] pb-safe transition-colors"
       >
         <div className="grid grid-cols-5 h-full max-w-md mx-auto">
           {tabs.map((tab) => {
@@ -133,8 +133,8 @@ export const Navigation: React.FC<NavigationProps> = ({
                 onClick={() => onSelectTab(tab.id)}
                 className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] transition-colors cursor-pointer ${
                   isActive
-                    ? 'text-slate-900 dark:text-white font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                    ? 'text-neutral-900 dark:text-white font-black'
+                    : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-neutral-200'
                 }`}
               >
                 <div className="relative">
@@ -146,7 +146,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                     />
                   )}
                 </div>
-                <span className="text-[10px] tracking-tight mt-1 truncate max-w-[60px]">
+                <span className="text-[11px] font-athletic uppercase tracking-wider mt-1 truncate max-w-[60px]">
                   {tab.label}
                 </span>
               </button>

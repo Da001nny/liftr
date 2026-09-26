@@ -64,16 +64,16 @@ export const AuthScreen: React.FC = () => {
     <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md">
         
-        {/* Brand Header */}
+        {/* Brand Header with Athletic Energy */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3 shadow-lg"
+          <div className="w-14 h-14 premium-icon-container-accent mx-auto mb-3 shadow-xl"
                style={{ backgroundColor: accentColor }}>
-            <Dumbbell className="w-6 h-6 text-white" />
+            <Dumbbell className="w-7 h-7 text-white premium-icon-embedded" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight font-display text-slate-900 dark:text-white">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-widest font-display text-neutral-900 dark:text-white uppercase">
             {t('common.appName')}
           </h1>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
+          <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400 mt-1">
             {mode === 'signin' ? t('auth.welcomeBack') : t('auth.createAccountSubtitle')}
           </p>
         </div>
@@ -81,17 +81,17 @@ export const AuthScreen: React.FC = () => {
         {/* Elevated Metallic Card Container */}
         <div 
           data-surface="primary-metallic"
-          className="rounded-2xl p-6 sm:p-8 backdrop-blur-xl transition-all"
+          className="rounded-2xl p-6 sm:p-8 bg-[#f5f5f7] dark:bg-[#161616] text-neutral-900 dark:text-neutral-100 border border-neutral-200/90 dark:border-white/15 shadow-sm dark:shadow-2xl transition-all"
         >
           {/* Segmented Mode Switcher */}
-          <div className="flex items-center p-1 bg-slate-200/80 dark:bg-slate-900/80 rounded-xl mb-6 border border-slate-300/80 dark:border-slate-800">
+          <div className="flex items-center p-1 bg-neutral-200/80 dark:bg-[#181818] rounded-xl mb-6 border border-neutral-300/80 dark:border-neutral-800 shadow-inner">
             <button
               type="button"
               onClick={() => { setMode('signin'); setErrorMessage(null); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer font-athletic ${
                 mode === 'signin'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-700 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                  ? 'bg-neutral-900 text-white dark:bg-[#252525] shadow-sm'
+                  : 'text-neutral-700 hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-white'
               }`}
             >
               {t('auth.signIn')}
@@ -99,10 +99,10 @@ export const AuthScreen: React.FC = () => {
             <button
               type="button"
               onClick={() => { setMode('signup'); setErrorMessage(null); }}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer font-athletic ${
                 mode === 'signup'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-700 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                  ? 'bg-neutral-900 text-white dark:bg-[#252525] shadow-sm'
+                  : 'text-neutral-700 hover:text-neutral-950 dark:text-neutral-400 dark:hover:text-white'
               }`}
             >
               {t('auth.signUp')}
@@ -127,36 +127,36 @@ export const AuthScreen: React.FC = () => {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-1.5 font-athletic">
                 {t('auth.emailLabel')}
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none" />
+                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 pointer-events-none" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t('auth.emailPlaceholder')}
-                  className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all shadow-sm"
+                  className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#1a1a1a] border border-neutral-300 dark:border-neutral-800 rounded-xl text-sm font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all shadow-sm"
                   style={{ '--tw-ring-color': accentColor } as any}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-1.5 font-athletic">
                 {t('auth.passwordLabel')}
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none" />
+                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 pointer-events-none" />
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t('auth.passwordPlaceholder')}
-                  className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all shadow-sm"
+                  className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#1a1a1a] border border-neutral-300 dark:border-neutral-800 rounded-xl text-sm font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all shadow-sm"
                   style={{ '--tw-ring-color': accentColor } as any}
                 />
               </div>
@@ -164,18 +164,18 @@ export const AuthScreen: React.FC = () => {
 
             {mode === 'signup' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-800 dark:text-slate-200 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-neutral-800 dark:text-neutral-200 mb-1.5 font-athletic">
                   {t('auth.confirmPasswordLabel')}
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none" />
+                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400 pointer-events-none" />
                   <input
                     type="password"
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder={t('auth.confirmPasswordPlaceholder')}
-                    className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all shadow-sm"
+                    className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-[#1a1a1a] border border-neutral-300 dark:border-neutral-800 rounded-xl text-sm font-medium text-neutral-900 dark:text-neutral-100 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all shadow-sm"
                     style={{ '--tw-ring-color': accentColor } as any}
                   />
                 </div>
@@ -185,7 +185,7 @@ export const AuthScreen: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] cursor-pointer"
+              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl text-white font-bold uppercase tracking-wider text-xs font-athletic flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] cursor-pointer"
               style={{ backgroundColor: accentColor }}
             >
               {isSubmitting ? (
@@ -200,13 +200,13 @@ export const AuthScreen: React.FC = () => {
           </form>
 
           {/* Supabase Verification Notice */}
-          <div className="mt-6 pt-5 border-t border-slate-300/80 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
-            <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200 mb-1">
+          <div className="mt-6 pt-5 border-t border-neutral-300/80 dark:border-neutral-800 text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
+            <div className="flex items-center gap-1.5 font-bold text-neutral-800 dark:text-neutral-200 mb-1">
               <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
               <span>Phase 0: Supabase Persistence Verification</span>
             </div>
             <p>
-              Identity is derived purely from Supabase Auth. Upon signup, verify your user in the Supabase Table Editor: both <code className="bg-slate-200/90 dark:bg-slate-800 px-1 py-0.5 rounded text-slate-900 dark:text-slate-100 font-mono">auth.users</code> and <code className="bg-slate-200/90 dark:bg-slate-800 px-1 py-0.5 rounded text-slate-900 dark:text-slate-100 font-mono">public.profiles</code>.
+              Identity is derived purely from Supabase Auth. Upon signup, verify your user in the Supabase Table Editor: both <code className="bg-neutral-200 dark:bg-neutral-800 px-1 py-0.5 rounded text-neutral-900 dark:text-neutral-100 font-mono font-bold">auth.users</code> and <code className="bg-neutral-200 dark:bg-neutral-800 px-1 py-0.5 rounded text-neutral-900 dark:text-neutral-100 font-mono font-bold">public.profiles</code>.
             </p>
           </div>
         </div>

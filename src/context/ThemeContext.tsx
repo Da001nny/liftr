@@ -42,8 +42,24 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { user, token } = useAuth();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [themeMode, setThemeModeState] = useState<ThemeMode>(DEFAULT_PROFILE.theme_mode);
-  const [accentColor, setAccentColorState] = useState<string>(DEFAULT_PROFILE.accent_color);
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('liftr_theme_mode');
+        if (cached === 'light' || cached === 'dark' || cached === 'system') return cached;
+      } catch {}
+    }
+    return 'dark'; // Liftr flagship default is dark
+  });
+  const [accentColor, setAccentColorState] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('liftr_accent_color');
+        if (cached) return cached;
+      } catch {}
+    }
+    return DEFAULT_PROFILE.accent_color;
+  });
   const [surfaceIntensity, setSurfaceIntensityState] = useState<SurfaceIntensity>(DEFAULT_PROFILE.surface_intensity);
   const [gender, setGenderState] = useState<GenderModel>(DEFAULT_PROFILE.gender);
   const [restTimerDefaults, setRestTimerDefaultsState] = useState<RestTimerDefaults>(DEFAULT_PROFILE.rest_timer_defaults);
@@ -77,12 +93,24 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const root = document.documentElement;
     if (effectiveTheme === 'dark') {
       root.classList.add('dark');
+      root.classList.remove('light');
     } else {
       root.classList.remove('dark');
+      root.classList.add('light');
     }
 
     root.setAttribute('data-surface-intensity', surfaceIntensity);
+    root.setAttribute('data-theme', effectiveTheme);
     root.style.setProperty('--accent-color', accentColor);
+    
+    // Convert hex to rgb for rgba CSS variables
+    const hex = accentColor.replace('#', '');
+    if (hex.length === 6) {
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      root.style.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
+    }
   }, [effectiveTheme, surfaceIntensity, accentColor]);
 
   // Load profile from Supabase Postgres when authenticated user changes
@@ -189,11 +217,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setThemeMode = async (mode: ThemeMode) => {
     setThemeModeState(mode);
+    try { localStorage.setItem('liftr_theme_mode', mode); } catch {}
     await persistProfileUpdate({ theme_mode: mode });
   };
 
   const setAccentColor = async (hex: string) => {
     setAccentColorState(hex);
+    try { localStorage.setItem('liftr_accent_color', hex); } catch {}
     await persistProfileUpdate({ accent_color: hex });
   };
 
