@@ -1,6 +1,7 @@
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type SurfaceIntensity = 'low' | 'medium' | 'high';
 export type GenderModel = 'male' | 'female';
+export type SkinTone = 'fair' | 'medium' | 'tan' | 'dark';
 
 export interface RestTimerDefaults {
   defaultRestSeconds: number;
@@ -15,6 +16,8 @@ export interface UserProfile {
   surface_intensity: SurfaceIntensity;
   rest_timer_defaults: RestTimerDefaults;
   gender: GenderModel;
+  skin_tone?: SkinTone;
+  heatmap_glow_color?: string;
   created_at: string;
   updated_at: string;
 }
@@ -38,6 +41,8 @@ export interface Database {
           surface_intensity: SurfaceIntensity;
           rest_timer_defaults: RestTimerDefaults;
           gender: GenderModel;
+          skin_tone?: SkinTone;
+          heatmap_glow_color?: string;
           created_at: string;
           updated_at: string;
         };
@@ -48,6 +53,8 @@ export interface Database {
           surface_intensity?: SurfaceIntensity;
           rest_timer_defaults?: RestTimerDefaults;
           gender?: GenderModel;
+          skin_tone?: SkinTone;
+          heatmap_glow_color?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -58,6 +65,8 @@ export interface Database {
           surface_intensity?: SurfaceIntensity;
           rest_timer_defaults?: RestTimerDefaults;
           gender?: GenderModel;
+          skin_tone?: SkinTone;
+          heatmap_glow_color?: string;
           created_at?: string;
           updated_at?: string;
         };

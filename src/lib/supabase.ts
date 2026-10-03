@@ -22,6 +22,8 @@ export const DEFAULT_PROFILE: Omit<UserProfile, 'id' | 'created_at' | 'updated_a
     compoundRestSeconds: 180,
   },
   gender: 'male',
+  skin_tone: 'medium',
+  heatmap_glow_color: '#00f0ff',
 };
 
 /**

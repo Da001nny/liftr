@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase, DEFAULT_PROFILE } from '../lib/supabase';
-import { ThemeMode, SurfaceIntensity, GenderModel, UserProfile, RestTimerDefaults } from '../types/database';
+import { ThemeMode, SurfaceIntensity, GenderModel, SkinTone, UserProfile, RestTimerDefaults } from '../types/database';
 
 export interface PredefinedColor {
   id: string;
@@ -18,11 +18,36 @@ export const PREDEFINED_ACCENTS: PredefinedColor[] = [
   { id: 'amber-gold', name: 'Amber Gold', hex: '#f59e0b' },
 ];
 
+export const PREDEFINED_GLOW_COLORS: PredefinedColor[] = [
+  { id: 'cyber-cyan', name: 'Cyber Cyan', hex: '#00f0ff' },
+  { id: 'electric-amber', name: 'Amber Heat', hex: '#f59e0b' },
+  { id: 'crimson-pulse', name: 'Crimson Pulse', hex: '#f43f5e' },
+  { id: 'acid-lime', name: 'Acid Lime', hex: '#84cc16' },
+  { id: 'hyper-violet', name: 'Bio-Violet', hex: '#a855f7' },
+  { id: 'emerald-hyper', name: 'Hyper Emerald', hex: '#10b981' },
+];
+
+export interface SkinToneOption {
+  id: SkinTone;
+  name: string;
+  hex: string;
+  description: string;
+}
+
+export const SKIN_TONE_OPTIONS: SkinToneOption[] = [
+  { id: 'fair', name: 'Fair', hex: '#f7d0b5', description: 'Porcelain Peach' },
+  { id: 'medium', name: 'Medium', hex: '#d9a07a', description: 'Warm Olive' },
+  { id: 'tan', name: 'Tan', hex: '#b3764d', description: 'Golden Bronze' },
+  { id: 'dark', name: 'Deep', hex: '#633c24', description: 'Rich Espresso' },
+];
+
 interface ThemeContextType {
   themeMode: ThemeMode;
   accentColor: string;
   surfaceIntensity: SurfaceIntensity;
   gender: GenderModel;
+  skinTone: SkinTone;
+  heatmapGlowColor: string;
   restTimerDefaults: RestTimerDefaults;
   profile: UserProfile | null;
   effectiveTheme: 'light' | 'dark';
@@ -32,6 +57,8 @@ interface ThemeContextType {
   setAccentColor: (hex: string) => Promise<void>;
   setSurfaceIntensity: (intensity: SurfaceIntensity) => Promise<void>;
   setGender: (gender: GenderModel) => Promise<void>;
+  setSkinTone: (tone: SkinTone) => Promise<void>;
+  setHeatmapGlowColor: (hex: string) => Promise<void>;
   setRestTimerDefaults: (defaults: RestTimerDefaults) => Promise<void>;
   reloadProfile: () => Promise<void>;
 }
@@ -62,6 +89,24 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
   const [surfaceIntensity, setSurfaceIntensityState] = useState<SurfaceIntensity>(DEFAULT_PROFILE.surface_intensity);
   const [gender, setGenderState] = useState<GenderModel>(DEFAULT_PROFILE.gender);
+  const [skinTone, setSkinToneState] = useState<SkinTone>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('liftr_skin_tone');
+        if (cached === 'fair' || cached === 'medium' || cached === 'tan' || cached === 'dark') return cached;
+      } catch {}
+    }
+    return DEFAULT_PROFILE.skin_tone || 'medium';
+  });
+  const [heatmapGlowColor, setHeatmapGlowColorState] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('liftr_heatmap_glow_color');
+        if (cached) return cached;
+      } catch {}
+    }
+    return DEFAULT_PROFILE.heatmap_glow_color || '#00f0ff';
+  });
   const [restTimerDefaults, setRestTimerDefaultsState] = useState<RestTimerDefaults>(DEFAULT_PROFILE.rest_timer_defaults);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(false);
   const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
@@ -139,6 +184,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setAccentColorState(data.accent_color || '#3b82f6');
         setSurfaceIntensityState(data.surface_intensity || 'medium');
         setGenderState(data.gender || 'male');
+        if (data.skin_tone) setSkinToneState(data.skin_tone);
+        if (data.heatmap_glow_color) setHeatmapGlowColorState(data.heatmap_glow_color);
         if (data.rest_timer_defaults) {
           setRestTimerDefaultsState(data.rest_timer_defaults);
         }
@@ -151,6 +198,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           surface_intensity: 'medium' as const,
           rest_timer_defaults: DEFAULT_PROFILE.rest_timer_defaults,
           gender: 'male' as const,
+          skin_tone: DEFAULT_PROFILE.skin_tone || 'medium',
+          heatmap_glow_color: DEFAULT_PROFILE.heatmap_glow_color || '#00f0ff',
         };
         const { data: created } = await supabase
           .from('profiles')
@@ -237,6 +286,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await persistProfileUpdate({ gender: newGender });
   };
 
+  const setSkinTone = async (tone: SkinTone) => {
+    setSkinToneState(tone);
+    try { localStorage.setItem('liftr_skin_tone', tone); } catch {}
+    await persistProfileUpdate({ skin_tone: tone });
+  };
+
+  const setHeatmapGlowColor = async (hex: string) => {
+    setHeatmapGlowColorState(hex);
+    try { localStorage.setItem('liftr_heatmap_glow_color', hex); } catch {}
+    await persistProfileUpdate({ heatmap_glow_color: hex });
+  };
+
   const setRestTimerDefaults = async (defaults: RestTimerDefaults) => {
     setRestTimerDefaultsState(defaults);
     await persistProfileUpdate({ rest_timer_defaults: defaults });
@@ -249,6 +310,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         accentColor,
         surfaceIntensity,
         gender,
+        skinTone,
+        heatmapGlowColor,
         restTimerDefaults,
         profile,
         effectiveTheme,
@@ -258,6 +321,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setAccentColor,
         setSurfaceIntensity,
         setGender,
+        setSkinTone,
+        setHeatmapGlowColor,
         setRestTimerDefaults,
         reloadProfile: loadProfile,
       }}

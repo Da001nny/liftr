@@ -114,6 +114,9 @@ async function startServer() {
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   app.use(express.json());
+  app.use('/screenshots', express.static(path.join(__dirname, 'public/screenshots')));
+  app.use('/anatomy', express.static(path.join(__dirname, 'public/anatomy')));
+  app.use('/src/assets/images', express.static(path.join(__dirname, 'src/assets/images')));
 
   // 1. Health check endpoint (Public)
   app.get('/api/health', (req, res) => {
@@ -123,6 +126,34 @@ async function startServer() {
       timestamp: new Date().toISOString(),
       version: '0.1.0',
     }));
+  });
+
+  // Hotspot calibration endpoints (Admin / Dev)
+  const CALIBRATION_FILE = path.join(__dirname, 'src', 'data', 'hotspotCalibration.json');
+
+  app.get('/api/calibration', (req, res) => {
+    try {
+      if (fs.existsSync(CALIBRATION_FILE)) {
+        const raw = fs.readFileSync(CALIBRATION_FILE, 'utf-8');
+        return res.json(apiResponse(JSON.parse(raw)));
+      }
+      return res.json(apiResponse(null));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Failed reading calibration: ${err.message}`));
+    }
+  });
+
+  app.post('/api/calibration', (req, res) => {
+    try {
+      const data = req.body;
+      if (!data || typeof data !== 'object') {
+        return res.status(400).json(apiError('Invalid calibration payload'));
+      }
+      fs.writeFileSync(CALIBRATION_FILE, JSON.stringify(data, null, 2), 'utf-8');
+      return res.json(apiResponse({ success: true, savedAt: new Date().toISOString() }));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Failed writing calibration: ${err.message}`));
+    }
   });
 
   // 2. Schema status check (Public)

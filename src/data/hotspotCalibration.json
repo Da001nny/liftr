@@ -1,0 +1,42 @@
+{
+  "male_anterior": {
+    "shoulders": { "x": 50, "y": 19, "radius": 14 },
+    "chest": { "x": 50, "y": 25, "radius": 13 },
+    "arms": { "x": 22, "y": 36, "radius": 11 },
+    "core": { "x": 50, "y": 37, "radius": 12 },
+    "inner_thigh": { "x": 50, "y": 49, "radius": 9 },
+    "legs": { "x": 37, "y": 68, "radius": 15 },
+    "back": { "x": 50, "y": 30, "radius": 10 },
+    "glutes": { "x": 50, "y": 46, "radius": 10 }
+  },
+  "male_posterior": {
+    "shoulders": { "x": 50, "y": 19, "radius": 14 },
+    "back": { "x": 50, "y": 28, "radius": 14 },
+    "arms": { "x": 22, "y": 36, "radius": 11 },
+    "glutes": { "x": 50, "y": 46, "radius": 13 },
+    "legs": { "x": 37, "y": 68, "radius": 15 },
+    "core": { "x": 50, "y": 38, "radius": 10 },
+    "chest": { "x": 50, "y": 25, "radius": 10 },
+    "inner_thigh": { "x": 50, "y": 50, "radius": 9 }
+  },
+  "female_anterior": {
+    "shoulders": { "x": 50, "y": 19, "radius": 14 },
+    "chest": { "x": 50, "y": 25, "radius": 12 },
+    "arms": { "x": 22, "y": 36, "radius": 11 },
+    "core": { "x": 50, "y": 36, "radius": 11 },
+    "inner_thigh": { "x": 50, "y": 49, "radius": 9 },
+    "legs": { "x": 37, "y": 68, "radius": 15 },
+    "back": { "x": 50, "y": 30, "radius": 10 },
+    "glutes": { "x": 50, "y": 45, "radius": 10 }
+  },
+  "female_posterior": {
+    "shoulders": { "x": 50, "y": 19, "radius": 14 },
+    "back": { "x": 50, "y": 28, "radius": 13 },
+    "arms": { "x": 22, "y": 36, "radius": 11 },
+    "glutes": { "x": 50, "y": 45, "radius": 13 },
+    "legs": { "x": 37, "y": 68, "radius": 15 },
+    "core": { "x": 50, "y": 37, "radius": 10 },
+    "chest": { "x": 50, "y": 25, "radius": 10 },
+    "inner_thigh": { "x": 50, "y": 50, "radius": 9 }
+  }
+}
