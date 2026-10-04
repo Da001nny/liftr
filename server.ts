@@ -18,6 +18,13 @@ import {
   filterExercisesByRegion,
   reverseSearchByMuscle,
 } from './src/data/exerciseCatalog.ts';
+import {
+  calculateEstimated1RM,
+  calculateSingleSetVolume,
+  calculateTotalSessionVolume,
+  detectPersonalRecords,
+  calculateCalendarConsistency,
+} from './src/lib/calculations.ts';
 
 dotenv.config();
 
@@ -528,6 +535,917 @@ async function startServer() {
       return res.json(apiResponse(enriched, enriched.length, 1, enriched.length));
     } catch (err: any) {
       return res.status(500).json(apiError(`Error in reverse muscle search: ${err.message}`));
+    }
+  });
+
+  // =========================================================================
+  // PHASE 3: WORKOUT LOGGING, TEMPLATES, PRS, AND PROGRESSION
+  // =========================================================================
+
+  /**
+   * Authoritative PR Reconciler:
+   * Replays completed workout history in chronological order.
+   * Enforces strict '>' rule for all 4 PR categories.
+   * Atomically replaces personal_records for affected exercise(s).
+   * Guarantees zero phantom PRs on workout edit or deletion.
+   */
+  async function reconcileUserPRs(client: any, userId: string, targetExerciseId?: string) {
+    try {
+      const { data: workouts, error: wError } = await client
+        .from('workouts')
+        .select(`
+          id,
+          started_at,
+          completed_at,
+          workout_exercises (
+            id,
+            exercise_id,
+            workout_sets (
+              id,
+              set_number,
+              set_type,
+              weight,
+              reps,
+              completed,
+              completed_at
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: true, nullsFirst: false });
+
+      if (wError || !workouts) {
+        console.error('[reconcileUserPRs] Error fetching completed workouts:', wError);
+        return [];
+      }
+
+      // Group candidate sets by exerciseId across chronological workouts
+      const exerciseSetsMap = new Map<string, Array<{
+        workoutId: string;
+        setId: string;
+        weight: number;
+        reps: number;
+        achievedAt: string;
+      }>>();
+
+      for (const w of workouts) {
+        const achievedAt = w.completed_at || w.started_at || new Date().toISOString();
+        for (const we of (w.workout_exercises || [])) {
+          if (targetExerciseId && we.exercise_id !== targetExerciseId) continue;
+          if (!exerciseSetsMap.has(we.exercise_id)) {
+            exerciseSetsMap.set(we.exercise_id, []);
+          }
+          for (const s of (we.workout_sets || [])) {
+            if (s.completed && s.set_type !== 'warmup' && Number(s.weight) > 0 && Number(s.reps) > 0) {
+              exerciseSetsMap.get(we.exercise_id)!.push({
+                workoutId: w.id,
+                setId: s.id,
+                weight: Number(s.weight),
+                reps: Number(s.reps),
+                achievedAt: s.completed_at || achievedAt,
+              });
+            }
+          }
+        }
+      }
+
+      // Delete existing PRs for the target scope
+      let deleteOp = client.from('personal_records').delete().eq('user_id', userId);
+      if (targetExerciseId) {
+        deleteOp = deleteOp.eq('exercise_id', targetExerciseId);
+      }
+      await deleteOp;
+
+      const prsToInsert: Array<{
+        user_id: string;
+        exercise_id: string;
+        workout_id: string;
+        workout_set_id: string;
+        category: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
+        value: number;
+        reps: number | null;
+        achieved_at: string;
+      }> = [];
+
+      for (const [exId, candidateSets] of exerciseSetsMap.entries()) {
+        let heaviestWeight = 0;
+        let bestEstimated1RM = 0;
+        let bestSingleSetVolume = 0;
+        const repPRsByWeight: Record<number, number> = {};
+
+        for (const cand of candidateSets) {
+          const res = detectPersonalRecords(
+            { weight: cand.weight, reps: cand.reps },
+            { heaviestWeight, bestEstimated1RM, bestSingleSetVolume, repPRsByWeight }
+          );
+
+          if (res.isHeaviestWeightPR && res.newHeaviestWeight !== undefined) {
+            heaviestWeight = res.newHeaviestWeight;
+            prsToInsert.push({
+              user_id: userId,
+              exercise_id: exId,
+              workout_id: cand.workoutId,
+              workout_set_id: cand.setId,
+              category: 'heaviest_weight',
+              value: res.newHeaviestWeight,
+              reps: cand.reps,
+              achieved_at: cand.achievedAt,
+            });
+          }
+
+          if (res.isEstimated1RMPR && res.newEstimated1RM !== undefined) {
+            bestEstimated1RM = res.newEstimated1RM;
+            prsToInsert.push({
+              user_id: userId,
+              exercise_id: exId,
+              workout_id: cand.workoutId,
+              workout_set_id: cand.setId,
+              category: 'best_estimated_1rm',
+              value: res.newEstimated1RM,
+              reps: cand.reps,
+              achieved_at: cand.achievedAt,
+            });
+          }
+
+          if (res.isSingleSetVolumePR && res.newSingleSetVolume !== undefined) {
+            bestSingleSetVolume = res.newSingleSetVolume;
+            prsToInsert.push({
+              user_id: userId,
+              exercise_id: exId,
+              workout_id: cand.workoutId,
+              workout_set_id: cand.setId,
+              category: 'best_single_set_volume',
+              value: res.newSingleSetVolume,
+              reps: cand.reps,
+              achieved_at: cand.achievedAt,
+            });
+          }
+
+          if (res.isRepPR && res.newRepPR) {
+            repPRsByWeight[res.newRepPR.weight] = res.newRepPR.reps;
+            prsToInsert.push({
+              user_id: userId,
+              exercise_id: exId,
+              workout_id: cand.workoutId,
+              workout_set_id: cand.setId,
+              category: 'rep_pr',
+              value: res.newRepPR.weight,
+              reps: res.newRepPR.reps,
+              achieved_at: cand.achievedAt,
+            });
+          }
+        }
+      }
+
+      if (prsToInsert.length > 0) {
+        const { data: inserted, error: insertError } = await client
+          .from('personal_records')
+          .insert(prsToInsert)
+          .select();
+        if (insertError) {
+          console.error('[reconcileUserPRs] Insert error:', insertError);
+        }
+        return inserted || [];
+      }
+      return [];
+    } catch (err) {
+      console.error('[reconcileUserPRs] Unexpected error:', err);
+      return [];
+    }
+  }
+
+  // 12. List Workouts (Protected)
+  app.get('/api/workouts', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 20;
+    const offset = (page - 1) * limit;
+
+    try {
+      const { data, count, error } = await client
+        .from('workouts')
+        .select('*', { count: 'exact' })
+        .eq('user_id', user.id)
+        .order('started_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        return res.status(500).json(apiError(`Error loading workouts: ${error.message}`));
+      }
+
+      return res.json(apiResponse(data || [], count || (data ? data.length : 0), page, limit));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error loading workouts: ${err.message}`));
+    }
+  });
+
+  // 13. Get Active In-Progress Workout (Protected)
+  app.get('/api/workouts/active', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+
+    try {
+      const { data: workout, error: wError } = await client
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'in_progress')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (wError) {
+        return res.status(500).json(apiError(`Error checking active workout: ${wError.message}`));
+      }
+
+      if (!workout) {
+        return res.json(apiResponse(null, 0, 1, 0));
+      }
+
+      // Load exercises and sets for this workout
+      const { data: exercises, error: eError } = await client
+        .from('workout_exercises')
+        .select(`
+          *,
+          workout_sets (*)
+        `)
+        .eq('workout_id', workout.id)
+        .order('order_index', { ascending: true });
+
+      if (eError) {
+        return res.status(500).json(apiError(`Error loading workout exercises: ${eError.message}`));
+      }
+
+      const formattedExercises = (exercises || []).map((we: any) => {
+        const exMeta = EXERCISE_MAP.get(we.exercise_id);
+        const sortedSets = (we.workout_sets || []).sort((a: any, b: any) => a.set_number - b.set_number);
+        return {
+          ...we,
+          exerciseName: exMeta ? exMeta.name : we.exercise_id,
+          exerciseTargetRegion: exMeta ? exMeta.targetRegionId : '',
+          sets: sortedSets,
+        };
+      });
+
+      const session = {
+        ...workout,
+        exercises: formattedExercises,
+      };
+
+      return res.json(apiResponse(session, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error getting active workout: ${err.message}`));
+    }
+  });
+
+  // 14. Start / Create Workout (Protected)
+  app.post('/api/workouts', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const { name, templateId, exercises } = req.body;
+
+    try {
+      const workoutName = name && name.trim().length > 0 
+        ? name.trim() 
+        : `Workout ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+
+      const { data: workout, error: wError } = await client
+        .from('workouts')
+        .insert({
+          user_id: user.id,
+          template_id: templateId || null,
+          name: workoutName,
+          status: 'in_progress',
+          started_at: new Date().toISOString(),
+          duration_seconds: 0,
+          total_volume: 0,
+        })
+        .select()
+        .single();
+
+      if (wError || !workout) {
+        return res.status(500).json(apiError(`Error creating workout: ${wError?.message}`));
+      }
+
+      const builtExercises: any[] = [];
+
+      // If starting from a template and no custom exercises provided, populate from template
+      if (templateId && (!exercises || exercises.length === 0)) {
+        const { data: tplExercises } = await client
+          .from('template_exercises')
+          .select('*')
+          .eq('template_id', templateId)
+          .order('order_index', { ascending: true });
+
+        if (tplExercises && tplExercises.length > 0) {
+          for (let i = 0; i < tplExercises.length; i++) {
+            const te = tplExercises[i];
+            const { data: we } = await client
+              .from('workout_exercises')
+              .insert({
+                workout_id: workout.id,
+                exercise_id: te.exercise_id,
+                order_index: i,
+                notes: te.notes || '',
+                rest_timer_seconds: te.rest_timer_seconds,
+              })
+              .select()
+              .single();
+
+            if (we) {
+              const setsToInsert = [];
+              const numSets = te.default_sets || 3;
+              for (let s = 1; s <= numSets; s++) {
+                setsToInsert.push({
+                  workout_exercise_id: we.id,
+                  set_number: s,
+                  set_type: 'working',
+                  weight: 0,
+                  reps: te.target_reps || 10,
+                  completed: false,
+                });
+              }
+              const { data: insertedSets } = await client
+                .from('workout_sets')
+                .insert(setsToInsert)
+                .select();
+
+              const exMeta = EXERCISE_MAP.get(we.exercise_id);
+              builtExercises.push({
+                ...we,
+                exerciseName: exMeta ? exMeta.name : we.exercise_id,
+                exerciseTargetRegion: exMeta ? exMeta.targetRegionId : '',
+                sets: insertedSets || [],
+              });
+            }
+          }
+        }
+      } else if (exercises && Array.isArray(exercises)) {
+        for (let i = 0; i < exercises.length; i++) {
+          const exInput = exercises[i];
+          const { data: we } = await client
+            .from('workout_exercises')
+            .insert({
+              workout_id: workout.id,
+              exercise_id: exInput.exerciseId,
+              order_index: i,
+              notes: exInput.notes || '',
+              rest_timer_seconds: exInput.restTimerSeconds,
+            })
+            .select()
+            .single();
+
+          if (we) {
+            const setsToInsert = (exInput.sets && exInput.sets.length > 0)
+              ? exInput.sets.map((s: any, idx: number) => ({
+                  workout_exercise_id: we.id,
+                  set_number: idx + 1,
+                  set_type: s.setType || 'working',
+                  weight: s.weight || 0,
+                  reps: s.reps || 0,
+                  rir: s.rir ?? null,
+                  completed: s.completed || false,
+                }))
+              : [
+                  { workout_exercise_id: we.id, set_number: 1, set_type: 'working', weight: 0, reps: 10, completed: false },
+                  { workout_exercise_id: we.id, set_number: 2, set_type: 'working', weight: 0, reps: 10, completed: false },
+                  { workout_exercise_id: we.id, set_number: 3, set_type: 'working', weight: 0, reps: 10, completed: false },
+                ];
+
+            const { data: insertedSets } = await client
+              .from('workout_sets')
+              .insert(setsToInsert)
+              .select();
+
+            const exMeta = EXERCISE_MAP.get(we.exercise_id);
+            builtExercises.push({
+              ...we,
+              exerciseName: exMeta ? exMeta.name : we.exercise_id,
+              exerciseTargetRegion: exMeta ? exMeta.targetRegionId : '',
+              sets: insertedSets || [],
+            });
+          }
+        }
+      }
+
+      const activeSession = {
+        ...workout,
+        exercises: builtExercises,
+      };
+
+      return res.json(apiResponse(activeSession, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error creating workout: ${err.message}`));
+    }
+  });
+
+  // 15. Get Workout Details by ID (Protected)
+  app.get('/api/workouts/:id', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const workoutId = req.params.id;
+
+    try {
+      const { data: workout, error: wError } = await client
+        .from('workouts')
+        .select('*')
+        .eq('id', workoutId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (wError || !workout) {
+        return res.status(404).json(apiError('Workout not found'));
+      }
+
+      const { data: exercises } = await client
+        .from('workout_exercises')
+        .select(`
+          *,
+          workout_sets (*)
+        `)
+        .eq('workout_id', workout.id)
+        .order('order_index', { ascending: true });
+
+      const formattedExercises = (exercises || []).map((we: any) => {
+        const exMeta = EXERCISE_MAP.get(we.exercise_id);
+        const sortedSets = (we.workout_sets || []).sort((a: any, b: any) => a.set_number - b.set_number);
+        return {
+          ...we,
+          exerciseName: exMeta ? exMeta.name : we.exercise_id,
+          exerciseTargetRegion: exMeta ? exMeta.targetRegionId : '',
+          sets: sortedSets,
+        };
+      });
+
+      return res.json(apiResponse({ ...workout, exercises: formattedExercises }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error loading workout: ${err.message}`));
+    }
+  });
+
+  // 16. Update In-Progress Workout (Protected)
+  app.put('/api/workouts/:id', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const workoutId = req.params.id;
+    const { name, durationSeconds, notes, exercises } = req.body;
+
+    try {
+      // 1. Update workout row
+      const updates: any = { updated_at: new Date().toISOString() };
+      if (name !== undefined) updates.name = name;
+      if (durationSeconds !== undefined) updates.duration_seconds = durationSeconds;
+      if (notes !== undefined) updates.notes = notes;
+
+      const { data: workout, error: wError } = await client
+        .from('workouts')
+        .update(updates)
+        .eq('id', workoutId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (wError || !workout) {
+        return res.status(500).json(apiError(`Error updating workout: ${wError?.message}`));
+      }
+
+      // 2. Sync exercises & sets if provided
+      if (exercises && Array.isArray(exercises)) {
+        // Delete existing exercises (CASCADE cleans sets)
+        await client.from('workout_exercises').delete().eq('workout_id', workoutId);
+
+        const newBuiltExercises: any[] = [];
+        for (let i = 0; i < exercises.length; i++) {
+          const ex = exercises[i];
+          const { data: newWe } = await client
+            .from('workout_exercises')
+            .insert({
+              workout_id: workoutId,
+              exercise_id: ex.exercise_id,
+              order_index: i,
+              notes: ex.notes || '',
+              rest_timer_seconds: ex.rest_timer_seconds,
+            })
+            .select()
+            .single();
+
+          if (newWe) {
+            const setsToInsert = (ex.sets || []).map((s: any, idx: number) => ({
+              workout_exercise_id: newWe.id,
+              set_number: idx + 1,
+              set_type: s.set_type || 'working',
+              weight: s.weight || 0,
+              reps: s.reps || 0,
+              rir: s.rir ?? null,
+              completed: s.completed || false,
+              completed_at: s.completed ? (s.completed_at || new Date().toISOString()) : null,
+            }));
+
+            const { data: insertedSets } = await client
+              .from('workout_sets')
+              .insert(setsToInsert)
+              .select();
+
+            const exMeta = EXERCISE_MAP.get(newWe.exercise_id);
+            newBuiltExercises.push({
+              ...newWe,
+              exerciseName: exMeta ? exMeta.name : newWe.exercise_id,
+              exerciseTargetRegion: exMeta ? exMeta.targetRegionId : '',
+              sets: (insertedSets || []).sort((a: any, b: any) => a.set_number - b.set_number),
+            });
+          }
+        }
+        return res.json(apiResponse({ ...workout, exercises: newBuiltExercises }, 1, 1, 1));
+      }
+
+      return res.json(apiResponse(workout, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error updating workout: ${err.message}`));
+    }
+  });
+
+  // 17. Complete Workout & Recalculate PRs Atomically (Protected)
+  app.post('/api/workouts/:id/complete', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const workoutId = req.params.id;
+    const { durationSeconds, notes, exercises } = req.body;
+
+    try {
+      // 1. Sync exercises/sets if provided
+      if (exercises && Array.isArray(exercises)) {
+        await client.from('workout_exercises').delete().eq('workout_id', workoutId);
+        for (let i = 0; i < exercises.length; i++) {
+          const ex = exercises[i];
+          const { data: newWe } = await client
+            .from('workout_exercises')
+            .insert({
+              workout_id: workoutId,
+              exercise_id: ex.exercise_id,
+              order_index: i,
+              notes: ex.notes || '',
+              rest_timer_seconds: ex.rest_timer_seconds,
+            })
+            .select()
+            .single();
+
+          if (newWe && ex.sets) {
+            const setsToInsert = ex.sets.map((s: any, idx: number) => ({
+              workout_exercise_id: newWe.id,
+              set_number: idx + 1,
+              set_type: s.set_type || 'working',
+              weight: s.weight || 0,
+              reps: s.reps || 0,
+              rir: s.rir ?? null,
+              completed: s.completed || false,
+              completed_at: s.completed ? (s.completed_at || new Date().toISOString()) : null,
+            }));
+            await client.from('workout_sets').insert(setsToInsert);
+          }
+        }
+      }
+
+      // 2. Fetch all completed sets for authoritative volume calculation
+      const { data: fullWorkout } = await client
+        .from('workouts')
+        .select(`
+          *,
+          workout_exercises (
+            id,
+            exercise_id,
+            workout_sets (*)
+          )
+        `)
+        .eq('id', workoutId)
+        .single();
+
+      let totalSessionVolume = 0;
+      if (fullWorkout && fullWorkout.workout_exercises) {
+        for (const we of fullWorkout.workout_exercises) {
+          for (const s of (we.workout_sets || [])) {
+            // Authoritative: sum(weight * reps) across completed non-warmup sets only
+            if (s.completed && s.set_type !== 'warmup' && Number(s.weight) > 0 && Number(s.reps) > 0) {
+              totalSessionVolume += calculateSingleSetVolume(Number(s.weight), Number(s.reps));
+            }
+          }
+        }
+      }
+
+      // 3. Mark workout as completed
+      const nowIso = new Date().toISOString();
+      const { data: completedWorkout, error: cError } = await client
+        .from('workouts')
+        .update({
+          status: 'completed',
+          completed_at: nowIso,
+          duration_seconds: durationSeconds || fullWorkout?.duration_seconds || 0,
+          total_volume: totalSessionVolume,
+          notes: notes !== undefined ? notes : fullWorkout?.notes || '',
+          updated_at: nowIso,
+        })
+        .eq('id', workoutId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (cError || !completedWorkout) {
+        return res.status(500).json(apiError(`Error completing workout: ${cError?.message}`));
+      }
+
+      // 4. Atomically recalculate PRs for the user
+      const newPRs = await reconcileUserPRs(client, user.id);
+
+      return res.json(apiResponse({ workout: completedWorkout, newPRs }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error completing workout: ${err.message}`));
+    }
+  });
+
+  // 18. Delete Workout with Cascade and PR Replay (Protected)
+  app.delete('/api/workouts/:id', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const workoutId = req.params.id;
+
+    try {
+      // 1. Delete workout (CASCADE drops workout_exercises and workout_sets)
+      const { error: dError } = await client
+        .from('workouts')
+        .delete()
+        .eq('id', workoutId)
+        .eq('user_id', user.id);
+
+      if (dError) {
+        return res.status(500).json(apiError(`Error deleting workout: ${dError.message}`));
+      }
+
+      // 2. Reconcile PRs across remaining history so no phantom PRs exist!
+      await reconcileUserPRs(client, user.id);
+
+      return res.json(apiResponse({ success: true, deletedId: workoutId }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error deleting workout: ${err.message}`));
+    }
+  });
+
+  // 19. List Workout Templates (Protected)
+  app.get('/api/templates', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+
+    try {
+      const { data: templates, error: tError } = await client
+        .from('workout_templates')
+        .select(`
+          *,
+          template_exercises (*)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (tError) {
+        return res.status(500).json(apiError(`Error loading templates: ${tError.message}`));
+      }
+
+      const formatted = (templates || []).map((t: any) => ({
+        ...t,
+        exercises: (t.template_exercises || [])
+          .sort((a: any, b: any) => a.order_index - b.order_index)
+          .map((te: any) => {
+            const exMeta = EXERCISE_MAP.get(te.exercise_id);
+            return {
+              ...te,
+              exerciseName: exMeta ? exMeta.name : te.exercise_id,
+            };
+          }),
+      }));
+
+      return res.json(apiResponse(formatted, formatted.length, 1, formatted.length));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error loading templates: ${err.message}`));
+    }
+  });
+
+  // 20. Create Template (Protected)
+  app.post('/api/templates', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const { name, description, exercises } = req.body;
+
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json(apiError('Template name is required'));
+    }
+
+    try {
+      const { data: template, error: tError } = await client
+        .from('workout_templates')
+        .insert({
+          user_id: user.id,
+          name: name.trim(),
+          description: description ? description.trim() : '',
+        })
+        .select()
+        .single();
+
+      if (tError || !template) {
+        return res.status(500).json(apiError(`Error creating template: ${tError?.message}`));
+      }
+
+      const insertedExercises: any[] = [];
+      if (exercises && Array.isArray(exercises) && exercises.length > 0) {
+        const rows = exercises.map((ex: any, idx: number) => ({
+          template_id: template.id,
+          exercise_id: ex.exerciseId,
+          order_index: idx,
+          default_sets: ex.defaultSets || 3,
+          target_reps: ex.targetReps || 10,
+          rest_timer_seconds: ex.restTimerSeconds || null,
+          notes: ex.notes || '',
+        }));
+
+        const { data: exData, error: exError } = await client
+          .from('template_exercises')
+          .insert(rows)
+          .select();
+
+        if (exData) {
+          for (const item of exData) {
+            const exMeta = EXERCISE_MAP.get(item.exercise_id);
+            insertedExercises.push({
+              ...item,
+              exerciseName: exMeta ? exMeta.name : item.exercise_id,
+            });
+          }
+        }
+      }
+
+      return res.json(apiResponse({ ...template, exercises: insertedExercises }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error creating template: ${err.message}`));
+    }
+  });
+
+  // 21. Duplicate Template (Protected)
+  app.post('/api/templates/:id/duplicate', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const templateId = req.params.id;
+
+    try {
+      const { data: original, error: oError } = await client
+        .from('workout_templates')
+        .select(`*, template_exercises (*)`)
+        .eq('id', templateId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (oError || !original) {
+        return res.status(404).json(apiError('Original template not found'));
+      }
+
+      const { data: cloned, error: cError } = await client
+        .from('workout_templates')
+        .insert({
+          user_id: user.id,
+          name: `${original.name} (Copy)`,
+          description: original.description,
+        })
+        .select()
+        .single();
+
+      if (cError || !cloned) {
+        return res.status(500).json(apiError(`Error duplicating template: ${cError?.message}`));
+      }
+
+      const clonedExercises: any[] = [];
+      if (original.template_exercises && original.template_exercises.length > 0) {
+        const rows = original.template_exercises.map((te: any) => ({
+          template_id: cloned.id,
+          exercise_id: te.exercise_id,
+          order_index: te.order_index,
+          default_sets: te.default_sets,
+          target_reps: te.target_reps,
+          rest_timer_seconds: te.rest_timer_seconds,
+          notes: te.notes,
+        }));
+
+        const { data: newExercises } = await client
+          .from('template_exercises')
+          .insert(rows)
+          .select();
+
+        if (newExercises) {
+          for (const item of newExercises) {
+            const exMeta = EXERCISE_MAP.get(item.exercise_id);
+            clonedExercises.push({
+              ...item,
+              exerciseName: exMeta ? exMeta.name : item.exercise_id,
+            });
+          }
+        }
+      }
+
+      return res.json(apiResponse({ ...cloned, exercises: clonedExercises }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error duplicating template: ${err.message}`));
+    }
+  });
+
+  // 22. Delete Template (Protected)
+  app.delete('/api/templates/:id', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const templateId = req.params.id;
+
+    try {
+      const { error: dError } = await client
+        .from('workout_templates')
+        .delete()
+        .eq('id', templateId)
+        .eq('user_id', user.id);
+
+      if (dError) {
+        return res.status(500).json(apiError(`Error deleting template: ${dError.message}`));
+      }
+
+      return res.json(apiResponse({ success: true, deletedId: templateId }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error deleting template: ${err.message}`));
+    }
+  });
+
+  // 23. Personal Records Endpoint (Protected)
+  app.get('/api/personal-records', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const exerciseId = req.query.exerciseId as string;
+
+    try {
+      let query = client
+        .from('personal_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('achieved_at', { ascending: false });
+
+      if (exerciseId) {
+        query = query.eq('exercise_id', exerciseId);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        return res.status(500).json(apiError(`Error loading PRs: ${error.message}`));
+      }
+
+      return res.json(apiResponse(data || [], (data || []).length, 1, (data || []).length));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error loading PRs: ${err.message}`));
+    }
+  });
+
+  // 24. Dashboard Summary Endpoint (Protected)
+  app.get('/api/dashboard/summary', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+
+    try {
+      // 1. Completed workouts
+      const { data: completedWorkouts } = await client
+        .from('workouts')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: false });
+
+      const workoutsList = completedWorkouts || [];
+      const sessionsCompleted = workoutsList.length;
+      const totalVolume = workoutsList.reduce((acc: number, w: any) => acc + (Number(w.total_volume) || 0), 0);
+      const recentWorkout = workoutsList.length > 0 ? workoutsList[0] : null;
+
+      // 0 scheduled sessions = 100% baseline intentional default
+      const consistencyPercent = calculateCalendarConsistency(sessionsCompleted, 0);
+
+      // 2. Recent Personal Records
+      const { data: prs } = await client
+        .from('personal_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('achieved_at', { ascending: false })
+        .limit(5);
+
+      const summary = {
+        totalVolume: Math.round(totalVolume * 100) / 100,
+        sessionsCompleted,
+        scheduledSessions: 0,
+        consistencyPercent,
+        recentWorkout,
+        recentPRs: prs || [],
+      };
+
+      return res.json(apiResponse(summary, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error generating dashboard summary: ${err.message}`));
     }
   });
 

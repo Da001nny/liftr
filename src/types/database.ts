@@ -229,6 +229,222 @@ export interface Database {
           }
         ];
       };
+      workout_templates: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          description?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      template_exercises: {
+        Row: {
+          id: string;
+          template_id: string;
+          exercise_id: string;
+          order_index: number;
+          default_sets: number;
+          target_reps: number;
+          rest_timer_seconds: number | null;
+          notes: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          template_id: string;
+          exercise_id: string;
+          order_index?: number;
+          default_sets?: number;
+          target_reps?: number;
+          rest_timer_seconds?: number | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          template_id?: string;
+          exercise_id?: string;
+          order_index?: number;
+          default_sets?: number;
+          target_reps?: number;
+          rest_timer_seconds?: number | null;
+          notes?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      workouts: {
+        Row: {
+          id: string;
+          user_id: string;
+          template_id: string | null;
+          name: string;
+          status: 'in_progress' | 'completed' | 'discarded';
+          started_at: string;
+          completed_at: string | null;
+          duration_seconds: number;
+          total_volume: number;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          template_id?: string | null;
+          name: string;
+          status?: 'in_progress' | 'completed' | 'discarded';
+          started_at?: string;
+          completed_at?: string | null;
+          duration_seconds?: number;
+          total_volume?: number;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          template_id?: string | null;
+          name?: string;
+          status?: 'in_progress' | 'completed' | 'discarded';
+          started_at?: string;
+          completed_at?: string | null;
+          duration_seconds?: number;
+          total_volume?: number;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      workout_exercises: {
+        Row: {
+          id: string;
+          workout_id: string;
+          exercise_id: string;
+          order_index: number;
+          notes: string;
+          rest_timer_seconds: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workout_id: string;
+          exercise_id: string;
+          order_index?: number;
+          notes?: string;
+          rest_timer_seconds?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workout_id?: string;
+          exercise_id?: string;
+          order_index?: number;
+          notes?: string;
+          rest_timer_seconds?: number | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      workout_sets: {
+        Row: {
+          id: string;
+          workout_exercise_id: string;
+          set_number: number;
+          set_type: 'warmup' | 'working' | 'drop' | 'failure';
+          weight: number;
+          reps: number;
+          rir: number | null;
+          completed: boolean;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          workout_exercise_id: string;
+          set_number?: number;
+          set_type?: 'warmup' | 'working' | 'drop' | 'failure';
+          weight?: number;
+          reps?: number;
+          rir?: number | null;
+          completed?: boolean;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          workout_exercise_id?: string;
+          set_number?: number;
+          set_type?: 'warmup' | 'working' | 'drop' | 'failure';
+          weight?: number;
+          reps?: number;
+          rir?: number | null;
+          completed?: boolean;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      personal_records: {
+        Row: {
+          id: string;
+          user_id: string;
+          exercise_id: string;
+          workout_id: string | null;
+          workout_set_id: string | null;
+          category: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
+          value: number;
+          reps: number | null;
+          achieved_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          exercise_id: string;
+          workout_id?: string | null;
+          workout_set_id?: string | null;
+          category: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
+          value: number;
+          reps?: number | null;
+          achieved_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          exercise_id?: string;
+          workout_id?: string | null;
+          workout_set_id?: string | null;
+          category?: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
+          value?: number;
+          reps?: number | null;
+          achieved_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -244,3 +460,30 @@ export interface Database {
     };
   };
 }
+
+// Domain Model Exports for Phase 3
+export type WorkoutStatus = 'in_progress' | 'completed' | 'discarded';
+export type SetType = 'warmup' | 'working' | 'drop' | 'failure';
+export type PRCategory = 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
+
+export type WorkoutRow = Database['public']['Tables']['workouts']['Row'];
+export type WorkoutExerciseRow = Database['public']['Tables']['workout_exercises']['Row'];
+export type WorkoutSetRow = Database['public']['Tables']['workout_sets']['Row'];
+export type PersonalRecordRow = Database['public']['Tables']['personal_records']['Row'];
+export type WorkoutTemplateRow = Database['public']['Tables']['workout_templates']['Row'];
+export type TemplateExerciseRow = Database['public']['Tables']['template_exercises']['Row'];
+
+export interface ActiveWorkoutSet extends WorkoutSetRow {
+  tempId?: string;
+}
+
+export interface ActiveWorkoutExercise extends WorkoutExerciseRow {
+  exerciseName?: string;
+  exerciseTargetRegion?: string;
+  sets: ActiveWorkoutSet[];
+}
+
+export interface ActiveWorkoutSession extends WorkoutRow {
+  exercises: ActiveWorkoutExercise[];
+}
+
