@@ -16,11 +16,10 @@ import { ExerciseLibrary } from './ExerciseLibrary';
 import { ReverseMuscleSearch } from './ReverseMuscleSearch';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { EnrichedExercise } from '../lib/exerciseService';
-import { ActiveWorkoutSession, PersonalRecordRow } from '../types/database';
-import { fetchActiveWorkout } from '../lib/workoutService';
+import { ActiveWorkoutSession } from '../types/database';
+import { useWorkout } from '../context/WorkoutContext';
 import { TemplatesSection } from './workout/TemplatesSection';
 import { WorkoutHistoryView } from './workout/WorkoutHistoryView';
-import { ActiveWorkoutModal } from './workout/ActiveWorkoutModal';
 
 type WorkoutTab = 'routines' | 'catalog' | 'reverseSearch' | 'history';
 
@@ -28,26 +27,10 @@ export const WorkoutsView: React.FC = () => {
   const { t } = useTranslation();
   const { accentColor } = useTheme();
   const { token } = useAuth();
+  const { activeSession, setActiveSession, historyRefreshKey } = useWorkout();
 
   const [activeTab, setActiveTab] = useState<WorkoutTab>('routines');
   const [selectedExercise, setSelectedExercise] = useState<EnrichedExercise | null>(null);
-  const [activeSession, setActiveSession] = useState<ActiveWorkoutSession | null>(null);
-  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
-
-  // Restore any active in-progress workout on mount
-  useEffect(() => {
-    if (!token) return;
-    fetchActiveWorkout(token).then(session => {
-      if (session) {
-        setActiveSession(session);
-      }
-    });
-  }, [token]);
-
-  const handleWorkoutCompleted = (completedWorkout: any, newPRs: PersonalRecordRow[]) => {
-    setActiveSession(null);
-    setHistoryRefreshKey(prev => prev + 1);
-  };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-24 md:pb-12">
@@ -139,19 +122,6 @@ export const WorkoutsView: React.FC = () => {
         exercise={selectedExercise} 
         onClose={() => setSelectedExercise(null)} 
       />
-
-      {/* Active Workout Takeover Modal (Dockable & Minimizable) */}
-      {activeSession && (
-        <ActiveWorkoutModal
-          session={activeSession}
-          onSessionUpdated={(updated) => setActiveSession(updated)}
-          onSessionClosed={() => {
-            setActiveSession(null);
-            setHistoryRefreshKey(prev => prev + 1);
-          }}
-          onWorkoutCompleted={handleWorkoutCompleted}
-        />
-      )}
     </div>
   );
 };

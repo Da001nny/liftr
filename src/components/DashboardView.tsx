@@ -16,6 +16,7 @@ import {
 import { TabId } from './Navigation';
 import { calculateCalendarConsistency, formatLocalTimestamp } from '../lib/calculations';
 import { fetchDashboardSummary, DashboardSummaryData } from '../lib/workoutService';
+import { useWorkout } from '../context/WorkoutContext';
 
 interface DashboardViewProps {
   onNavigateTab: (tab: TabId) => void;
@@ -25,6 +26,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
   const { t } = useTranslation();
   const { accentColor } = useTheme();
   const { token } = useAuth();
+  const { historyRefreshKey } = useWorkout();
 
   const [summary, setSummary] = useState<DashboardSummaryData>({
     totalVolume: 0,
@@ -45,7 +47,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
       setSummary(data);
       setLoading(false);
     });
-  }, [token]);
+  }, [token, historyRefreshKey]);
 
   const { totalVolume, sessionsCompleted, consistencyPercent, recentWorkout, recentPRs } = summary;
 
