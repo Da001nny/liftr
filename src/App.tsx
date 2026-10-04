@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { WorkoutProvider } from './context/WorkoutContext';
 import { Navigation, TabId } from './components/Navigation';
 import { SupabaseMigrationBanner } from './components/SupabaseMigrationBanner';
 import { AuthScreen } from './components/AuthScreen';
@@ -80,7 +81,9 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <MainApp />
+        <WorkoutProvider>
+          <MainApp />
+        </WorkoutProvider>
       </ThemeProvider>
     </AuthProvider>
   );

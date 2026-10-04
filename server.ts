@@ -183,6 +183,27 @@ async function startServer() {
 
       const phase1Ready = exercisesTableExists && musclesTableExists && regionsTableExists && contributionsTableExists;
 
+      // Phase 3 tables
+      const { error: wErr } = await supabaseServer.from('workouts').select('id').limit(1);
+      const workoutsTableExists = !wErr || (wErr.code !== 'PGRST205' && !wErr.message.includes('workouts'));
+
+      const { error: weErr } = await supabaseServer.from('workout_exercises').select('id').limit(1);
+      const workoutExercisesTableExists = !weErr || (weErr.code !== 'PGRST205' && !weErr.message.includes('workout_exercises'));
+
+      const { error: wsErr } = await supabaseServer.from('workout_sets').select('id').limit(1);
+      const workoutSetsTableExists = !wsErr || (wsErr.code !== 'PGRST205' && !wsErr.message.includes('workout_sets'));
+
+      const { error: prErr } = await supabaseServer.from('personal_records').select('id').limit(1);
+      const prsTableExists = !prErr || (prErr.code !== 'PGRST205' && !prErr.message.includes('personal_records'));
+
+      const { error: wtErr } = await supabaseServer.from('workout_templates').select('id').limit(1);
+      const templatesTableExists = !wtErr || (wtErr.code !== 'PGRST205' && !wtErr.message.includes('workout_templates'));
+
+      const { error: teErr } = await supabaseServer.from('template_exercises').select('id').limit(1);
+      const templateExercisesTableExists = !teErr || (teErr.code !== 'PGRST205' && !teErr.message.includes('template_exercises'));
+
+      const phase3Ready = workoutsTableExists && workoutExercisesTableExists && workoutSetsTableExists && prsTableExists && templatesTableExists && templateExercisesTableExists;
+
       return res.json(apiResponse({
         profilesTableExists,
         exercisesTableExists,
@@ -190,15 +211,22 @@ async function startServer() {
         regionsTableExists,
         contributionsTableExists,
         phase1Ready,
+        workoutsTableExists,
+        workoutExercisesTableExists,
+        workoutSetsTableExists,
+        prsTableExists,
+        templatesTableExists,
+        templateExercisesTableExists,
+        phase3Ready,
         counts: {
           exercises: exercisesTableExists ? 203 : 0,
           muscles: musclesTableExists ? 36 : 0,
           regions: regionsTableExists ? 8 : 0,
           contributions: contributionsTableExists ? 820 : 0,
         },
-        message: phase1Ready 
-          ? 'Phase 0 and Phase 1 Supabase tables are connected and verified.'
-          : 'Supabase catalog tables pending migration.',
+        message: phase3Ready
+          ? 'Phase 0, 1, and 3 Supabase tables are connected and verified.'
+          : (phase1Ready ? 'Phase 3 workout & progression tables pending migration.' : 'Supabase catalog tables pending migration.'),
       }));
     } catch (err: any) {
       return res.json(apiResponse({
@@ -208,6 +236,13 @@ async function startServer() {
         regionsTableExists: false,
         contributionsTableExists: false,
         phase1Ready: false,
+        workoutsTableExists: false,
+        workoutExercisesTableExists: false,
+        workoutSetsTableExists: false,
+        prsTableExists: false,
+        templatesTableExists: false,
+        templateExercisesTableExists: false,
+        phase3Ready: false,
         error: err?.message || 'Database connection error',
       }));
     }
@@ -378,6 +413,20 @@ async function startServer() {
       if (fs.existsSync(sqlPath)) {
         const sql = fs.readFileSync(sqlPath, 'utf-8');
         return res.json(apiResponse({ sql, filename: '002_create_exercise_catalog.sql' }));
+      }
+      return res.status(404).json(apiError('Migration SQL file not found'));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Failed to read migration SQL: ${err.message}`));
+    }
+  });
+
+  // Phase 3 SQL Migration Endpoint (Public)
+  app.get('/api/migration-sql/phase-3', (req, res) => {
+    try {
+      const sqlPath = path.resolve('supabase/migrations/003_create_workout_progression.sql');
+      if (fs.existsSync(sqlPath)) {
+        const sql = fs.readFileSync(sqlPath, 'utf-8');
+        return res.json(apiResponse({ sql, filename: '003_create_workout_progression.sql' }));
       }
       return res.status(404).json(apiError('Migration SQL file not found'));
     } catch (err: any) {

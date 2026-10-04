@@ -245,6 +245,14 @@ export const en = {
     verifiedDesc: 'All 203 exercises and 820 contributions are active in your Supabase database.',
     closeModal: 'Close',
   },
+  supabasePhase3: {
+    bannerTitle: 'Supabase Phase 3: Workout Logging & Progression Migration',
+    bannerDesc: 'Run migration 003 in your Supabase SQL Editor to enable workouts, workout_exercises, workout_sets, personal_records, workout_templates, and template_exercises with RLS.',
+    copySqlButton: 'Copy Migration 003 SQL',
+    viewSqlButton: 'View Phase 3 SQL',
+    openEditorButton: 'Open Supabase SQL Editor',
+    sqlCopied: 'Phase 3 SQL copied! Paste into Supabase SQL Editor and click Run.',
+  },
   body: {
     title: 'Body & Recovery',
     subtitle: 'Muscular recovery mapping and stimulus visualization',

@@ -49,6 +49,9 @@ export function calculateEstimated1RM(weight: number, reps: number): number {
 /**
  * Single-Set Volume calculation
  * Formula: weight * reps for ONE set (not session total)
+ * 
+ * BEST VOLUME INTERPRETATION: Represents best single-set volume (weight * reps), not session total volume.
+ * Documented per specification: Volume PR evaluates maximal output achieved in a single discrete set.
  */
 export function calculateSingleSetVolume(weight: number, reps: number): number {
   if (weight <= 0 || reps <= 0) return 0;
@@ -57,13 +60,37 @@ export function calculateSingleSetVolume(weight: number, reps: number): number {
 
 /**
  * Total Session Volume calculation
- * Formula: sum of (weight * reps) for all completed sets
+ * Formula: sum of (weight * reps) for all completed, non-warmup working sets only.
+ * Warmup sets are excluded from total volume and set/rep counts per Phase 3 specifications.
  */
-export function calculateTotalSessionVolume(sets: ExerciseSet[]): number {
+export function calculateTotalSessionVolume(sets: Array<{ weight: number; reps: number; is_completed?: boolean; set_type?: string }>): number {
   return sets.reduce((sum, s) => {
-    if (s.completed === false) return sum;
+    // Only completed non-warmup sets count towards total volume
+    if (s.is_completed === false) return sum;
+    if (s.set_type === 'warmup') return sum;
     if (s.weight > 0 && s.reps > 0) {
       return sum + s.weight * s.reps;
+    }
+    return sum;
+  }, 0);
+}
+
+/**
+ * Total Completed Working Sets count
+ * Only completed sets with set_type !== 'warmup' count.
+ */
+export function calculateCompletedWorkingSetsCount(sets: Array<{ is_completed?: boolean; set_type?: string }>): number {
+  return sets.filter(s => s.is_completed === true && s.set_type !== 'warmup').length;
+}
+
+/**
+ * Total Completed Working Reps count
+ * Only completed sets with set_type !== 'warmup' count.
+ */
+export function calculateCompletedWorkingRepsCount(sets: Array<{ reps: number; is_completed?: boolean; set_type?: string }>): number {
+  return sets.reduce((sum, s) => {
+    if (s.is_completed === true && s.set_type !== 'warmup' && s.reps > 0) {
+      return sum + s.reps;
     }
     return sum;
   }, 0);

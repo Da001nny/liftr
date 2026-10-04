@@ -1,8 +1,10 @@
-import { 
+import type { 
   Exercise, 
   Muscle, 
   MuscleRegion, 
-  ExerciseMuscleContribution,
+  ExerciseMuscleContribution
+} from '../data/exerciseCatalog';
+import {
   filterExercisesByRegion,
   reverseSearchByMuscle,
   EXERCISES,
@@ -13,6 +15,20 @@ import {
   MUSCLE_MAP,
   REGION_MAP
 } from '../data/exerciseCatalog';
+
+export { 
+  EXERCISES, 
+  MUSCLES, 
+  MUSCLE_REGIONS, 
+  filterExercisesByRegion, 
+  reverseSearchByMuscle
+};
+export type {
+  Exercise, 
+  Muscle, 
+  MuscleRegion, 
+  ExerciseMuscleContribution
+};
 import { ApiResponse } from './api-response';
 
 export interface ExerciseFilterParams {
@@ -256,6 +272,19 @@ export async function fetchPhase1MigrationSql(): Promise<string | null> {
     }
   } catch (err) {
     console.warn('[exerciseService] Failed to load migration SQL:', err);
+  }
+  return null;
+}
+
+export async function fetchPhase3MigrationSql(): Promise<string | null> {
+  try {
+    const response = await fetch('/api/migration-sql/phase-3');
+    if (response.ok) {
+      const res = await response.json();
+      return res.data?.items?.[0]?.sql || null;
+    }
+  } catch (err) {
+    console.warn('[exerciseService] Failed to load Phase 3 migration SQL:', err);
   }
   return null;
 }
