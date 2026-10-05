@@ -25,6 +25,14 @@ import {
   detectPersonalRecords,
   calculateCalendarConsistency,
 } from './src/lib/calculations.ts';
+import {
+  localTimeToUtcIso,
+  utcIsoToLocalDate,
+  utcIsoToLocalTime,
+  addDaysUtc,
+  getDayOfWeekUtc,
+  generateOccurrencesForSeries,
+} from './src/lib/calendarService.ts';
 
 dotenv.config();
 
@@ -204,6 +212,21 @@ async function startServer() {
 
       const phase3Ready = workoutsTableExists && workoutExercisesTableExists && workoutSetsTableExists && prsTableExists && templatesTableExists && templateExercisesTableExists;
 
+      // Phase 4 tables
+      const { error: sSeriesErr } = await supabaseServer.from('workout_series').select('id').limit(1);
+      const workoutSeriesTableExists = !sSeriesErr || (sSeriesErr.code !== 'PGRST205' && !sSeriesErr.message.includes('workout_series'));
+
+      const { error: sSchedErr } = await supabaseServer.from('scheduled_workouts').select('id').limit(1);
+      const scheduledWorkoutsTableExists = !sSchedErr || (sSchedErr.code !== 'PGRST205' && !sSchedErr.message.includes('scheduled_workouts'));
+
+      const { error: cNotesErr } = await supabaseServer.from('calendar_notes').select('id').limit(1);
+      const calendarNotesTableExists = !cNotesErr || (cNotesErr.code !== 'PGRST205' && !cNotesErr.message.includes('calendar_notes'));
+
+      const { error: cRestErr } = await supabaseServer.from('calendar_rest_days').select('id').limit(1);
+      const calendarRestDaysTableExists = !cRestErr || (cRestErr.code !== 'PGRST205' && !cRestErr.message.includes('calendar_rest_days'));
+
+      const phase4Ready = workoutSeriesTableExists && scheduledWorkoutsTableExists && calendarNotesTableExists && calendarRestDaysTableExists;
+
       return res.json(apiResponse({
         profilesTableExists,
         exercisesTableExists,
@@ -218,15 +241,20 @@ async function startServer() {
         templatesTableExists,
         templateExercisesTableExists,
         phase3Ready,
+        workoutSeriesTableExists,
+        scheduledWorkoutsTableExists,
+        calendarNotesTableExists,
+        calendarRestDaysTableExists,
+        phase4Ready,
         counts: {
           exercises: exercisesTableExists ? 203 : 0,
           muscles: musclesTableExists ? 36 : 0,
           regions: regionsTableExists ? 8 : 0,
           contributions: contributionsTableExists ? 820 : 0,
         },
-        message: phase3Ready
-          ? 'Phase 0, 1, and 3 Supabase tables are connected and verified.'
-          : (phase1Ready ? 'Phase 3 workout & progression tables pending migration.' : 'Supabase catalog tables pending migration.'),
+        message: phase4Ready
+          ? 'Phase 0, 1, 3, and 4 Supabase tables are connected and verified.'
+          : (phase3Ready ? 'Phase 4 calendar & scheduling tables pending migration.' : 'Supabase tables pending migration.'),
       }));
     } catch (err: any) {
       return res.json(apiResponse({
@@ -427,6 +455,20 @@ async function startServer() {
       if (fs.existsSync(sqlPath)) {
         const sql = fs.readFileSync(sqlPath, 'utf-8');
         return res.json(apiResponse({ sql, filename: '003_create_workout_progression.sql' }));
+      }
+      return res.status(404).json(apiError('Migration SQL file not found'));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Failed to read migration SQL: ${err.message}`));
+    }
+  });
+
+  // Phase 4 SQL Migration Endpoint (Public)
+  app.get('/api/migration-sql/phase-4', (req, res) => {
+    try {
+      const sqlPath = path.resolve('supabase/migrations/004_create_calendar_scheduling.sql');
+      if (fs.existsSync(sqlPath)) {
+        const sql = fs.readFileSync(sqlPath, 'utf-8');
+        return res.json(apiResponse({ sql, filename: '004_create_calendar_scheduling.sql' }));
       }
       return res.status(404).json(apiError('Migration SQL file not found'));
     } catch (err: any) {
@@ -1472,8 +1514,24 @@ async function startServer() {
       const totalVolume = workoutsList.reduce((acc: number, w: any) => acc + (Number(w.total_volume) || 0), 0);
       const recentWorkout = workoutsList.length > 0 ? workoutsList[0] : null;
 
+      // Phase 4: Query real scheduled sessions for consistency calculation
+      let explicitlyScheduled = 0;
+      let completedScheduled = 0;
+      try {
+        const { data: schedData } = await client
+          .from('scheduled_workouts')
+          .select('id, status')
+          .eq('user_id', user.id);
+        if (schedData) {
+          explicitlyScheduled = schedData.filter((s: any) => s.status !== 'cancelled').length;
+          completedScheduled = schedData.filter((s: any) => s.status === 'completed').length;
+        }
+      } catch {
+        // Safe fallback if table not yet created
+      }
+
       // 0 scheduled sessions = 100% baseline intentional default
-      const consistencyPercent = calculateCalendarConsistency(sessionsCompleted, 0);
+      const consistencyPercent = calculateCalendarConsistency(completedScheduled, explicitlyScheduled);
 
       // 2. Recent Personal Records
       const { data: prs } = await client
@@ -1486,7 +1544,7 @@ async function startServer() {
       const summary = {
         totalVolume: Math.round(totalVolume * 100) / 100,
         sessionsCompleted,
-        scheduledSessions: 0,
+        scheduledSessions: explicitlyScheduled,
         consistencyPercent,
         recentWorkout,
         recentPRs: prs || [],
@@ -1495,6 +1553,699 @@ async function startServer() {
       return res.json(apiResponse(summary, 1, 1, 1));
     } catch (err: any) {
       return res.status(500).json(apiError(`Server error generating dashboard summary: ${err.message}`));
+    }
+  });
+
+  // =========================================================================
+  // PHASE 4: CALENDAR, RECURRENCE & SCHEDULING ENDPOINTS
+  // =========================================================================
+
+  // In-memory fallback caches if Supabase migration is pending
+  const fallbackSeries = new Map<string, any[]>();
+  const fallbackScheduled = new Map<string, any[]>();
+  const fallbackRestDays = new Map<string, any[]>();
+  const fallbackNotes = new Map<string, any[]>();
+
+  // 1. Get Calendar Month Data (Protected)
+  app.get('/api/calendar/month', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const year = parseInt(req.query.year as string, 10) || new Date().getUTCFullYear();
+    const month = parseInt(req.query.month as string, 10) || (new Date().getUTCMonth() + 1);
+
+    // Compute month boundaries expanded by 7 days on each side for calendar grid display
+    const startMonthStr = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const endMonthStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
+
+    const startDate = addDaysUtc(startMonthStr, -7);
+    const endDate = addDaysUtc(endMonthStr, 14);
+
+    try {
+      // 1. Scheduled Workouts
+      let scheduledWorkouts: any[] = [];
+      const { data: swData, error: swError } = await client
+        .from('scheduled_workouts')
+        .select('*, workout_series(*)')
+        .eq('user_id', user.id)
+        .gte('scheduled_date', startDate)
+        .lte('scheduled_date', endDate)
+        .order('scheduled_date', { ascending: true });
+
+      if (!swError && swData) {
+        scheduledWorkouts = swData;
+      } else {
+        scheduledWorkouts = (fallbackScheduled.get(user.id) || []).filter(
+          s => s.scheduled_date >= startDate && s.scheduled_date <= endDate
+        );
+      }
+
+      // Mark past scheduled workouts as missed if still 'scheduled'
+      const todayStr = new Date().toISOString().slice(0, 10);
+      scheduledWorkouts = scheduledWorkouts.map(sw => {
+        if (sw.status === 'scheduled' && sw.scheduled_date < todayStr) {
+          return { ...sw, status: 'missed' };
+        }
+        return sw;
+      });
+
+      // 2. Completed Workouts
+      const { data: workoutsData } = await client
+        .from('workouts')
+        .select(`
+          *,
+          workout_exercises (
+            *,
+            workout_sets (*)
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .gte('completed_at', `${startDate}T00:00:00.000Z`)
+        .lte('completed_at', `${endDate}T23:59:59.999Z`);
+
+      const completedWorkouts = workoutsData || [];
+
+      // 3. Rest Days
+      let restDays: any[] = [];
+      const { data: rdData, error: rdError } = await client
+        .from('calendar_rest_days')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (!rdError && rdData) {
+        restDays = rdData;
+      } else {
+        restDays = (fallbackRestDays.get(user.id) || []).filter(
+          r => r.date >= startDate && r.date <= endDate
+        );
+      }
+
+      // 4. Notes
+      let notes: any[] = [];
+      const { data: nData, error: nError } = await client
+        .from('calendar_notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: true });
+
+      if (!nError && nData) {
+        notes = nData;
+      } else {
+        notes = (fallbackNotes.get(user.id) || []).filter(
+          n => n.date >= startDate && n.date <= endDate
+        );
+      }
+
+      // 5. Personal Records
+      const { data: prsData } = await client
+        .from('personal_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('achieved_at', `${startDate}T00:00:00.000Z`)
+        .lte('achieved_at', `${endDate}T23:59:59.999Z`);
+
+      const personalRecords = prsData || [];
+
+      // 6. Authoritative Consistency Calculation
+      const explicitlyScheduled = scheduledWorkouts.filter(s => s.status !== 'cancelled').length;
+      const completedScheduled = scheduledWorkouts.filter(s => s.status === 'completed').length;
+      const consistencyPercent = calculateCalendarConsistency(completedScheduled, explicitlyScheduled);
+
+      return res.json(apiResponse({
+        scheduledWorkouts,
+        completedWorkouts,
+        restDays,
+        notes,
+        personalRecords,
+        stats: {
+          totalScheduled: explicitlyScheduled,
+          completedScheduled,
+          consistencyPercent,
+        },
+      }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error loading calendar data: ${err.message}`));
+    }
+  });
+
+  // 2. Create Scheduled Workout or Recurring Series (Protected)
+  app.post('/api/calendar/scheduled', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const {
+      name,
+      templateId,
+      scheduledDate,
+      scheduledTime = '09:00',
+      notes,
+      isRecurring = false,
+      recurrenceType = 'weekly',
+      recurrenceInterval = 1,
+      daysOfWeek = [],
+      endDate,
+      userTimezone = 'UTC',
+    } = req.body;
+
+    if (!name || !scheduledDate) {
+      return res.status(400).json(apiError('Name and scheduledDate are required.'));
+    }
+
+    try {
+      if (isRecurring) {
+        // 1. Create WorkoutSeries
+        const seriesPayload = {
+          user_id: user.id,
+          name: name.trim(),
+          template_id: templateId || null,
+          recurrence_type: recurrenceType,
+          recurrence_interval: Math.max(1, parseInt(recurrenceInterval, 10) || 1),
+          days_of_week: Array.isArray(daysOfWeek) ? daysOfWeek : [],
+          start_date: scheduledDate,
+          end_date: endDate || null,
+          target_time: scheduledTime,
+          user_timezone: userTimezone,
+          notes: notes || null,
+        };
+
+        let seriesId = `series_${Date.now()}`;
+        const { data: sData, error: sError } = await client
+          .from('workout_series')
+          .insert(seriesPayload)
+          .select('*')
+          .single();
+
+        if (!sError && sData) {
+          seriesId = sData.id;
+        } else {
+          // In-memory fallback
+          const userSeries = fallbackSeries.get(user.id) || [];
+          const localSeries = { ...seriesPayload, id: seriesId, created_at: new Date().toISOString() };
+          userSeries.push(localSeries);
+          fallbackSeries.set(user.id, userSeries);
+        }
+
+        // 2. Generate Occurrences strictly walking UTC dates & deriving local UTC at point of computation
+        const occurrences = generateOccurrencesForSeries({
+          recurrenceType,
+          recurrenceInterval: Math.max(1, parseInt(recurrenceInterval, 10) || 1),
+          daysOfWeek,
+          startDate: scheduledDate,
+          endDate: endDate || null,
+          targetTime: scheduledTime,
+          userTimezone,
+          horizonDays: 90,
+        });
+
+        const rowsToInsert = occurrences.map(occ => ({
+          user_id: user.id,
+          series_id: seriesId,
+          template_id: templateId || null,
+          workout_id: null,
+          name: name.trim(),
+          scheduled_date: occ.scheduled_date,
+          scheduled_time: occ.scheduled_time,
+          scheduled_at: occ.scheduled_at,
+          status: 'scheduled',
+          notes: notes || null,
+          is_override: false,
+        }));
+
+        let savedRows: any[] = [];
+        const { data: schedData, error: schedError } = await client
+          .from('scheduled_workouts')
+          .insert(rowsToInsert)
+          .select('*');
+
+        if (!schedError && schedData) {
+          savedRows = schedData;
+        } else {
+          // In-memory fallback
+          const userSched = fallbackScheduled.get(user.id) || [];
+          savedRows = rowsToInsert.map(r => ({ ...r, id: `sched_${Date.now()}_${Math.random().toString(36).slice(2, 7)}` }));
+          fallbackScheduled.set(user.id, [...userSched, ...savedRows]);
+        }
+
+        return res.json(apiResponse(savedRows, savedRows.length, 1, savedRows.length));
+      } else {
+        // Single Standalone Scheduled Workout
+        const scheduledAt = localTimeToUtcIso(scheduledDate, scheduledTime, userTimezone);
+        const payload = {
+          user_id: user.id,
+          series_id: null,
+          template_id: templateId || null,
+          workout_id: null,
+          name: name.trim(),
+          scheduled_date: scheduledDate,
+          scheduled_time: scheduledTime,
+          scheduled_at: scheduledAt,
+          status: 'scheduled',
+          notes: notes || null,
+          is_override: false,
+        };
+
+        const { data, error } = await client
+          .from('scheduled_workouts')
+          .insert(payload)
+          .select('*')
+          .single();
+
+        if (!error && data) {
+          return res.json(apiResponse(data, 1, 1, 1));
+        }
+
+        // Fallback
+        const row = { ...payload, id: `sched_${Date.now()}` };
+        const userSched = fallbackScheduled.get(user.id) || [];
+        fallbackScheduled.set(user.id, [...userSched, row]);
+        return res.json(apiResponse(row, 1, 1, 1));
+      }
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error scheduling workout: ${err.message}`));
+    }
+  });
+
+  // 3. Update Scheduled Workout (Protected, supports 3 scopes)
+  app.put('/api/calendar/scheduled/:id', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const id = req.params.id;
+    const {
+      name,
+      scheduledDate,
+      scheduledTime,
+      status,
+      notes,
+      templateId,
+      scope = 'this_occurrence', // 'this_occurrence' | 'this_and_future' | 'entire_series'
+    } = req.body;
+
+    try {
+      // Find the current scheduled workout
+      let currentSched: any = null;
+      const { data: dbSched } = await client
+        .from('scheduled_workouts')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (dbSched) {
+        currentSched = dbSched;
+      } else {
+        const userSched = fallbackScheduled.get(user.id) || [];
+        currentSched = userSched.find(s => s.id === id);
+      }
+
+      if (!currentSched) {
+        return res.status(404).json(apiError('Scheduled workout not found'));
+      }
+
+      const effectiveDate = scheduledDate || currentSched.scheduled_date;
+      const effectiveTime = scheduledTime || currentSched.scheduled_time;
+      const scheduledAt = localTimeToUtcIso(effectiveDate, effectiveTime, 'UTC');
+
+      // Scope 1: THIS OCCURRENCE ONLY (or non-series item)
+      if (scope === 'this_occurrence' || !currentSched.series_id) {
+        const updatePayload: any = {
+          is_override: true,
+          updated_at: new Date().toISOString(),
+        };
+        if (name !== undefined) updatePayload.name = name.trim();
+        if (scheduledDate !== undefined) updatePayload.scheduled_date = scheduledDate;
+        if (scheduledTime !== undefined) updatePayload.scheduled_time = scheduledTime;
+        if (scheduledDate || scheduledTime) updatePayload.scheduled_at = scheduledAt;
+        if (status !== undefined) updatePayload.status = status;
+        if (notes !== undefined) updatePayload.notes = notes;
+        if (templateId !== undefined) updatePayload.template_id = templateId || null;
+
+        await client
+          .from('scheduled_workouts')
+          .update(updatePayload)
+          .eq('id', id)
+          .eq('user_id', user.id);
+
+        // Also update fallback
+        const userSched = fallbackScheduled.get(user.id) || [];
+        const idx = userSched.findIndex(s => s.id === id);
+        if (idx >= 0) {
+          userSched[idx] = { ...userSched[idx], ...updatePayload };
+          fallbackScheduled.set(user.id, userSched);
+        }
+
+        return res.json(apiResponse({ id, updated: true, scope: 'this_occurrence' }, 1, 1, 1));
+      }
+
+      // Scope 2: THIS AND FUTURE
+      if (scope === 'this_and_future' && currentSched.series_id) {
+        const seriesId = currentSched.series_id;
+        const cutoffDate = currentSched.scheduled_date;
+        const dayBeforeCutoff = addDaysUtc(cutoffDate, -1);
+
+        // 1. Truncate previous series end_date
+        await client
+          .from('workout_series')
+          .update({ end_date: dayBeforeCutoff, updated_at: new Date().toISOString() })
+          .eq('id', seriesId)
+          .eq('user_id', user.id);
+
+        // 2. Delete future occurrences for the previous series from cutoffDate forward
+        await client
+          .from('scheduled_workouts')
+          .delete()
+          .eq('series_id', seriesId)
+          .eq('user_id', user.id)
+          .gte('scheduled_date', cutoffDate)
+          .eq('status', 'scheduled');
+
+        // 3. Create a new series starting from effectiveDate
+        const newSeriesPayload = {
+          user_id: user.id,
+          name: name ? name.trim() : currentSched.name,
+          template_id: templateId !== undefined ? templateId : currentSched.template_id,
+          recurrence_type: 'weekly',
+          recurrence_interval: 1,
+          days_of_week: [getDayOfWeekUtc(effectiveDate)],
+          start_date: effectiveDate,
+          end_date: null,
+          target_time: effectiveTime,
+          user_timezone: 'UTC',
+          notes: notes !== undefined ? notes : currentSched.notes,
+        };
+
+        const { data: newSeries } = await client
+          .from('workout_series')
+          .insert(newSeriesPayload)
+          .select('*')
+          .single();
+
+        const newSeriesId = newSeries ? newSeries.id : `series_${Date.now()}`;
+
+        // 4. Generate new occurrences for the new series
+        const newOccurrences = generateOccurrencesForSeries({
+          recurrenceType: 'weekly',
+          recurrenceInterval: 1,
+          daysOfWeek: [getDayOfWeekUtc(effectiveDate)],
+          startDate: effectiveDate,
+          endDate: null,
+          targetTime: effectiveTime,
+          userTimezone: 'UTC',
+          horizonDays: 90,
+        });
+
+        const rows = newOccurrences.map(occ => ({
+          user_id: user.id,
+          series_id: newSeriesId,
+          template_id: newSeriesPayload.template_id,
+          workout_id: null,
+          name: newSeriesPayload.name,
+          scheduled_date: occ.scheduled_date,
+          scheduled_time: occ.scheduled_time,
+          scheduled_at: occ.scheduled_at,
+          status: 'scheduled',
+          notes: newSeriesPayload.notes,
+          is_override: false,
+        }));
+
+        await client.from('scheduled_workouts').insert(rows);
+
+        // Fallback sync
+        const userSched = fallbackScheduled.get(user.id) || [];
+        const kept = userSched.filter(s => !(s.series_id === seriesId && s.scheduled_date >= cutoffDate && s.status === 'scheduled'));
+        rows.forEach(r => {
+          kept.push({ ...r, id: `sched_${Date.now()}_${Math.random().toString(36).substring(2, 7)}` });
+        });
+        fallbackScheduled.set(user.id, kept);
+
+        return res.json(apiResponse({ updated: true, scope: 'this_and_future', count: rows.length }, 1, 1, 1));
+      }
+
+      // Scope 3: ENTIRE SERIES
+      if (scope === 'entire_series' && currentSched.series_id) {
+        const seriesId = currentSched.series_id;
+        const updateSeries: any = { updated_at: new Date().toISOString() };
+        if (name) updateSeries.name = name.trim();
+        if (scheduledTime) updateSeries.target_time = scheduledTime;
+        if (templateId !== undefined) updateSeries.template_id = templateId || null;
+        if (notes !== undefined) updateSeries.notes = notes;
+
+        await client
+          .from('workout_series')
+          .update(updateSeries)
+          .eq('id', seriesId)
+          .eq('user_id', user.id);
+
+        // Update all scheduled future occurrences in this series
+        const schedUpdate: any = {};
+        if (name) schedUpdate.name = name.trim();
+        if (scheduledTime) schedUpdate.scheduled_time = scheduledTime;
+        if (templateId !== undefined) schedUpdate.template_id = templateId || null;
+        if (notes !== undefined) schedUpdate.notes = notes;
+
+        await client
+          .from('scheduled_workouts')
+          .update(schedUpdate)
+          .eq('series_id', seriesId)
+          .eq('user_id', user.id)
+          .eq('status', 'scheduled');
+
+        // Fallback sync
+        const userSched = fallbackScheduled.get(user.id) || [];
+        userSched.forEach(s => {
+          if (s.series_id === seriesId && s.status === 'scheduled') {
+            if (name) s.name = name.trim();
+            if (scheduledTime) s.scheduled_time = scheduledTime;
+            if (templateId !== undefined) s.template_id = templateId || null;
+            if (notes !== undefined) s.notes = notes;
+          }
+        });
+        fallbackScheduled.set(user.id, userSched);
+
+        return res.json(apiResponse({ updated: true, scope: 'entire_series' }, 1, 1, 1));
+      }
+
+      return res.json(apiResponse({ updated: true }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error updating scheduled workout: ${err.message}`));
+    }
+  });
+
+  // 4. Delete Scheduled Workout (Protected, supports 3 scopes)
+  app.delete('/api/calendar/scheduled/:id', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const id = req.params.id;
+    const scope = (req.query.scope as string) || 'this_occurrence';
+
+    try {
+      let currentSched: any = null;
+      const { data: dbSched } = await client
+        .from('scheduled_workouts')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (dbSched) {
+        currentSched = dbSched;
+      } else {
+        const userSched = fallbackScheduled.get(user.id) || [];
+        currentSched = userSched.find(s => s.id === id);
+      }
+
+      if (!currentSched) {
+        return res.status(404).json(apiError('Scheduled workout not found'));
+      }
+
+      // Scope 1: THIS OCCURRENCE ONLY
+      if (scope === 'this_occurrence' || !currentSched.series_id) {
+        await client
+          .from('scheduled_workouts')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
+
+        // Fallback update
+        const userSched = fallbackScheduled.get(user.id) || [];
+        fallbackScheduled.set(user.id, userSched.filter(s => s.id !== id));
+
+        return res.json(apiResponse({ deleted: true, scope: 'this_occurrence' }, 1, 1, 1));
+      }
+
+      // Scope 2: THIS AND FUTURE
+      if (scope === 'this_and_future' && currentSched.series_id) {
+        const seriesId = currentSched.series_id;
+        const cutoffDate = currentSched.scheduled_date;
+        const dayBeforeCutoff = addDaysUtc(cutoffDate, -1);
+
+        await client
+          .from('workout_series')
+          .update({ end_date: dayBeforeCutoff, updated_at: new Date().toISOString() })
+          .eq('id', seriesId)
+          .eq('user_id', user.id);
+
+        await client
+          .from('scheduled_workouts')
+          .delete()
+          .eq('series_id', seriesId)
+          .eq('user_id', user.id)
+          .gte('scheduled_date', cutoffDate);
+
+        // Fallback
+        const userSched = fallbackScheduled.get(user.id) || [];
+        fallbackScheduled.set(user.id, userSched.filter(s => !(s.series_id === seriesId && s.scheduled_date >= cutoffDate)));
+
+        return res.json(apiResponse({ deleted: true, scope: 'this_and_future' }, 1, 1, 1));
+      }
+
+      // Scope 3: ENTIRE SERIES
+      if (scope === 'entire_series' && currentSched.series_id) {
+        const seriesId = currentSched.series_id;
+        await client
+          .from('workout_series')
+          .delete()
+          .eq('id', seriesId)
+          .eq('user_id', user.id);
+
+        // In case cascade is not enabled in DB
+        await client
+          .from('scheduled_workouts')
+          .delete()
+          .eq('series_id', seriesId)
+          .eq('user_id', user.id);
+
+        // Fallback
+        const userSched = fallbackScheduled.get(user.id) || [];
+        fallbackScheduled.set(user.id, userSched.filter(s => s.series_id !== seriesId));
+
+        return res.json(apiResponse({ deleted: true, scope: 'entire_series' }, 1, 1, 1));
+      }
+
+      return res.json(apiResponse({ deleted: true }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error deleting scheduled workout: ${err.message}`));
+    }
+  });
+
+  // 5. Rest Days
+  app.post('/api/calendar/rest-days', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const { date, notes } = req.body;
+
+    if (!date) return res.status(400).json(apiError('Date is required.'));
+
+    try {
+      const payload = {
+        user_id: user.id,
+        date,
+        notes: notes || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await client
+        .from('calendar_rest_days')
+        .upsert(payload, { onConflict: 'user_id, date' })
+        .select('*')
+        .single();
+
+      if (!error && data) {
+        return res.json(apiResponse(data, 1, 1, 1));
+      }
+
+      // Fallback
+      const userRest = fallbackRestDays.get(user.id) || [];
+      const filtered = userRest.filter(r => r.date !== date);
+      const row = { ...payload, id: `rest_${Date.now()}` };
+      fallbackRestDays.set(user.id, [...filtered, row]);
+      return res.json(apiResponse(row, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error saving rest day: ${err.message}`));
+    }
+  });
+
+  app.delete('/api/calendar/rest-days/:date', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const date = req.params.date;
+
+    try {
+      await client
+        .from('calendar_rest_days')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('date', date);
+
+      // Fallback
+      const userRest = fallbackRestDays.get(user.id) || [];
+      fallbackRestDays.set(user.id, userRest.filter(r => r.date !== date));
+
+      return res.json(apiResponse({ deleted: true, date }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error removing rest day: ${err.message}`));
+    }
+  });
+
+  // 6. Notes
+  app.post('/api/calendar/notes', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const { date, content, category = 'general' } = req.body;
+
+    if (!date || !content) return res.status(400).json(apiError('Date and content are required.'));
+
+    try {
+      const payload = {
+        user_id: user.id,
+        date,
+        content: content.trim(),
+        category,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await client
+        .from('calendar_notes')
+        .insert(payload)
+        .select('*')
+        .single();
+
+      if (!error && data) {
+        return res.json(apiResponse(data, 1, 1, 1));
+      }
+
+      // Fallback
+      const userNotes = fallbackNotes.get(user.id) || [];
+      const row = { ...payload, id: `note_${Date.now()}` };
+      fallbackNotes.set(user.id, [...userNotes, row]);
+      return res.json(apiResponse(row, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error saving calendar note: ${err.message}`));
+    }
+  });
+
+  app.delete('/api/calendar/notes/:id', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const id = req.params.id;
+
+    try {
+      await client
+        .from('calendar_notes')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('id', id);
+
+      // Fallback
+      const userNotes = fallbackNotes.get(user.id) || [];
+      fallbackNotes.set(user.id, userNotes.filter(n => n.id !== id));
+
+      return res.json(apiResponse({ deleted: true, id }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error deleting calendar note: ${err.message}`));
     }
   });
 

@@ -445,6 +445,165 @@ export interface Database {
         };
         Relationships: [];
       };
+      workout_series: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          template_id: string | null;
+          recurrence_type: 'daily' | 'weekly' | 'biweekly' | 'custom';
+          recurrence_interval: number;
+          days_of_week: number[];
+          start_date: string;
+          end_date: string | null;
+          target_time: string;
+          user_timezone: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          template_id?: string | null;
+          recurrence_type: 'daily' | 'weekly' | 'biweekly' | 'custom';
+          recurrence_interval?: number;
+          days_of_week?: number[];
+          start_date: string;
+          end_date?: string | null;
+          target_time?: string;
+          user_timezone?: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          template_id?: string | null;
+          recurrence_type?: 'daily' | 'weekly' | 'biweekly' | 'custom';
+          recurrence_interval?: number;
+          days_of_week?: number[];
+          start_date?: string;
+          end_date?: string | null;
+          target_time?: string;
+          user_timezone?: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      scheduled_workouts: {
+        Row: {
+          id: string;
+          user_id: string;
+          series_id: string | null;
+          template_id: string | null;
+          workout_id: string | null;
+          name: string;
+          scheduled_date: string;
+          scheduled_time: string;
+          scheduled_at: string;
+          status: 'scheduled' | 'completed' | 'missed' | 'cancelled';
+          notes: string | null;
+          is_override: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          series_id?: string | null;
+          template_id?: string | null;
+          workout_id?: string | null;
+          name: string;
+          scheduled_date: string;
+          scheduled_time?: string;
+          scheduled_at: string;
+          status?: 'scheduled' | 'completed' | 'missed' | 'cancelled';
+          notes?: string | null;
+          is_override?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          series_id?: string | null;
+          template_id?: string | null;
+          workout_id?: string | null;
+          name?: string;
+          scheduled_date?: string;
+          scheduled_time?: string;
+          scheduled_at?: string;
+          status?: 'scheduled' | 'completed' | 'missed' | 'cancelled';
+          notes?: string | null;
+          is_override?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      calendar_notes: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          content: string;
+          category: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          date: string;
+          content: string;
+          category?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          date?: string;
+          content?: string;
+          category?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      calendar_rest_days: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          date: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          date?: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -472,6 +631,37 @@ export type WorkoutSetRow = Database['public']['Tables']['workout_sets']['Row'];
 export type PersonalRecordRow = Database['public']['Tables']['personal_records']['Row'];
 export type WorkoutTemplateRow = Database['public']['Tables']['workout_templates']['Row'];
 export type TemplateExerciseRow = Database['public']['Tables']['template_exercises']['Row'];
+
+// Domain Model Exports for Phase 4
+export type RecurrenceType = 'daily' | 'weekly' | 'biweekly' | 'custom';
+export type ScheduleStatus = 'scheduled' | 'completed' | 'missed' | 'cancelled';
+export type EditingScope = 'this_occurrence' | 'this_and_future' | 'entire_series';
+
+export type WorkoutSeriesRow = Database['public']['Tables']['workout_series']['Row'];
+export type ScheduledWorkoutRow = Database['public']['Tables']['scheduled_workouts']['Row'];
+export type CalendarNoteRow = Database['public']['Tables']['calendar_notes']['Row'];
+export type CalendarRestDayRow = Database['public']['Tables']['calendar_rest_days']['Row'];
+
+export interface EnrichedScheduledWorkout extends ScheduledWorkoutRow {
+  series?: WorkoutSeriesRow | null;
+  workout?: WorkoutRow | null;
+  exerciseIds?: string[];
+  muscleIds?: string[];
+}
+
+export interface CalendarDayData {
+  dateStr: string; // YYYY-MM-DD
+  dayNumber: number;
+  isToday: boolean;
+  isCurrentMonth: boolean;
+  scheduledWorkouts: EnrichedScheduledWorkout[];
+  completedWorkouts: WorkoutRow[];
+  restDay: CalendarRestDayRow | null;
+  notes: CalendarNoteRow[];
+  personalRecords: PersonalRecordRow[];
+  trainedMuscles: string[]; // Set of muscle ids trained on this date
+  performedExercises: string[]; // Set of exercise ids performed on this date
+}
 
 export interface ActiveWorkoutSet extends WorkoutSetRow {
   tempId?: string;

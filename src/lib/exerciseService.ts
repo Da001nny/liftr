@@ -288,3 +288,16 @@ export async function fetchPhase3MigrationSql(): Promise<string | null> {
   }
   return null;
 }
+
+export async function fetchPhase4MigrationSql(): Promise<string | null> {
+  try {
+    const response = await fetch('/api/migration-sql/phase-4');
+    if (response.ok) {
+      const res = await response.json();
+      return res.data?.items?.[0]?.sql || null;
+    }
+  } catch (err) {
+    console.warn('[exerciseService] Failed to load Phase 4 migration SQL:', err);
+  }
+  return null;
+}

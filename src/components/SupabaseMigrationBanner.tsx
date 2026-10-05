@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Database as DbIcon, Copy, Check, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { useTranslation } from '../i18n';
-import { fetchPhase1MigrationSql, fetchPhase3MigrationSql } from '../lib/exerciseService';
+import { fetchPhase1MigrationSql, fetchPhase3MigrationSql, fetchPhase4MigrationSql } from '../lib/exerciseService';
 
 interface SchemaStatusData {
   profilesTableExists: boolean;
   exercisesTableExists: boolean;
   phase1Ready: boolean;
   phase3Ready?: boolean;
+  phase4Ready?: boolean;
   counts?: {
     exercises: number;
     muscles: number;
@@ -59,7 +60,8 @@ export const SupabaseMigrationBanner: React.FC = () => {
   const [showSqlModal, setShowSqlModal] = useState<boolean>(false);
   const [phase1Sql, setPhase1Sql] = useState<string>('');
   const [phase3Sql, setPhase3Sql] = useState<string>('');
-  const [activeModalPhase, setActiveModalPhase] = useState<1 | 3>(1);
+  const [phase4Sql, setPhase4Sql] = useState<string>('');
+  const [activeModalPhase, setActiveModalPhase] = useState<1 | 3 | 4>(1);
 
   const runCheck = async () => {
     setChecking(true);
@@ -86,6 +88,9 @@ export const SupabaseMigrationBanner: React.FC = () => {
     fetchPhase3MigrationSql().then(sql => {
       if (sql) setPhase3Sql(sql);
     });
+    fetchPhase4MigrationSql().then(sql => {
+      if (sql) setPhase4Sql(sql);
+    });
   }, []);
 
   const handleCopySql = (sqlText: string) => {
@@ -96,8 +101,8 @@ export const SupabaseMigrationBanner: React.FC = () => {
 
   if (!status) return null;
 
-  // Phase 0, 1, and 3 verified in Supabase Table Editor!
-  if (status.profilesTableExists && status.phase1Ready && status.phase3Ready) {
+  // Phase 0, 1, 3, and 4 verified in Supabase Table Editor!
+  if (status.profilesTableExists && status.phase1Ready && status.phase3Ready && status.phase4Ready) {
     return null;
   }
 
@@ -192,22 +197,63 @@ export const SupabaseMigrationBanner: React.FC = () => {
     );
   }
 
-  // If Phase 1 catalog is pending, render Phase 1 banner
+  // Determine which phase is pending
+  const isPhase4Pending = status.phase1Ready && status.phase3Ready && !status.phase4Ready;
   const isPhase3Pending = status.phase1Ready && !status.phase3Ready;
-  const currentBannerPhase = isPhase3Pending ? 3 : 1;
-  const currentSql = currentBannerPhase === 3 ? phase3Sql : phase1Sql;
+  const currentBannerPhase: 1 | 3 | 4 = isPhase4Pending ? 4 : (isPhase3Pending ? 3 : 1);
+  const currentSql = currentBannerPhase === 4 ? phase4Sql : (currentBannerPhase === 3 ? phase3Sql : phase1Sql);
+
+  const bannerBg = isPhase4Pending 
+    ? 'bg-purple-500/10 border-purple-500/30 text-purple-900 dark:text-purple-200' 
+    : (isPhase3Pending 
+      ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-900 dark:text-indigo-200' 
+      : 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200');
+
+  const iconColor = isPhase4Pending ? 'text-purple-500' : (isPhase3Pending ? 'text-indigo-500' : 'text-blue-500');
+  const titleColor = isPhase4Pending 
+    ? 'text-purple-950 dark:text-purple-100' 
+    : (isPhase3Pending ? 'text-indigo-950 dark:text-indigo-100' : 'text-blue-950 dark:text-blue-100');
+  const descColor = isPhase4Pending 
+    ? 'text-purple-900 dark:text-purple-300' 
+    : (isPhase3Pending ? 'text-indigo-900 dark:text-indigo-300' : 'text-blue-900 dark:text-blue-300');
+
+  const bannerTitle = isPhase4Pending 
+    ? t('supabasePhase4.bannerTitle') 
+    : (isPhase3Pending ? t('supabasePhase3.bannerTitle') : t('supabasePhase1.bannerTitle'));
+  const bannerDesc = isPhase4Pending 
+    ? t('supabasePhase4.bannerDesc') 
+    : (isPhase3Pending ? t('supabasePhase3.bannerDesc') : t('supabasePhase1.bannerDesc'));
+  const copyBtnText = isPhase4Pending 
+    ? t('supabasePhase4.copySqlButton') 
+    : (isPhase3Pending ? t('supabasePhase3.copySqlButton') : t('supabasePhase1.copySqlButton'));
+  const viewBtnText = isPhase4Pending 
+    ? t('supabasePhase4.viewSqlButton') 
+    : (isPhase3Pending ? t('supabasePhase3.viewSqlButton') : t('supabasePhase1.viewSqlButton'));
+  const openBtnText = isPhase4Pending 
+    ? t('supabasePhase4.openEditorButton') 
+    : (isPhase3Pending ? t('supabasePhase3.openEditorButton') : t('supabasePhase1.openEditorButton'));
+
+  const btnBg = isPhase4Pending 
+    ? 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-950 dark:text-purple-100' 
+    : (isPhase3Pending 
+      ? 'bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-950 dark:text-indigo-100' 
+      : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-950 dark:text-blue-100');
+
+  const primaryBtnBg = isPhase4Pending 
+    ? 'bg-purple-600 hover:bg-purple-700' 
+    : (isPhase3Pending ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700');
 
   return (
-    <div className={`border-b px-4 py-3 ${isPhase3Pending ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-900 dark:text-indigo-200' : 'bg-blue-500/10 border-blue-500/30 text-blue-900 dark:text-blue-200'}`}>
+    <div className={`border-b px-4 py-3 ${bannerBg}`}>
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
         <div className="flex items-start gap-2.5">
-          <DbIcon className={`w-4 h-4 shrink-0 mt-0.5 ${isPhase3Pending ? 'text-indigo-500' : 'text-blue-500'}`} />
+          <DbIcon className={`w-4 h-4 shrink-0 mt-0.5 ${iconColor}`} />
           <div>
-            <span className={`font-bold ${isPhase3Pending ? 'text-indigo-950 dark:text-indigo-100' : 'text-blue-950 dark:text-blue-100'}`}>
-              {isPhase3Pending ? t('supabasePhase3.bannerTitle') : t('supabasePhase1.bannerTitle')}
+            <span className={`font-bold ${titleColor}`}>
+              {bannerTitle}
             </span>
-            <p className={`mt-0.5 font-medium ${isPhase3Pending ? 'text-indigo-900 dark:text-indigo-300' : 'text-blue-900 dark:text-blue-300'}`}>
-              {isPhase3Pending ? t('supabasePhase3.bannerDesc') : t('supabasePhase1.bannerDesc')}
+            <p className={`mt-0.5 font-medium ${descColor}`}>
+              {bannerDesc}
             </p>
           </div>
         </div>
@@ -218,24 +264,21 @@ export const SupabaseMigrationBanner: React.FC = () => {
               if (currentSql) {
                 handleCopySql(currentSql);
               } else {
-                const fetchFn = currentBannerPhase === 3 ? fetchPhase3MigrationSql : fetchPhase1MigrationSql;
+                const fetchFn = currentBannerPhase === 4 ? fetchPhase4MigrationSql : (currentBannerPhase === 3 ? fetchPhase3MigrationSql : fetchPhase1MigrationSql);
                 fetchFn().then(sql => {
                   if (sql) {
-                    if (currentBannerPhase === 3) setPhase3Sql(sql);
+                    if (currentBannerPhase === 4) setPhase4Sql(sql);
+                    else if (currentBannerPhase === 3) setPhase3Sql(sql);
                     else setPhase1Sql(sql);
                     handleCopySql(sql);
                   }
                 });
               }
             }}
-            className={`px-2.5 py-1 rounded font-bold transition-colors cursor-pointer flex items-center gap-1 font-athletic uppercase tracking-wider ${
-              isPhase3Pending 
-                ? 'bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-950 dark:text-indigo-100' 
-                : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-950 dark:text-blue-100'
-            }`}
+            className={`px-2.5 py-1 rounded font-bold transition-colors cursor-pointer flex items-center gap-1 font-athletic uppercase tracking-wider ${btnBg}`}
           >
             {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-            <span>{copied ? t('common.copied') : (isPhase3Pending ? t('supabasePhase3.copySqlButton') : t('supabasePhase1.copySqlButton'))}</span>
+            <span>{copied ? t('common.copied') : copyBtnText}</span>
           </button>
           
           <button
@@ -243,31 +286,25 @@ export const SupabaseMigrationBanner: React.FC = () => {
               setActiveModalPhase(currentBannerPhase);
               setShowSqlModal(true);
             }}
-            className={`px-2.5 py-1 rounded font-bold transition-colors cursor-pointer font-athletic uppercase tracking-wider ${
-              isPhase3Pending 
-                ? 'bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-950 dark:text-indigo-100' 
-                : 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-950 dark:text-blue-100'
-            }`}
+            className={`px-2.5 py-1 rounded font-bold transition-colors cursor-pointer font-athletic uppercase tracking-wider ${btnBg}`}
           >
-            {isPhase3Pending ? t('supabasePhase3.viewSqlButton') : t('supabasePhase1.viewSqlButton')}
+            {viewBtnText}
           </button>
 
           <a
             href="https://supabase.com/dashboard/project/cetpdeuuymspiygxnmdg/sql/new"
             target="_blank"
             rel="noopener noreferrer"
-            className={`px-2.5 py-1 rounded text-white font-bold flex items-center gap-1 transition-colors font-athletic uppercase tracking-wider ${
-              isPhase3Pending ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+            className={`px-2.5 py-1 rounded text-white font-bold flex items-center gap-1 transition-colors font-athletic uppercase tracking-wider ${primaryBtnBg}`}
           >
-            <span>{isPhase3Pending ? t('supabasePhase3.openEditorButton') : t('supabasePhase1.openEditorButton')}</span>
+            <span>{openBtnText}</span>
             <ExternalLink className="w-3 h-3" />
           </a>
 
           <button
             onClick={runCheck}
             disabled={checking}
-            className={`p-1 rounded transition-colors cursor-pointer ${isPhase3Pending ? 'hover:bg-indigo-500/20' : 'hover:bg-blue-500/20'}`}
+            className={`p-1 rounded transition-colors cursor-pointer hover:opacity-80`}
             title="Re-check Supabase schema"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin' : ''}`} />
@@ -281,12 +318,16 @@ export const SupabaseMigrationBanner: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
               <div>
                 <h3 className="font-bold text-neutral-900 dark:text-white text-base font-display uppercase">
-                  {activeModalPhase === 3 ? 'Supabase Phase 3 Migration (003_create_workout_progression.sql)' : 'Supabase Phase 1 Migration (002_create_exercise_catalog.sql)'}
+                  {activeModalPhase === 4 
+                    ? 'Supabase Phase 4 Migration (004_create_calendar_scheduling.sql)' 
+                    : (activeModalPhase === 3 ? 'Supabase Phase 3 Migration (003_create_workout_progression.sql)' : 'Supabase Phase 1 Migration (002_create_exercise_catalog.sql)')}
                 </h3>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                  {activeModalPhase === 3 
-                    ? 'Creates workouts, workout_exercises, workout_sets, personal_records, workout_templates, and template_exercises with RLS policies.'
-                    : 'Creates 4 tables (muscle_regions, muscles, exercises, exercise_muscle_contributions) and seeds 203 exercises with 820 contributions.'}
+                  {activeModalPhase === 4
+                    ? 'Creates workout_series, scheduled_workouts, calendar_notes, and calendar_rest_days tables with RLS policies.'
+                    : (activeModalPhase === 3 
+                      ? 'Creates workouts, workout_exercises, workout_sets, personal_records, workout_templates, and template_exercises with RLS policies.'
+                      : 'Creates 4 tables (muscle_regions, muscles, exercises, exercise_muscle_contributions) and seeds 203 exercises with 820 contributions.')}
                 </p>
               </div>
               <button
@@ -298,22 +339,24 @@ export const SupabaseMigrationBanner: React.FC = () => {
             </div>
 
             <div className="my-4 overflow-y-auto flex-1 bg-neutral-950 p-4 rounded-xl text-emerald-400 font-mono text-xs leading-relaxed border border-neutral-800">
-              <pre>{(activeModalPhase === 3 ? phase3Sql : phase1Sql) ? (activeModalPhase === 3 ? phase3Sql : phase1Sql) : 'Loading SQL...'}</pre>
+              <pre>{(activeModalPhase === 4 ? phase4Sql : (activeModalPhase === 3 ? phase3Sql : phase1Sql)) || 'Loading SQL...'}</pre>
             </div>
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-neutral-500">
-                {copied ? (activeModalPhase === 3 ? t('supabasePhase3.sqlCopied') : t('supabasePhase1.sqlCopied')) : 'Copy and paste into your Supabase SQL Editor'}
+                {copied 
+                  ? (activeModalPhase === 4 ? t('supabasePhase4.sqlCopied') : (activeModalPhase === 3 ? t('supabasePhase3.sqlCopied') : t('supabasePhase1.sqlCopied'))) 
+                  : 'Copy and paste into your Supabase SQL Editor'}
               </span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleCopySql(activeModalPhase === 3 ? phase3Sql : phase1Sql)}
+                  onClick={() => handleCopySql(activeModalPhase === 4 ? phase4Sql : (activeModalPhase === 3 ? phase3Sql : phase1Sql))}
                   className={`px-4 py-2 text-white text-xs font-bold font-athletic uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer ${
-                    activeModalPhase === 3 ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700'
+                    activeModalPhase === 4 ? 'bg-purple-600 hover:bg-purple-700' : (activeModalPhase === 3 ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700')
                   }`}
                 >
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? t('common.copied') : (activeModalPhase === 3 ? t('supabasePhase3.copySqlButton') : t('supabasePhase1.copySqlButton'))}</span>
+                  <span>{copied ? t('common.copied') : (activeModalPhase === 4 ? t('supabasePhase4.copySqlButton') : (activeModalPhase === 3 ? t('supabasePhase3.copySqlButton') : t('supabasePhase1.copySqlButton')))}</span>
                 </button>
                 <a
                   href="https://supabase.com/dashboard/project/cetpdeuuymspiygxnmdg/sql/new"
@@ -321,7 +364,7 @@ export const SupabaseMigrationBanner: React.FC = () => {
                   rel="noopener noreferrer"
                   className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-bold font-athletic uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-colors"
                 >
-                  <span>{activeModalPhase === 3 ? t('supabasePhase3.openEditorButton') : t('supabasePhase1.openEditorButton')}</span>
+                  <span>{activeModalPhase === 4 ? t('supabasePhase4.openEditorButton') : (activeModalPhase === 3 ? t('supabasePhase3.openEditorButton') : t('supabasePhase1.openEditorButton'))}</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
