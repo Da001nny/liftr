@@ -14,9 +14,10 @@ import { Muscle, MuscleRegion } from '../data/exerciseCatalog';
 
 interface ReverseMuscleSearchProps {
   onSelectExercise: (exercise: EnrichedExercise) => void;
+  initialMuscleId?: string;
 }
 
-export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSelectExercise }) => {
+export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSelectExercise, initialMuscleId }) => {
   const { t } = useTranslation();
   const { accentColor } = useTheme();
   const { token } = useAuth();
@@ -24,9 +25,15 @@ export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSele
   const [regions, setRegions] = useState<MuscleRegion[]>([]);
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
   const [muscles, setMuscles] = useState<Muscle[]>([]);
-  const [selectedMuscleId, setSelectedMuscleId] = useState<string>('m_latissimus_dorsi');
+  const [selectedMuscleId, setSelectedMuscleId] = useState<string>(initialMuscleId || 'm_latissimus_dorsi');
   const [results, setResults] = useState<ReverseSearchResult[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (initialMuscleId) {
+      setSelectedMuscleId(initialMuscleId);
+    }
+  }, [initialMuscleId]);
 
   // Load regions on mount
   useEffect(() => {

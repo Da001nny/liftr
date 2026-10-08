@@ -54,6 +54,21 @@ export async function fetchStepEntry(token: string, date: string): Promise<StepE
   return null;
 }
 
+export async function fetchAllStepEntries(token: string): Promise<StepEntryRow[]> {
+  try {
+    const res = await fetch('/api/activity/steps', {
+      headers: getAuthHeaders(token),
+    });
+    if (res.ok) {
+      const json: ApiResponse<StepEntryRow> = await res.json();
+      return json.data.items || [];
+    }
+  } catch (err) {
+    console.error('[progressService] fetchAllStepEntries error:', err);
+  }
+  return [];
+}
+
 export async function saveStepEntry(token: string, payload: SaveStepPayload): Promise<StepEntryRow | null> {
   try {
     const res = await fetch('/api/activity/steps', {
@@ -224,8 +239,8 @@ export async function executeGlobalSearch(
         subtitle: `Common: ${m.commonName} · Region: ${m.regionId}`,
         type: 'muscle',
         badge: 'Muscle',
-        targetTab: 'body',
-        payload: { muscleId: m.id },
+        targetTab: 'workouts',
+        payload: { muscleId: m.id, targetSubtab: 'reverseSearch' },
       });
     }
   }
@@ -246,4 +261,36 @@ export async function executeGlobalSearch(
   }
 
   return results;
+}
+
+// ============================================================================
+// 6. DETAILED ANALYTICS & EXPORT HELPERS (Phase 6)
+// ============================================================================
+
+export async function fetchAllCompletedWorkouts(token: string): Promise<any[]> {
+  try {
+    const res = await fetch('/api/progress/all-workouts', {
+      headers: getAuthHeaders(token),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return json.data.items || [];
+    }
+  } catch (err) {
+    console.error('[progressService] fetchAllCompletedWorkouts error:', err);
+  }
+  return [];
+}
+
+export function triggerBrowserDownload(filename: string, content: string, mimeType: string = 'text/csv;charset=utf-8;') {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

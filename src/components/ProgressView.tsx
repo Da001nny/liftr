@@ -1,20 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../i18n';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { TrendingUp, Activity, Award, ShieldCheck, Scale, Dumbbell, Layers, RefreshCw } from 'lucide-react';
 import { ActivitySection } from './progress/ActivitySection';
 import { BodyweightSection } from './progress/BodyweightSection';
 import { ExerciseProgressSection } from './progress/ExerciseProgressSection';
 import { MuscleExposureSection } from './progress/MuscleExposureSection';
+import { RangeTrendSection } from './progress/RangeTrendSection';
+import { CrossExerciseSection } from './progress/CrossExerciseSection';
+import { ExportDataCenterSection } from './progress/ExportDataCenterSection';
+import { fetchAllCompletedWorkouts } from '../lib/progressService';
 
 export const ProgressView: React.FC = () => {
   const { t } = useTranslation();
   const { accentColor } = useTheme();
+  const { token } = useAuth();
   const [refreshKey, setRefreshKey] = useState<number>(0);
+  const [allWorkouts, setAllWorkouts] = useState<any[]>([]);
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
+
+  useEffect(() => {
+    if (!token) return;
+    fetchAllCompletedWorkouts(token).then(data => {
+      setAllWorkouts(data);
+    });
+  }, [token, refreshKey]);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-24 md:pb-12">
@@ -55,9 +69,24 @@ export const ProgressView: React.FC = () => {
         <ExerciseProgressSection key={`ex_${refreshKey}`} />
       </section>
 
+      {/* Phase 6: Cross-Exercise Comparison (Synchronized Curves) */}
+      <section aria-labelledby="cross-exercise-section">
+        <CrossExerciseSection workouts={allWorkouts} key={`cross_${refreshKey}`} />
+      </section>
+
+      {/* Phase 6: Range Trend Comparisons (Custom Windows & Hand-Checked Math) */}
+      <section aria-labelledby="range-trend-section">
+        <RangeTrendSection workouts={allWorkouts} key={`trend_${refreshKey}`} />
+      </section>
+
       {/* Step 5: Full Muscle Exposure Analytics (Data Layer Only) */}
       <section aria-labelledby="muscle-exposure-section">
         <MuscleExposureSection key={`exp_${refreshKey}`} />
+      </section>
+
+      {/* Phase 6: Data & CSV Export Center (RFC 4180 + Excel BOM Infrastructure) */}
+      <section aria-labelledby="export-center-section">
+        <ExportDataCenterSection workouts={allWorkouts} key={`export_${refreshKey}`} />
       </section>
 
       {/* PR Engine Reference Cards */}

@@ -27,6 +27,12 @@ import {
   calculateBodyweightStats,
   calculateExerciseProgress,
   calculateMuscleExposureAnalytics,
+  calculateRangeTrendComparison,
+  getPresetComparisonPeriods,
+  calculateCrossExerciseComparison,
+  generateWorkoutsCsv,
+  generateBodyweightCsv,
+  generateStepsCsv,
 } from './src/lib/calculations.ts';
 import {
   localTimeToUtcIso,
@@ -2327,6 +2333,25 @@ async function startServer() {
     }
   });
 
+  // 1b. List all step entries (Protected)
+  app.get('/api/activity/steps', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    try {
+      const { data, error } = await client
+        .from('step_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: true });
+
+      const fallbackList = fallbackSteps.get(user.id) || [];
+      const list = (data && data.length > 0) ? data : fallbackList;
+      return res.json(apiResponse(list, list.length, 1, list.length));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error loading step entries: ${err.message}`));
+    }
+  });
+
   // 2. Save / Upsert Step Entry (Protected)
   app.post('/api/activity/steps', requireAuth, async (req: Request, res: Response) => {
     const user = (req as any).user;
@@ -2544,6 +2569,135 @@ async function startServer() {
     }
   });
 
+  // 7b. All Completed Workouts with Sets (Protected, Phase 6 Detailed Analytics)
+  app.get('/api/progress/all-workouts', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+
+    try {
+      const { data: workouts, error } = await client
+        .from('workouts')
+        .select(`
+          id,
+          name,
+          status,
+          started_at,
+          completed_at,
+          created_at,
+          total_volume,
+          workout_exercises (
+            id,
+            exercise_id,
+            workout_sets (
+              id,
+              set_type,
+              weight,
+              reps,
+              completed
+            )
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: true });
+
+      if (error) {
+        return res.status(500).json(apiError(`Error loading all workouts: ${error.message}`));
+      }
+      return res.json(apiResponse(workouts || [], (workouts || []).length, 1, (workouts || []).length));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Server error loading all workouts: ${err.message}`));
+    }
+  });
+
+  // 7c. Export Workout History CSV (Protected, Phase 6 Infrastructure)
+  app.get('/api/export/workouts.csv', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+
+    try {
+      const { data: workouts } = await client
+        .from('workouts')
+        .select(`
+          id,
+          name,
+          status,
+          started_at,
+          completed_at,
+          workout_exercises (
+            id,
+            exercise_id,
+            workout_sets (
+              id,
+              set_type,
+              weight,
+              reps,
+              completed
+            )
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: true });
+
+      const csvContent = generateWorkoutsCsv(workouts || []);
+      const filename = `liftr_workout_history_${new Date().toISOString().slice(0, 10)}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(csvContent);
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error exporting workouts CSV: ${err.message}`));
+    }
+  });
+
+  // 7d. Export Bodyweight History CSV (Protected, Phase 6 Infrastructure)
+  app.get('/api/export/bodyweight.csv', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+
+    try {
+      const { data: entries } = await client
+        .from('bodyweight_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: true });
+
+      const fallbackList = fallbackBodyweight.get(user.id) || [];
+      const list = (entries && entries.length > 0) ? entries : fallbackList;
+      const csvContent = generateBodyweightCsv(list);
+      const filename = `liftr_bodyweight_${new Date().toISOString().slice(0, 10)}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(csvContent);
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error exporting bodyweight CSV: ${err.message}`));
+    }
+  });
+
+  // 7e. Export Steps History CSV (Protected, Phase 6 Infrastructure)
+  app.get('/api/export/steps.csv', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+
+    try {
+      const { data: entries } = await client
+        .from('step_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: true });
+
+      const fallbackList = fallbackSteps.get(user.id) || [];
+      const list = (entries && entries.length > 0) ? entries : fallbackList;
+      const csvContent = generateStepsCsv(list);
+      const filename = `liftr_steps_${new Date().toISOString().slice(0, 10)}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(csvContent);
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error exporting steps CSV: ${err.message}`));
+    }
+  });
+
   // 8. Global Search Endpoint (Protected, Phase 5 Step 6)
   app.get('/api/search', requireAuth, async (req: Request, res: Response) => {
     const user = (req as any).user;
@@ -2582,8 +2736,8 @@ async function startServer() {
             subtitle: `${m.commonName} · Region: ${m.regionId}`,
             type: 'muscle',
             badge: 'Muscle',
-            targetTab: 'body',
-            payload: { muscleId: m.id },
+            targetTab: 'workouts',
+            payload: { muscleId: m.id, targetSubtab: 'reverseSearch' },
           });
         }
       }

@@ -17,7 +17,8 @@ import {
 import { 
   MUSCLES, 
   MUSCLE_REGIONS, 
-  CONTRIBUTIONS_BY_EXERCISE 
+  CONTRIBUTIONS_BY_EXERCISE,
+  EXERCISES
 } from '../data/exerciseCatalog';
 
 export interface ExerciseSet {
@@ -77,6 +78,9 @@ export function calculateSingleSetVolume(weight: number, reps: number): number {
  * Single set volume calculation: weight * reps.
  * Counts ONLY completed, non-warmup sets with weight > 0 and reps > 0.
  * Incomplete sets, warmup sets, or sets with non-positive weight/reps return 0.
+ * 
+ * NOTE: Drop ('drop') and failure ('failure') sets count as working sets.
+ * Only warmup ('warmup') sets are excluded from working volume and metrics.
  */
 export function calculateSetVolume(set: {
   weight?: number;
@@ -87,6 +91,7 @@ export function calculateSetVolume(set: {
 }): number {
   const isCompleted = set.completed ?? set.is_completed ?? false;
   if (!isCompleted) return 0;
+  // Drop and failure sets count as working sets; only warmup sets are excluded
   if (set.set_type === 'warmup') return 0;
   const weight = Number(set.weight) || 0;
   const reps = Number(set.reps) || 0;
@@ -101,7 +106,8 @@ export function calculateSetVolume(set: {
  * - completedWorkingSets: count of completed, non-warmup working sets
  * - completedWorkingReps: count of completed, non-warmup working reps
  * 
- * Warmup sets and incomplete sets are strictly excluded.
+ * NOTE: Drop ('drop') and failure ('failure') sets count as working sets.
+ * Warmup ('warmup') sets and incomplete sets are strictly excluded.
  */
 export function calculateWorkoutTotals(sets: Array<{
   weight?: number;
@@ -388,8 +394,11 @@ export function calculateExerciseProgress(
 
   const points: ExerciseProgressPoint[] = [];
 
+  // Filter to completed workouts only
+  const completedWorkouts = workouts.filter(w => w.status === 'completed');
+
   // Sort ascending by completion date
-  const sorted = [...workouts].sort((a, b) => {
+  const sorted = [...completedWorkouts].sort((a, b) => {
     const dateA = a.completed_at || a.started_at || a.created_at || '';
     const dateB = b.completed_at || b.started_at || b.created_at || '';
     return dateA.localeCompare(dateB);
@@ -408,14 +417,18 @@ export function calculateExerciseProgress(
     let estimated1RM = 0;
 
     for (const set of matchedEx.workout_sets) {
-      if (set.completed === false) continue;
+      if (set.completed === false || set.is_completed === false) continue;
+      const vol = calculateSetVolume(set);
+      totalVolume += vol;
+
+      // Exclude warmup sets from heaviest load and estimated 1RM
+      if (set.set_type === 'warmup') continue;
       const weight = Number(set.weight) || 0;
       const reps = Number(set.reps) || 0;
-      if (reps <= 0) continue;
+      if (weight <= 0 || reps <= 0) continue;
 
       if (weight > heaviestWeight) heaviestWeight = weight;
       if (reps > maxReps) maxReps = reps;
-      totalVolume += weight * reps;
 
       const set1RM = calculateEstimated1RM(weight, reps);
       if (set1RM > estimated1RM) estimated1RM = set1RM;
@@ -615,5 +628,455 @@ export function calculateMuscleExposureAnalytics(
     regions: regionItems.sort((a, b) => b.totalVolume - a.totalVolume),
     topMuscles,
   };
+}
+
+// ============================================================================
+// PHASE 6: DETAILED ANALYTICS EXPANSION
+// ============================================================================
+
+export interface TrendPeriodSpec {
+  startDate: string; // YYYY-MM-DD
+  endDate: string;   // YYYY-MM-DD
+  label?: string;
+}
+
+export type TrendFilter =
+  | { type: 'total_volume' }
+  | { type: 'exercise'; exerciseId: string }
+  | { type: 'region'; regionId: string };
+
+export interface TrendPeriodMetrics {
+  startDate: string;
+  endDate: string;
+  label: string;
+  volume: number;
+  workoutCount: number;
+  workingSetsCount: number;
+  hasData: boolean;
+}
+
+export interface TrendComparisonResult {
+  periodA: TrendPeriodMetrics;
+  periodB: TrendPeriodMetrics;
+  absoluteChange: number | null;
+  percentageChange: number | null;
+  hasEnoughData: boolean;
+  statusMessage: string;
+  filterType: 'total_volume' | 'exercise' | 'region';
+  targetName: string;
+}
+
+/**
+ * Calculates trend comparisons across two customizable date windows.
+ * Evaluates: total volume, a specific exercise, or a muscle region.
+ * Returns null / "not enough data" when either comparison period has no data.
+ * All volume and set counts route strictly through authoritative calculateWorkoutTotals.
+ */
+export function calculateRangeTrendComparison(
+  workouts: any[],
+  periodA: TrendPeriodSpec,
+  periodB: TrendPeriodSpec,
+  filter: TrendFilter
+): TrendComparisonResult {
+  const completed = (workouts || []).filter(w => w.status === 'completed');
+
+  const evalPeriod = (spec: TrendPeriodSpec): TrendPeriodMetrics => {
+    let volume = 0;
+    let workoutCount = 0;
+    let workingSetsCount = 0;
+
+    for (const w of completed) {
+      const wDate = (w.completed_at || w.started_at || w.created_at || '').slice(0, 10);
+      if (wDate < spec.startDate || wDate > spec.endDate) continue;
+
+      let workoutContributed = false;
+
+      if (filter.type === 'total_volume') {
+        for (const we of w.workout_exercises || []) {
+          const sets = we.workout_sets || [];
+          const totals = calculateWorkoutTotals(sets);
+          if (totals.totalVolume > 0 || totals.completedWorkingSets > 0) {
+            volume += totals.totalVolume;
+            workingSetsCount += totals.completedWorkingSets;
+            workoutContributed = true;
+          }
+        }
+      } else if (filter.type === 'exercise') {
+        const we = (w.workout_exercises || []).find((e: any) => e.exercise_id === filter.exerciseId);
+        if (we) {
+          const sets = we.workout_sets || [];
+          const totals = calculateWorkoutTotals(sets);
+          if (totals.totalVolume > 0 || totals.completedWorkingSets > 0) {
+            volume += totals.totalVolume;
+            workingSetsCount += totals.completedWorkingSets;
+            workoutContributed = true;
+          }
+        }
+      } else if (filter.type === 'region') {
+        for (const we of w.workout_exercises || []) {
+          const contribs = CONTRIBUTIONS_BY_EXERCISE.get(we.exercise_id) || [];
+          if (contribs.length === 0) continue;
+
+          // Only include dynamic contributions (exclude stabilizers, consistent with calculateMuscleExposureAnalytics)
+          const regionContrib = contribs.filter(c => {
+            if (c.role === 'Stabilizer') return false;
+            const muscle = MUSCLES.find(m => m.id === c.muscleId);
+            return muscle?.regionId === filter.regionId;
+          });
+
+          if (regionContrib.length === 0) continue;
+
+          const sets = we.workout_sets || [];
+          const totals = calculateWorkoutTotals(sets);
+          if (totals.totalVolume > 0) {
+            const regionalPercentage = regionContrib.reduce((sum, c) => sum + (c.percentage || 0), 0);
+            const factor = regionalPercentage / 100;
+            volume += totals.totalVolume * factor;
+            workingSetsCount += totals.completedWorkingSets * factor;
+            workoutContributed = true;
+          }
+        }
+      }
+
+      if (workoutContributed) {
+        workoutCount += 1;
+      }
+    }
+
+    volume = Math.round(volume * 10) / 10;
+    workingSetsCount = Math.round(workingSetsCount * 10) / 10;
+    const hasData = workoutCount > 0 && volume > 0;
+
+    return {
+      startDate: spec.startDate,
+      endDate: spec.endDate,
+      label: spec.label || `${spec.startDate} - ${spec.endDate}`,
+      volume,
+      workoutCount,
+      workingSetsCount,
+      hasData,
+    };
+  };
+
+  const metricsA = evalPeriod(periodA);
+  const metricsB = evalPeriod(periodB);
+
+  // Target name resolution
+  let targetName = 'Total Volume';
+  if (filter.type === 'exercise') {
+    const ex = EXERCISES.find(e => e.id === filter.exerciseId);
+    targetName = ex ? ex.name : filter.exerciseId;
+  } else if (filter.type === 'region') {
+    const reg = MUSCLE_REGIONS.find(r => r.id === filter.regionId);
+    targetName = reg ? `${reg.name} Region` : filter.regionId;
+  }
+
+  // Strict empty data handling: do NOT invent a number!
+  if (!metricsA.hasData && !metricsB.hasData) {
+    return {
+      periodA: metricsA,
+      periodB: metricsB,
+      absoluteChange: null,
+      percentageChange: null,
+      hasEnoughData: false,
+      statusMessage: 'Not enough data in either comparison period',
+      filterType: filter.type,
+      targetName,
+    };
+  }
+
+  if (!metricsB.hasData) {
+    return {
+      periodA: metricsA,
+      periodB: metricsB,
+      absoluteChange: null,
+      percentageChange: null,
+      hasEnoughData: false,
+      statusMessage: 'Not enough data in comparison period',
+      filterType: filter.type,
+      targetName,
+    };
+  }
+
+  if (!metricsA.hasData) {
+    return {
+      periodA: metricsA,
+      periodB: metricsB,
+      absoluteChange: null,
+      percentageChange: null,
+      hasEnoughData: false,
+      statusMessage: 'Not enough data in selected period',
+      filterType: filter.type,
+      targetName,
+    };
+  }
+
+  // Baseline determination: The earlier period is strictly the baseline for percentage change.
+  const isPeriodAEarlier = periodA.startDate.localeCompare(periodB.startDate) < 0;
+  const earlierMetrics = isPeriodAEarlier ? metricsA : metricsB;
+  const laterMetrics = isPeriodAEarlier ? metricsB : metricsA;
+
+  // Percentage change formula: ((later.volume - earlier.volume) / earlier.volume) * 100%
+  // Baseline is strictly earlierMetrics (the earlier chronological period).
+  const absChange = Math.round((laterMetrics.volume - earlierMetrics.volume) * 10) / 10;
+  const pctChange = earlierMetrics.volume > 0 
+    ? Math.round(((laterMetrics.volume - earlierMetrics.volume) / earlierMetrics.volume) * 1000) / 10
+    : null;
+
+  return {
+    periodA: metricsA,
+    periodB: metricsB,
+    absoluteChange: absChange,
+    percentageChange: pctChange,
+    hasEnoughData: true,
+    statusMessage: pctChange !== null ? (pctChange >= 0 ? `+${pctChange}%` : `${pctChange}%`) : '',
+    filterType: filter.type,
+    targetName,
+  };
+}
+
+/**
+ * Returns preset comparison windows with strict UTC date math.
+ */
+export function getPresetComparisonPeriods(
+  preset: 'this_month_vs_last_month' | 'last_30_days' | 'last_7_days',
+  refDate?: Date
+): { periodA: TrendPeriodSpec; periodB: TrendPeriodSpec } {
+  const now = refDate || new Date();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth(); // 0 - 11
+  const todayStr = now.toISOString().slice(0, 10);
+
+  if (preset === 'this_month_vs_last_month') {
+    // Period A: Current month (from 1st to end of current month)
+    const thisMonthStart = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10);
+    const thisMonthEnd = new Date(Date.UTC(y, m + 1, 0)).toISOString().slice(0, 10);
+
+    // Period B: Prior month (from 1st of prior month to end of prior month)
+    const lastMonthStart = new Date(Date.UTC(y, m - 1, 1)).toISOString().slice(0, 10);
+    const lastMonthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+
+    return {
+      periodA: { startDate: thisMonthStart, endDate: thisMonthEnd, label: 'This Month' },
+      periodB: { startDate: lastMonthStart, endDate: lastMonthEnd, label: 'Last Month' },
+    };
+  }
+
+  if (preset === 'last_30_days') {
+    const curStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 29)).toISOString().slice(0, 10);
+    const prevStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 59)).toISOString().slice(0, 10);
+    const prevEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30)).toISOString().slice(0, 10);
+
+    return {
+      periodA: { startDate: curStart, endDate: todayStr, label: 'Last 30 Days' },
+      periodB: { startDate: prevStart, endDate: prevEnd, label: 'Prior 30 Days' },
+    };
+  }
+
+  // last_7_days
+  const curStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 6)).toISOString().slice(0, 10);
+  const prevStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 13)).toISOString().slice(0, 10);
+  const prevEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7)).toISOString().slice(0, 10);
+
+  return {
+    periodA: { startDate: curStart, endDate: todayStr, label: 'Last 7 Days' },
+    periodB: { startDate: prevStart, endDate: prevEnd, label: 'Prior 7 Days' },
+  };
+}
+
+// ============================================================================
+// CROSS-EXERCISE COMPARISON
+// ============================================================================
+
+export interface CrossExerciseSeries {
+  id: string;
+  name: string;
+  equipment: string;
+  hasData: boolean;
+  points: ExerciseProgressPoint[];
+  best1RM: number;
+  bestVolume: number;
+  latest1RM: number;
+  latestVolume: number;
+}
+
+export interface CrossExerciseComparison {
+  exerciseA: CrossExerciseSeries;
+  exerciseB: CrossExerciseSeries;
+  hasDataAtLeastOne: boolean;
+  hasDataBoth: boolean;
+  statusMessage: string;
+}
+
+/**
+ * Compares two exercises side-by-side using authoritative calculateExerciseProgress.
+ * Reuses the authoritative Epley formula without reimplementing it.
+ */
+export function calculateCrossExerciseComparison(
+  workouts: any[],
+  exerciseAId: string,
+  exerciseBId: string,
+  range: '7d' | '30d' | '3m' | '6m' | '1y' | 'all' = 'all'
+): CrossExerciseComparison {
+  const exAObj = EXERCISES.find(e => e.id === exerciseAId);
+  const exBObj = EXERCISES.find(e => e.id === exerciseBId);
+
+  const pointsA = calculateExerciseProgress(workouts, exerciseAId, range);
+  const pointsB = calculateExerciseProgress(workouts, exerciseBId, range);
+
+  const buildSeries = (id: string, obj: any, points: ExerciseProgressPoint[]): CrossExerciseSeries => {
+    const hasData = points.length > 0;
+    const best1RM = hasData ? Math.max(...points.map(p => p.estimated1RM)) : 0;
+    const bestVolume = hasData ? Math.max(...points.map(p => p.totalVolume)) : 0;
+    const latest = points[points.length - 1];
+
+    return {
+      id,
+      name: obj ? obj.name : id,
+      equipment: obj ? obj.equipment : '',
+      hasData,
+      points,
+      best1RM,
+      bestVolume,
+      latest1RM: latest ? latest.estimated1RM : 0,
+      latestVolume: latest ? latest.totalVolume : 0,
+    };
+  };
+
+  const seriesA = buildSeries(exerciseAId, exAObj, pointsA);
+  const seriesB = buildSeries(exerciseBId, exBObj, pointsB);
+
+  const hasDataBoth = seriesA.hasData && seriesB.hasData;
+  const hasDataAtLeastOne = seriesA.hasData || seriesB.hasData;
+
+  let statusMessage = '';
+  if (!seriesA.hasData && !seriesB.hasData) {
+    statusMessage = 'Neither exercise has logged history yet';
+  } else if (!seriesA.hasData) {
+    statusMessage = `${seriesA.name} has no logged workout history yet`;
+  } else if (!seriesB.hasData) {
+    statusMessage = `${seriesB.name} has no logged workout history yet`;
+  }
+
+  return {
+    exerciseA: seriesA,
+    exerciseB: seriesB,
+    hasDataAtLeastOne,
+    hasDataBoth,
+    statusMessage,
+  };
+}
+
+// ============================================================================
+// CSV EXPORT GENERATORS (RFC 4180 COMPLIANT + UTF-8 BOM FOR EXCEL / SHEETS)
+// ============================================================================
+
+/**
+ * Escapes an individual cell value according to RFC 4180.
+ * If the string contains comma, double quote, or newlines, wrap in quotes and escape quotes with double quotes.
+ */
+export function escapeCsvCell(val: any): string {
+  if (val === null || val === undefined) return '';
+  const str = String(val);
+  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/**
+ * Authoritative CSV export of workout history:
+ * One row per set: date, workout, exercise, set type, weight, reps, volume, estimated 1RM.
+ * Uses calculateSetVolume for volume and calculateEstimated1RM for 1RM.
+ */
+export function generateWorkoutsCsv(workouts: any[]): string {
+  const completed = (workouts || []).filter(w => w.status === 'completed');
+  const sorted = [...completed].sort((a, b) => {
+    const dateA = a.completed_at || a.started_at || a.created_at || '';
+    const dateB = b.completed_at || b.started_at || b.created_at || '';
+    return dateA.localeCompare(dateB);
+  });
+
+  const headers = ['Date', 'Workout', 'Exercise', 'Set Type', 'Weight', 'Reps', 'Volume', 'Estimated 1RM'];
+  const rows: string[] = [headers.join(',')];
+
+  for (const w of sorted) {
+    const date = (w.completed_at || w.started_at || w.created_at || '').slice(0, 10);
+    const workoutName = w.name || 'Workout';
+
+    for (const we of w.workout_exercises || []) {
+      const exerciseObj = EXERCISES.find(e => e.id === we.exercise_id);
+      const exerciseName = exerciseObj ? exerciseObj.name : we.exercise_id;
+
+      for (const set of we.workout_sets || []) {
+        const setType = set.set_type || 'working';
+        const weight = Number(set.weight) || 0;
+        const reps = Number(set.reps) || 0;
+        const volume = calculateSetVolume(set);
+        const est1RM = (setType !== 'warmup' && weight > 0 && reps > 0)
+          ? calculateEstimated1RM(weight, reps)
+          : 0;
+
+        rows.push([
+          escapeCsvCell(date),
+          escapeCsvCell(workoutName),
+          escapeCsvCell(exerciseName),
+          escapeCsvCell(setType),
+          escapeCsvCell(weight),
+          escapeCsvCell(reps),
+          escapeCsvCell(volume),
+          escapeCsvCell(est1RM),
+        ].join(','));
+      }
+    }
+  }
+
+  // Prepend UTF-8 BOM (\uFEFF) for Microsoft Excel compatibility and join with CRLF (\r\n)
+  return '\uFEFF' + rows.join('\r\n');
+}
+
+/**
+ * Authoritative CSV export of bodyweight entries.
+ */
+export function generateBodyweightCsv(entries: BodyweightEntryRow[]): string {
+  const sorted = [...(entries || [])].sort((a, b) => a.date.localeCompare(b.date));
+  const headers = ['Date', 'Weight', 'Unit', 'Notes', 'Source'];
+  const rows: string[] = [headers.join(',')];
+
+  for (const e of sorted) {
+    rows.push([
+      escapeCsvCell(e.date),
+      escapeCsvCell(e.weight),
+      escapeCsvCell(e.unit || 'kg'),
+      escapeCsvCell(e.notes || ''),
+      escapeCsvCell(e.source || 'manual'),
+    ].join(','));
+  }
+
+  return '\uFEFF' + rows.join('\r\n');
+}
+
+/**
+ * Authoritative CSV export of daily steps & activity entries.
+ * Reconciled to real Supabase step_entries schema columns: date, step_count, goal, source.
+ */
+export function generateStepsCsv(entries: any[]): string {
+  const sorted = [...(entries || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const headers = ['Date', 'Steps', 'Goal', 'Source'];
+  const rows: string[] = [headers.join(',')];
+
+  for (const s of sorted) {
+    const stepCount = s.step_count !== undefined ? s.step_count : (s.steps !== undefined ? s.steps : 0);
+    const goal = s.goal !== undefined ? s.goal : 10000;
+    const source = s.source || 'manual';
+    rows.push([
+      escapeCsvCell(s.date),
+      escapeCsvCell(stepCount),
+      escapeCsvCell(goal),
+      escapeCsvCell(source),
+    ].join(','));
+  }
+
+  return '\uFEFF' + rows.join('\r\n');
 }
 

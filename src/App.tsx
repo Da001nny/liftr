@@ -18,6 +18,10 @@ const MainApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const [workoutsNav, setWorkoutsNav] = useState<{
+    subtab?: 'routines' | 'catalog' | 'reverseSearch' | 'history';
+    muscleId?: string;
+  } | undefined>();
 
   // Global Keyboard Shortcut: Cmd+K or Ctrl+K opens search
   useEffect(() => {
@@ -76,8 +80,11 @@ const MainApp: React.FC = () => {
       <GlobalSearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
-        onNavigateTab={(tab) => {
+        onNavigateTab={(tab, meta) => {
           setActiveTab(tab);
+          if (tab === 'workouts' && meta?.targetSubtab) {
+            setWorkoutsNav({ subtab: meta.targetSubtab, muscleId: meta.muscleId });
+          }
           setIsProfileOpen(false);
         }}
       />
@@ -91,7 +98,12 @@ const MainApp: React.FC = () => {
             {activeTab === 'dashboard' && (
               <DashboardView onNavigateTab={(tab) => setActiveTab(tab)} />
             )}
-            {activeTab === 'workouts' && <WorkoutsView />}
+            {activeTab === 'workouts' && (
+              <WorkoutsView 
+                initialTab={workoutsNav?.subtab} 
+                initialMuscleId={workoutsNav?.muscleId} 
+              />
+            )}
             {activeTab === 'body' && <BodyView />}
             {activeTab === 'progress' && <ProgressView />}
             {activeTab === 'calendar' && <CalendarView />}

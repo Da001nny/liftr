@@ -23,14 +23,29 @@ import { WorkoutHistoryView } from './workout/WorkoutHistoryView';
 
 type WorkoutTab = 'routines' | 'catalog' | 'reverseSearch' | 'history';
 
-export const WorkoutsView: React.FC = () => {
+interface WorkoutsViewProps {
+  initialTab?: WorkoutTab;
+  initialMuscleId?: string;
+}
+
+export const WorkoutsView: React.FC<WorkoutsViewProps> = ({ initialTab, initialMuscleId }) => {
   const { t } = useTranslation();
   const { accentColor } = useTheme();
   const { token } = useAuth();
   const { activeSession, setActiveSession, historyRefreshKey } = useWorkout();
 
-  const [activeTab, setActiveTab] = useState<WorkoutTab>('routines');
+  const [activeTab, setActiveTab] = useState<WorkoutTab>(initialTab || 'routines');
+  const [selectedMuscleId, setSelectedMuscleId] = useState<string | undefined>(initialMuscleId);
   const [selectedExercise, setSelectedExercise] = useState<EnrichedExercise | null>(null);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+    if (initialMuscleId) {
+      setSelectedMuscleId(initialMuscleId);
+    }
+  }, [initialTab, initialMuscleId]);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-24 md:pb-12">
@@ -110,7 +125,10 @@ export const WorkoutsView: React.FC = () => {
       )}
 
       {activeTab === 'reverseSearch' && (
-        <ReverseMuscleSearch onSelectExercise={setSelectedExercise} />
+        <ReverseMuscleSearch 
+          onSelectExercise={setSelectedExercise} 
+          initialMuscleId={selectedMuscleId}
+        />
       )}
 
       {activeTab === 'history' && (
