@@ -5,7 +5,8 @@ import {
   User as UserIcon, 
   TrendingUp, 
   Calendar as CalendarIcon,
-  Settings
+  Settings,
+  Search
 } from 'lucide-react';
 import { useTranslation } from '../i18n';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +19,7 @@ interface NavigationProps {
   onSelectTab: (tab: TabId) => void;
   onOpenProfile: () => void;
   isProfileOpen: boolean;
+  onOpenSearch: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -25,6 +27,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onSelectTab,
   onOpenProfile,
   isProfileOpen,
+  onOpenSearch,
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -91,8 +94,21 @@ export const Navigation: React.FC<NavigationProps> = ({
             })}
           </nav>
 
-          {/* Zone 3: Persistent Avatar Icon leading to Profile / Settings */}
+          {/* Zone 3: Persistent Avatar Icon + Global Search Button */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={onOpenSearch}
+              aria-label="Global Search"
+              title="Search exercises, muscles, workouts (⌘K)"
+              className="h-9 px-2.5 rounded-xl bg-neutral-100 dark:bg-[#1a1a1a] hover:bg-neutral-200 dark:hover:bg-[#252525] border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center gap-2 transition-all cursor-pointer text-xs font-medium"
+            >
+              <Search className="w-3.5 h-3.5 text-neutral-500" />
+              <span className="hidden sm:inline">Search</span>
+              <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-[10px] font-mono font-bold text-neutral-400">
+                ⌘K
+              </kbd>
+            </button>
+
             <button
               onClick={onOpenProfile}
               aria-label={t('nav.profile')}

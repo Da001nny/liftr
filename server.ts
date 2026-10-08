@@ -24,6 +24,9 @@ import {
   calculateTotalSessionVolume,
   detectPersonalRecords,
   calculateCalendarConsistency,
+  calculateBodyweightStats,
+  calculateExerciseProgress,
+  calculateMuscleExposureAnalytics,
 } from './src/lib/calculations.ts';
 import {
   localTimeToUtcIso,
@@ -227,6 +230,15 @@ async function startServer() {
 
       const phase4Ready = workoutSeriesTableExists && scheduledWorkoutsTableExists && calendarNotesTableExists && calendarRestDaysTableExists;
 
+      // Phase 5 tables
+      const { error: bwErr } = await supabaseServer.from('bodyweight_entries').select('id').limit(1);
+      const bodyweightEntriesTableExists = !bwErr || (bwErr.code !== 'PGRST205' && !bwErr.message.includes('bodyweight_entries'));
+
+      const { error: stepErr } = await supabaseServer.from('step_entries').select('id').limit(1);
+      const stepEntriesTableExists = !stepErr || (stepErr.code !== 'PGRST205' && !stepErr.message.includes('step_entries'));
+
+      const phase5Ready = phase4Ready && bodyweightEntriesTableExists && stepEntriesTableExists;
+
       return res.json(apiResponse({
         profilesTableExists,
         exercisesTableExists,
@@ -246,15 +258,18 @@ async function startServer() {
         calendarNotesTableExists,
         calendarRestDaysTableExists,
         phase4Ready,
+        bodyweightEntriesTableExists,
+        stepEntriesTableExists,
+        phase5Ready,
         counts: {
           exercises: exercisesTableExists ? 203 : 0,
           muscles: musclesTableExists ? 36 : 0,
           regions: regionsTableExists ? 8 : 0,
           contributions: contributionsTableExists ? 820 : 0,
         },
-        message: phase4Ready
-          ? 'Phase 0, 1, 3, and 4 Supabase tables are connected and verified.'
-          : (phase3Ready ? 'Phase 4 calendar & scheduling tables pending migration.' : 'Supabase tables pending migration.'),
+        message: phase5Ready
+          ? 'Phase 0, 1, 3, 4, and 5 Supabase tables are connected and verified.'
+          : (phase4Ready ? 'Phase 5 activity & progress tables pending migration.' : (phase3Ready ? 'Phase 4 calendar & scheduling tables pending migration.' : 'Supabase tables pending migration.')),
       }));
     } catch (err: any) {
       return res.json(apiResponse({
@@ -469,6 +484,20 @@ async function startServer() {
       if (fs.existsSync(sqlPath)) {
         const sql = fs.readFileSync(sqlPath, 'utf-8');
         return res.json(apiResponse({ sql, filename: '004_create_calendar_scheduling.sql' }));
+      }
+      return res.status(404).json(apiError('Migration SQL file not found'));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Failed to read migration SQL: ${err.message}`));
+    }
+  });
+
+  // Phase 5 SQL Migration Endpoint (Public)
+  app.get('/api/migration-sql/phase-5', (req, res) => {
+    try {
+      const sqlPath = path.resolve('supabase/migrations/005_create_activity_progress.sql');
+      if (fs.existsSync(sqlPath)) {
+        const sql = fs.readFileSync(sqlPath, 'utf-8');
+        return res.json(apiResponse({ sql, filename: '005_create_activity_progress.sql' }));
       }
       return res.status(404).json(apiError('Migration SQL file not found'));
     } catch (err: any) {
@@ -2246,6 +2275,382 @@ async function startServer() {
       return res.json(apiResponse({ deleted: true, id }, 1, 1, 1));
     } catch (err: any) {
       return res.status(500).json(apiError(`Error deleting calendar note: ${err.message}`));
+    }
+  });
+
+  // =========================================================================
+  // PHASE 5: ACTIVITY, PROGRESS, MUSCLE EXPOSURE & GLOBAL SEARCH ENDPOINTS
+  // =========================================================================
+
+  const fallbackSteps = new Map<string, any[]>();
+  const fallbackBodyweight = new Map<string, any[]>();
+
+  // 1. Get Step Entry for Date (Protected)
+  app.get('/api/activity/steps', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const date = (req.query.date as string) || new Date().toISOString().slice(0, 10);
+
+    try {
+      const { data, error } = await client
+        .from('step_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', date)
+        .maybeSingle();
+
+      if (!error && data) {
+        return res.json(apiResponse(data, 1, 1, 1));
+      }
+
+      // Fallback
+      const userSteps = fallbackSteps.get(user.id) || [];
+      const found = userSteps.find(s => s.date === date);
+      if (found) {
+        return res.json(apiResponse(found, 1, 1, 1));
+      }
+
+      // Default empty state for the requested date
+      const defaultEntry = {
+        id: `default_${date}`,
+        user_id: user.id,
+        date,
+        step_count: 0,
+        goal: 10000,
+        source: 'manual',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return res.json(apiResponse(defaultEntry, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error fetching step entry: ${err.message}`));
+    }
+  });
+
+  // 2. Save / Upsert Step Entry (Protected)
+  app.post('/api/activity/steps', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const { date, stepCount, goal = 10000, source = 'manual', deviceInfo } = req.body;
+
+    if (!date || stepCount === undefined || stepCount < 0) {
+      return res.status(400).json(apiError('Valid date and non-negative stepCount are required'));
+    }
+
+    try {
+      const payload = {
+        user_id: user.id,
+        date,
+        step_count: Math.round(Number(stepCount)),
+        goal: Math.max(1000, Math.round(Number(goal))),
+        source,
+        device_info: deviceInfo || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await client
+        .from('step_entries')
+        .upsert(payload, { onConflict: 'user_id,date' })
+        .select('*')
+        .single();
+
+      if (!error && data) {
+        // Also update fallback
+        const userSteps = fallbackSteps.get(user.id) || [];
+        const filtered = userSteps.filter(s => s.date !== date);
+        fallbackSteps.set(user.id, [...filtered, data]);
+        return res.json(apiResponse(data, 1, 1, 1));
+      }
+
+      // Fallback
+      const userSteps = fallbackSteps.get(user.id) || [];
+      const filtered = userSteps.filter(s => s.date !== date);
+      const row = { ...payload, id: `step_${Date.now()}` };
+      fallbackSteps.set(user.id, [...filtered, row]);
+      return res.json(apiResponse(row, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error saving step entry: ${err.message}`));
+    }
+  });
+
+  // 3. Get Bodyweight History (Protected)
+  app.get('/api/activity/bodyweight', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+
+    try {
+      const { data, error } = await client
+        .from('bodyweight_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: true });
+
+      if (!error && data && data.length > 0) {
+        return res.json(apiResponse(data, data.length, 1, data.length));
+      }
+
+      // Fallback
+      const userBw = fallbackBodyweight.get(user.id) || [];
+      const sorted = [...userBw].sort((a, b) => a.date.localeCompare(b.date));
+      return res.json(apiResponse(sorted, sorted.length, 1, sorted.length));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error fetching bodyweight entries: ${err.message}`));
+    }
+  });
+
+  // 4. Save / Upsert Bodyweight Entry (Protected)
+  app.post('/api/activity/bodyweight', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const { date, weight, unit = 'kg', notes, source = 'manual' } = req.body;
+
+    const numWeight = parseFloat(weight);
+    if (!date || isNaN(numWeight) || numWeight <= 0) {
+      return res.status(400).json(apiError('Valid date and positive weight are required'));
+    }
+
+    try {
+      const payload = {
+        user_id: user.id,
+        date,
+        weight: Math.round(numWeight * 100) / 100,
+        unit: unit === 'lbs' ? 'lbs' : 'kg',
+        notes: notes ? String(notes).trim() : null,
+        source,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await client
+        .from('bodyweight_entries')
+        .upsert(payload, { onConflict: 'user_id,date' })
+        .select('*')
+        .single();
+
+      if (!error && data) {
+        const userBw = fallbackBodyweight.get(user.id) || [];
+        const filtered = userBw.filter(b => b.date !== date);
+        fallbackBodyweight.set(user.id, [...filtered, data]);
+        return res.json(apiResponse(data, 1, 1, 1));
+      }
+
+      // Fallback
+      const userBw = fallbackBodyweight.get(user.id) || [];
+      const filtered = userBw.filter(b => b.date !== date);
+      const row = { ...payload, id: `bw_${Date.now()}` };
+      fallbackBodyweight.set(user.id, [...filtered, row]);
+      return res.json(apiResponse(row, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error saving bodyweight entry: ${err.message}`));
+    }
+  });
+
+  // 5. Delete Bodyweight Entry (Protected)
+  app.delete('/api/activity/bodyweight/:id', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const id = req.params.id;
+
+    try {
+      await client
+        .from('bodyweight_entries')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('id', id);
+
+      const userBw = fallbackBodyweight.get(user.id) || [];
+      fallbackBodyweight.set(user.id, userBw.filter(b => b.id !== id));
+      return res.json(apiResponse({ deleted: true, id }, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error deleting bodyweight entry: ${err.message}`));
+    }
+  });
+
+  // 6. Exercise Progress Data (Protected, Phase 5 Step 4)
+  app.get('/api/progress/exercise-history/:exerciseId', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const exerciseId = req.params.exerciseId;
+    const range = (req.query.range as any) || 'all';
+
+    try {
+      const { data: workouts, error } = await client
+        .from('workouts')
+        .select(`
+          id,
+          name,
+          started_at,
+          completed_at,
+          created_at,
+          workout_exercises (
+            id,
+            exercise_id,
+            workout_sets (
+              id,
+              set_type,
+              weight,
+              reps,
+              completed
+            )
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: true });
+
+      const workoutList = (!error && workouts) ? workouts : [];
+      const points = calculateExerciseProgress(workoutList, exerciseId, range);
+      return res.json(apiResponse(points, points.length, 1, points.length));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error calculating exercise progress: ${err.message}`));
+    }
+  });
+
+  // 7. Muscle Exposure Analytics (Protected, Phase 5 Step 5)
+  app.get('/api/progress/muscle-exposure', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const timeframe = (req.query.timeframe as any) || 'month';
+
+    try {
+      const { data: workouts, error } = await client
+        .from('workouts')
+        .select(`
+          id,
+          name,
+          started_at,
+          completed_at,
+          created_at,
+          workout_exercises (
+            id,
+            exercise_id,
+            workout_sets (
+              id,
+              set_type,
+              weight,
+              reps,
+              completed
+            )
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: true });
+
+      const workoutList = (!error && workouts) ? workouts : [];
+      const analytics = calculateMuscleExposureAnalytics(workoutList, timeframe);
+      return res.json(apiResponse(analytics, 1, 1, 1));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error generating muscle exposure: ${err.message}`));
+    }
+  });
+
+  // 8. Global Search Endpoint (Protected, Phase 5 Step 6)
+  app.get('/api/search', requireAuth, async (req: Request, res: Response) => {
+    const user = (req as any).user;
+    const client = (req as any).userClient;
+    const query = String(req.query.q || '').trim().toLowerCase();
+
+    if (!query) {
+      return res.json(apiResponse([], 0, 1, 0));
+    }
+
+    try {
+      const results: any[] = [];
+
+      // 1. Exercises Search
+      for (const ex of EXERCISES) {
+        if (ex.name.toLowerCase().includes(query) || ex.description.toLowerCase().includes(query)) {
+          results.push({
+            id: `ex_${ex.id}`,
+            title: ex.name,
+            subtitle: `${ex.equipment} · ${ex.movementType} · ${ex.difficulty}`,
+            type: 'exercise',
+            badge: 'Exercise',
+            targetTab: 'workouts',
+            payload: { exerciseId: ex.id },
+          });
+          if (results.length >= 15) break;
+        }
+      }
+
+      // 2. Muscles Search
+      for (const m of MUSCLES) {
+        if (m.name.toLowerCase().includes(query) || m.commonName.toLowerCase().includes(query)) {
+          results.push({
+            id: `muscle_${m.id}`,
+            title: m.name,
+            subtitle: `${m.commonName} · Region: ${m.regionId}`,
+            type: 'muscle',
+            badge: 'Muscle',
+            targetTab: 'body',
+            payload: { muscleId: m.id },
+          });
+        }
+      }
+
+      // 3. Regions Search
+      for (const r of MUSCLE_REGIONS) {
+        if (r.name.toLowerCase().includes(query) || r.id.toLowerCase().includes(query)) {
+          results.push({
+            id: `region_${r.id}`,
+            title: r.name,
+            subtitle: r.description,
+            type: 'region',
+            badge: 'Region',
+            targetTab: 'workouts',
+            payload: { regionId: r.id },
+          });
+        }
+      }
+
+      // 4. Workout History Search
+      const { data: userWorkouts } = await client
+        .from('workouts')
+        .select('id, name, completed_at, started_at, total_volume, status')
+        .eq('user_id', user.id)
+        .order('completed_at', { ascending: false })
+        .limit(50);
+
+      if (userWorkouts) {
+        for (const w of userWorkouts) {
+          const wName = (w.name || '').toLowerCase();
+          const wDate = (w.completed_at || w.started_at || '').slice(0, 10);
+          if (wName.includes(query) || wDate.includes(query)) {
+            results.push({
+              id: `workout_${w.id}`,
+              title: w.name || 'Workout Session',
+              subtitle: `${wDate} · ${w.total_volume || 0}kg total volume`,
+              type: 'workout',
+              badge: 'Workout',
+              targetTab: 'workouts',
+              payload: { workoutId: w.id },
+            });
+            if (results.length >= 30) break;
+          }
+        }
+      }
+
+      // 5. Date Search
+      // If query looks like a date (e.g. "2026-10-05" or "today" or "oct 5")
+      if (/^\d{4}-\d{2}-\d{2}$/.test(query) || query === 'today' || query === 'yesterday') {
+        const targetDate = query === 'today' 
+          ? new Date().toISOString().slice(0, 10) 
+          : (query === 'yesterday' ? new Date(Date.now() - 86400000).toISOString().slice(0, 10) : query);
+
+        results.unshift({
+          id: `date_${targetDate}`,
+          title: `Calendar: ${targetDate}`,
+          subtitle: `View scheduled & completed sessions on ${targetDate}`,
+          type: 'date',
+          badge: 'Date',
+          targetTab: 'calendar',
+          payload: { date: targetDate },
+        });
+      }
+
+      return res.json(apiResponse(results, results.length, 1, results.length));
+    } catch (err: any) {
+      return res.status(500).json(apiError(`Error performing global search: ${err.message}`));
     }
   });
 

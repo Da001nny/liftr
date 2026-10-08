@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { WorkoutProvider } from './context/WorkoutContext';
@@ -11,11 +11,25 @@ import { BodyView } from './components/BodyView';
 import { ProgressView } from './components/ProgressView';
 import { CalendarView } from './components/CalendarView';
 import { ProfileView } from './components/ProfileView';
+import { GlobalSearchModal } from './components/common/GlobalSearchModal';
 
 const MainApp: React.FC = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+
+  // Global Keyboard Shortcut: Cmd+K or Ctrl+K opens search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (loading) {
     return (
@@ -55,6 +69,17 @@ const MainApp: React.FC = () => {
         }}
         onOpenProfile={() => setIsProfileOpen(!isProfileOpen)}
         isProfileOpen={isProfileOpen}
+        onOpenSearch={() => setIsSearchOpen(true)}
+      />
+
+      {/* Global Search Modal Overlay (Phase 5 Step 6) */}
+      <GlobalSearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onNavigateTab={(tab) => {
+          setActiveTab(tab);
+          setIsProfileOpen(false);
+        }}
       />
 
       {/* Content Area */}

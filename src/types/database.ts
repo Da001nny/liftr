@@ -604,6 +604,78 @@ export interface Database {
         };
         Relationships: [];
       };
+      bodyweight_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          weight: number;
+          unit: 'kg' | 'lbs';
+          notes: string | null;
+          source: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          date: string;
+          weight: number;
+          unit?: 'kg' | 'lbs';
+          notes?: string | null;
+          source?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          date?: string;
+          weight?: number;
+          unit?: 'kg' | 'lbs';
+          notes?: string | null;
+          source?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      step_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          step_count: number;
+          goal: number;
+          source: string;
+          device_info: any | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          date: string;
+          step_count: number;
+          goal?: number;
+          source?: string;
+          device_info?: any | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          date?: string;
+          step_count?: number;
+          goal?: number;
+          source?: string;
+          device_info?: any | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -675,5 +747,75 @@ export interface ActiveWorkoutExercise extends WorkoutExerciseRow {
 
 export interface ActiveWorkoutSession extends WorkoutRow {
   exercises: ActiveWorkoutExercise[];
+}
+
+// Domain Model Exports for Phase 5 (Activity, Progress, Analytics & Global Search)
+export type BodyweightEntryRow = Database['public']['Tables']['bodyweight_entries']['Row'];
+export type StepEntryRow = Database['public']['Tables']['step_entries']['Row'];
+
+export interface BodyweightStats {
+  currentWeight: number | null;
+  startingWeight: number | null;
+  netChange: number | null;
+  sevenDayAverage: number | null;
+  thirtyDayTrend: number | null;
+  unit: 'kg' | 'lbs';
+  entries: BodyweightEntryRow[];
+}
+
+export type ExposureLevel = 'high' | 'moderate' | 'low';
+
+export interface MuscleExposureItem {
+  muscleId: string;
+  muscleName: string;
+  commonName: string;
+  regionId: string;
+  totalVolume: number;
+  totalSets: number;
+  exposureScore: number;
+  exposureLevel: ExposureLevel;
+  percentageOfMax: number;
+}
+
+export interface RegionExposureItem {
+  regionId: string;
+  regionName: string;
+  totalVolume: number;
+  totalSets: number;
+  exposureScore: number;
+  exposureLevel: ExposureLevel;
+  percentageOfTotal: number;
+  muscles: MuscleExposureItem[];
+}
+
+export interface MuscleExposureAnalytics {
+  timeframe: 'session' | 'week' | 'month' | 'all_time';
+  totalAnalyzedWorkouts: number;
+  totalVolume: number;
+  totalSets: number;
+  regions: RegionExposureItem[];
+  topMuscles: MuscleExposureItem[];
+}
+
+export interface ExerciseProgressPoint {
+  date: string;
+  workoutId: string;
+  workoutName: string;
+  heaviestWeight: number;
+  maxReps: number;
+  totalVolume: number;
+  estimated1RM: number;
+}
+
+export type GlobalSearchResultType = 'exercise' | 'muscle' | 'region' | 'workout' | 'date';
+
+export interface GlobalSearchResult {
+  id: string;
+  title: string;
+  subtitle: string;
+  type: GlobalSearchResultType;
+  badge: string;
+  targetTab: 'workouts' | 'body' | 'progress' | 'calendar';
+  payload?: any;
 }
 
