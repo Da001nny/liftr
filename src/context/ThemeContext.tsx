@@ -1,7 +1,16 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase, DEFAULT_PROFILE } from '../lib/supabase';
-import { ThemeMode, SurfaceIntensity, GenderModel, SkinTone, UserProfile, RestTimerDefaults } from '../types/database';
+import { 
+  ThemeMode, 
+  SurfaceIntensity, 
+  GenderModel, 
+  SkinTone, 
+  UserProfile, 
+  RestTimerDefaults,
+  WeightUnit,
+  DistanceUnit
+} from '../types/database';
 
 export interface PredefinedColor {
   id: string;
@@ -49,6 +58,8 @@ interface ThemeContextType {
   skinTone: SkinTone;
   heatmapGlowColor: string;
   restTimerDefaults: RestTimerDefaults;
+  weightUnit: WeightUnit;
+  distanceUnit: DistanceUnit;
   profile: UserProfile | null;
   effectiveTheme: 'light' | 'dark';
   isLoadingProfile: boolean;
@@ -60,6 +71,8 @@ interface ThemeContextType {
   setSkinTone: (tone: SkinTone) => Promise<void>;
   setHeatmapGlowColor: (hex: string) => Promise<void>;
   setRestTimerDefaults: (defaults: RestTimerDefaults) => Promise<void>;
+  setWeightUnit: (unit: WeightUnit) => Promise<void>;
+  setDistanceUnit: (unit: DistanceUnit) => Promise<void>;
   reloadProfile: () => Promise<void>;
 }
 
@@ -106,6 +119,24 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } catch {}
     }
     return DEFAULT_PROFILE.heatmap_glow_color || '#00f0ff';
+  });
+  const [weightUnit, setWeightUnitState] = useState<WeightUnit>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('liftr_weight_unit');
+        if (cached === 'kg' || cached === 'lbs') return cached;
+      } catch {}
+    }
+    return DEFAULT_PROFILE.weight_unit || 'kg';
+  });
+  const [distanceUnit, setDistanceUnitState] = useState<DistanceUnit>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('liftr_distance_unit');
+        if (cached === 'km' || cached === 'mi') return cached;
+      } catch {}
+    }
+    return DEFAULT_PROFILE.distance_unit || 'km';
   });
   const [restTimerDefaults, setRestTimerDefaultsState] = useState<RestTimerDefaults>(DEFAULT_PROFILE.rest_timer_defaults);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(false);
@@ -186,6 +217,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setGenderState(data.gender || 'male');
         if (data.skin_tone) setSkinToneState(data.skin_tone);
         if (data.heatmap_glow_color) setHeatmapGlowColorState(data.heatmap_glow_color);
+        if (data.weight_unit) setWeightUnitState(data.weight_unit);
+        if (data.distance_unit) setDistanceUnitState(data.distance_unit);
         if (data.rest_timer_defaults) {
           setRestTimerDefaultsState(data.rest_timer_defaults);
         }
@@ -200,19 +233,32 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           gender: 'male' as const,
           skin_tone: DEFAULT_PROFILE.skin_tone || 'medium',
           heatmap_glow_color: DEFAULT_PROFILE.heatmap_glow_color || '#00f0ff',
+          weight_unit: DEFAULT_PROFILE.weight_unit || 'kg',
+          distance_unit: DEFAULT_PROFILE.distance_unit || 'km',
         };
-        const { data: created } = await supabase
+        const { data: created, error: createError } = await supabase
           .from('profiles')
           .insert(initial)
           .select('*')
           .maybeSingle();
 
-        if (created) {
+        if (createError && (createError.message.includes('weight_unit') || createError.message.includes('distance_unit') || createError.message.includes('schema cache'))) {
+          // Fallback if migration 007 columns not yet in DB schema cache
+          const { weight_unit, distance_unit, ...initialBase } = initial;
+          const { data: createdBase } = await supabase
+            .from('profiles')
+            .insert(initialBase)
+            .select('*')
+            .maybeSingle();
+          if (createdBase) {
+            setProfile(createdBase as UserProfile);
+          }
+        } else if (created) {
           setProfile(created as UserProfile);
         }
       }
-    } catch (err) {
-      console.error('[ThemeContext] Error loading profile from Supabase:', err);
+    } catch (err: any) {
+      console.warn('[ThemeContext] Note loading profile from Supabase:', err?.message || err);
     } finally {
       setIsLoadingProfile(false);
     }
@@ -228,7 +274,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsSavingProfile(true);
 
     try {
-      const payload = {
+      const payload: Record<string, any> = {
         id: user.id,
         ...updates,
         updated_at: new Date().toISOString(),
@@ -242,23 +288,47 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         .single();
 
       if (error) {
-        console.error('[ThemeContext] Supabase upsert error:', error.message);
-        // Fallback: If REST direct failed, attempt via backend /api/profile endpoint
-        if (token) {
-          await fetch('/api/profile', {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(updates),
-          });
+        const isUnitColumnMissing = error.message.includes('weight_unit') ||
+                                    error.message.includes('distance_unit') ||
+                                    error.message.includes('schema cache');
+
+        if (isUnitColumnMissing) {
+          // Schema cache does not yet have weight_unit/distance_unit (migration 007 pending in user's Supabase SQL editor)
+          // Gracefully retry upserting any other profile preferences (theme_mode, accent_color, etc.)
+          const sanitizedPayload = { ...payload };
+          delete sanitizedPayload.weight_unit;
+          delete sanitizedPayload.distance_unit;
+
+          const hasOtherFields = Object.keys(sanitizedPayload).some(k => k !== 'id' && k !== 'updated_at');
+          if (hasOtherFields) {
+            const { data: fallbackData } = await supabase
+              .from('profiles')
+              .upsert(sanitizedPayload)
+              .select('*')
+              .maybeSingle();
+            if (fallbackData) {
+              setProfile(fallbackData as UserProfile);
+            }
+          }
+        } else {
+          console.warn('[ThemeContext] Supabase upsert note:', error.message);
+          // Fallback: If REST direct failed, attempt via backend /api/profile endpoint
+          if (token) {
+            await fetch('/api/profile', {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify(updates),
+            });
+          }
         }
       } else if (data) {
         setProfile(data as UserProfile);
       }
-    } catch (err) {
-      console.error('[ThemeContext] Failed to persist profile to Supabase:', err);
+    } catch (err: any) {
+      console.warn('[ThemeContext] Note on profile persistence:', err?.message || err);
     } finally {
       setIsSavingProfile(false);
     }
@@ -303,6 +373,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await persistProfileUpdate({ rest_timer_defaults: defaults });
   };
 
+  const setWeightUnit = async (unit: WeightUnit) => {
+    setWeightUnitState(unit);
+    try { localStorage.setItem('liftr_weight_unit', unit); } catch {}
+    await persistProfileUpdate({ weight_unit: unit });
+  };
+
+  const setDistanceUnit = async (unit: DistanceUnit) => {
+    setDistanceUnitState(unit);
+    try { localStorage.setItem('liftr_distance_unit', unit); } catch {}
+    await persistProfileUpdate({ distance_unit: unit });
+  };
+
   return (
     <ThemeContext.Provider
       value={{
@@ -313,6 +395,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         skinTone,
         heatmapGlowColor,
         restTimerDefaults,
+        weightUnit,
+        distanceUnit,
         profile,
         effectiveTheme,
         isLoadingProfile,
@@ -324,6 +408,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setSkinTone,
         setHeatmapGlowColor,
         setRestTimerDefaults,
+        setWeightUnit,
+        setDistanceUnit,
         reloadProfile: loadProfile,
       }}
     >

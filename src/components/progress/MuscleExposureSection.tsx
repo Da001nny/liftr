@@ -5,12 +5,13 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { MuscleExposureAnalytics, ExposureLevel, RegionExposureItem, MuscleExposureItem } from '../../types/database';
 import { fetchMuscleExposureData } from '../../lib/progressService';
+import { formatWeight, formatWeightValue } from '../../lib/units';
 
 type TimeframeType = 'session' | 'week' | 'month' | 'all_time';
 
 export const MuscleExposureSection: React.FC = () => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
   const [timeframe, setTimeframe] = useState<TimeframeType>('month');
@@ -137,9 +138,9 @@ export const MuscleExposureSection: React.FC = () => {
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
-              {analytics?.totalVolume ? analytics.totalVolume.toLocaleString() : 0}
+              {analytics?.totalVolume ? formatWeightValue(analytics.totalVolume, weightUnit).toLocaleString() : 0}
             </span>
-            <span className="text-xs font-mono text-neutral-400">kg</span>
+            <span className="text-xs font-mono text-neutral-400">{weightUnit}</span>
           </div>
         </div>
 
@@ -188,7 +189,7 @@ export const MuscleExposureSection: React.FC = () => {
 
                       <div className="flex items-center gap-4 text-xs font-mono">
                         <span className="text-neutral-600 dark:text-neutral-300 font-bold">
-                          {region.totalVolume.toLocaleString()} kg
+                          {formatWeight(region.totalVolume, weightUnit)}
                         </span>
                         <span className="text-neutral-400 text-[11px] hidden sm:inline">
                           ({region.percentageOfTotal}% of total)
@@ -227,7 +228,7 @@ export const MuscleExposureSection: React.FC = () => {
                             </span>
                             <div>{getExposureBadge(m.exposureLevel)}</div>
                             <span className="font-mono text-neutral-900 dark:text-white font-bold text-right text-[11px]">
-                              {m.totalVolume.toLocaleString()} kg
+                              {formatWeight(m.totalVolume, weightUnit)}
                             </span>
                           </div>
                         ))}
@@ -274,7 +275,7 @@ export const MuscleExposureSection: React.FC = () => {
 
                   <div className="text-right shrink-0">
                     <span className="font-mono font-bold text-neutral-900 dark:text-white text-xs block">
-                      {m.totalVolume.toLocaleString()}kg
+                      {formatWeight(m.totalVolume, weightUnit)}
                     </span>
                     {getExposureBadge(m.exposureLevel)}
                   </div>

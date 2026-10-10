@@ -32,6 +32,7 @@ import {
   deleteCalendarNote 
 } from '../../lib/calendarService';
 import { formatLocalTimestamp } from '../../lib/calculations';
+import { formatWeight, formatPRDisplay } from '../../lib/units';
 
 interface DayDetailsModalProps {
   isOpen: boolean;
@@ -53,7 +54,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
   onStartWorkoutNow,
 }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
   const [newNoteContent, setNewNoteContent] = useState('');
@@ -289,7 +290,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                       {w.name}
                     </span>
                     <span className="text-xs font-mono font-bold text-neutral-400">
-                      {w.total_volume} kg {w.total_completed_sets !== undefined ? `· ${w.total_completed_sets} sets` : ''}
+                      {formatWeight(w.total_volume, weightUnit)} {w.total_completed_sets !== undefined ? `· ${w.total_completed_sets} sets` : ''}
                     </span>
                   </div>
                   {w.workout_exercises && (
@@ -332,7 +333,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                     </span>
                   </div>
                   <span className="text-sm font-mono font-black text-yellow-900 dark:text-yellow-100">
-                    {pr.value} {pr.category === 'rep_pr' ? 'reps' : 'kg'}
+                    {formatPRDisplay(pr, weightUnit)}
                   </span>
                 </div>
               ))}

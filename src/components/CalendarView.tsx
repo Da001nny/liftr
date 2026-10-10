@@ -38,6 +38,7 @@ import {
 } from '../types/database';
 import { MUSCLES, EXERCISES, CONTRIBUTIONS_BY_EXERCISE } from '../data/exerciseCatalog';
 import { formatLocalTimestamp } from '../lib/calculations';
+import { formatWeight } from '../lib/units';
 import { ScheduleWorkoutModal } from './calendar/ScheduleWorkoutModal';
 import { EditScheduledModal } from './calendar/EditScheduledModal';
 import { DayDetailsModal } from './calendar/DayDetailsModal';
@@ -46,7 +47,7 @@ type CalendarViewMode = 'month' | 'week' | 'day';
 
 export const CalendarView: React.FC = () => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
   const { startBlankWorkout, startWorkoutFromTemplate, setActiveSession } = useWorkout();
 
@@ -640,7 +641,7 @@ export const CalendarView: React.FC = () => {
                         className="px-1.5 py-0.5 rounded text-[10px] font-bold font-athletic uppercase truncate bg-neutral-200 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-neutral-300 dark:border-neutral-700 flex items-center justify-between"
                       >
                         <span className="truncate">{w.name}</span>
-                        <span className="font-mono text-[9px] opacity-75">{w.total_volume}kg</span>
+                        <span className="font-mono text-[9px] opacity-75">{formatWeight(w.total_volume, weightUnit)}</span>
                       </div>
                     ))}
 
@@ -724,7 +725,7 @@ export const CalendarView: React.FC = () => {
                       className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-950 dark:text-emerald-300 font-athletic uppercase"
                     >
                       <span className="block truncate">{w.name}</span>
-                      <span className="text-[10px] font-mono opacity-80">{w.total_volume} kg</span>
+                      <span className="text-[10px] font-mono opacity-80">{formatWeight(w.total_volume, weightUnit)}</span>
                     </div>
                   ))}
                 </div>

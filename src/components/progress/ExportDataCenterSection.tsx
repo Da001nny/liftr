@@ -32,7 +32,7 @@ interface ExportDataCenterSectionProps {
 
 export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = ({ workouts }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
     try {
       // Use loaded workouts or fetch freshest
       const list = workouts.length > 0 ? workouts : await fetchAllCompletedWorkouts(token);
-      const csv = generateWorkoutsCsv(list);
+      const csv = generateWorkoutsCsv(list, weightUnit);
       const filename = `liftr_workout_history_${new Date().toISOString().slice(0, 10)}.csv`;
       triggerBrowserDownload(filename, csv);
       setDownloadSuccess('workouts');
@@ -61,7 +61,7 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
     setDownloading('bodyweight');
     try {
       const entries = await fetchBodyweightEntries(token);
-      const csv = generateBodyweightCsv(entries);
+      const csv = generateBodyweightCsv(entries, weightUnit);
       const filename = `liftr_bodyweight_${new Date().toISOString().slice(0, 10)}.csv`;
       triggerBrowserDownload(filename, csv);
       setDownloadSuccess('bodyweight');
@@ -154,7 +154,7 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
             <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-[10px] font-mono text-neutral-500 space-y-1">
               <div className="font-bold text-neutral-700 dark:text-neutral-300">Schema Headers:</div>
               <div className="truncate text-neutral-400">
-                Date, Workout, Exercise, Set Type, Weight, Reps, Volume, Estimated 1RM
+                Date, Workout, Exercise, Set Type, Weight ({weightUnit}), Reps, Volume ({weightUnit}), Estimated 1RM ({weightUnit})
               </div>
             </div>
           </div>
@@ -208,7 +208,7 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
             <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-[10px] font-mono text-neutral-500 space-y-1">
               <div className="font-bold text-neutral-700 dark:text-neutral-300">Schema Headers:</div>
               <div className="truncate text-neutral-400">
-                Date, Weight, Unit, Notes, Source
+                Date, Weight ({weightUnit}), Unit, Notes, Source
               </div>
             </div>
           </div>

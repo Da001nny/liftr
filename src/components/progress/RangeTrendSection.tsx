@@ -20,6 +20,7 @@ import {
   TrendFilter, 
   TrendPeriodSpec 
 } from '../../lib/calculations';
+import { formatWeight, formatWeightValue } from '../../lib/units';
 
 interface RangeTrendSectionProps {
   workouts: any[];
@@ -30,7 +31,7 @@ type FilterTypeOption = 'total_volume' | 'exercise' | 'region';
 
 export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
 
   const [preset, setPreset] = useState<PresetType>('this_month_vs_last_month');
   const [filterType, setFilterType] = useState<FilterTypeOption>('total_volume');
@@ -259,9 +260,9 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
               </span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-3xl font-black font-display tracking-tight text-neutral-900 dark:text-white">
-                  {trendResult.periodA.volume.toLocaleString()}
+                  {formatWeightValue(trendResult.periodA.volume, weightUnit).toLocaleString()}
                 </span>
-                <span className="text-xs font-mono font-bold text-neutral-500">kg</span>
+                <span className="text-xs font-mono font-bold text-neutral-500">{weightUnit}</span>
               </div>
             </div>
             <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/80 dark:border-neutral-800/80 text-neutral-500 font-medium">
@@ -289,9 +290,9 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
               </span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-3xl font-black font-display tracking-tight text-neutral-900 dark:text-white">
-                  {trendResult.periodB.volume.toLocaleString()}
+                  {formatWeightValue(trendResult.periodB.volume, weightUnit).toLocaleString()}
                 </span>
-                <span className="text-xs font-mono font-bold text-neutral-500">kg</span>
+                <span className="text-xs font-mono font-bold text-neutral-500">{weightUnit}</span>
               </div>
             </div>
             <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/80 dark:border-neutral-800/80 text-neutral-500 font-medium">
@@ -322,9 +323,9 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
                 </span>
                 <p className="text-xs font-medium opacity-90 mt-0.5">
                   {isPositive
-                    ? `Volume increased by +${trendResult.absoluteChange}kg (+${trendResult.percentageChange}%) across the comparison window.`
+                    ? `Volume increased by +${formatWeight(trendResult.absoluteChange, weightUnit)} (+${trendResult.percentageChange}%) across the comparison window.`
                     : isNegative
-                    ? `Volume changed by ${trendResult.absoluteChange}kg (${trendResult.percentageChange}%) across the comparison window.`
+                    ? `Volume changed by ${formatWeight(trendResult.absoluteChange, weightUnit)} (${trendResult.percentageChange}%) across the comparison window.`
                     : 'Volume remained identical between the two comparison periods.'}
                 </p>
               </div>
@@ -332,7 +333,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
 
             <div className="flex items-center gap-3 self-end sm:self-auto">
               <span className="text-lg font-black font-mono">
-                {trendResult.absoluteChange !== null && trendResult.absoluteChange >= 0 ? `+${trendResult.absoluteChange}` : trendResult.absoluteChange} kg
+                {trendResult.absoluteChange !== null && trendResult.absoluteChange >= 0 ? '+' : ''}{formatWeight(trendResult.absoluteChange, weightUnit)}
               </span>
               <span className={`px-3 py-1 rounded-full text-xs font-black font-mono ${
                 isPositive ? 'bg-emerald-500 text-white' : isNegative ? 'bg-rose-500 text-white' : 'bg-neutral-600 text-white'

@@ -17,6 +17,7 @@ import { TabId } from './Navigation';
 import { calculateCalendarConsistency, formatLocalTimestamp } from '../lib/calculations';
 import { fetchDashboardSummary, DashboardSummaryData } from '../lib/workoutService';
 import { useWorkout } from '../context/WorkoutContext';
+import { formatWeight, formatWeightValue, formatPRDisplay } from '../lib/units';
 
 interface DashboardViewProps {
   onNavigateTab: (tab: TabId) => void;
@@ -24,7 +25,7 @@ interface DashboardViewProps {
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
   const { historyRefreshKey } = useWorkout();
 
@@ -112,10 +113,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
             
             <div className="flex items-baseline gap-3">
               <span className="text-6xl sm:text-7xl font-black tracking-tight text-neutral-900 dark:text-white font-stat">
-                {totalVolume}
+                {formatWeightValue(totalVolume, weightUnit).toLocaleString()}
               </span>
               <span className="text-xl font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic">
-                {t('common.kg')}
+                {weightUnit}
               </span>
             </div>
 
@@ -195,7 +196,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
             <TrendingUp className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
           </div>
           <div className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white font-stat">
-            {totalVolume > 0 ? `${totalVolume} kg` : t('dashboard.totalVolumeEmpty')}
+            {formatWeight(totalVolume, weightUnit)}
           </div>
           <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block font-medium">
             Across all completed sets
@@ -289,7 +290,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                 </div>
 
                 <div className="flex items-center gap-4 text-xs font-mono text-neutral-600 dark:text-neutral-300 font-bold pt-1">
-                  <span className="text-emerald-500">{recentWorkout.total_volume} kg vol</span>
+                  <span className="text-emerald-500">{formatWeight(recentWorkout.total_volume, weightUnit)} vol</span>
                   <span>·</span>
                   <span>{formatDuration(recentWorkout.duration_seconds)}</span>
                 </div>
@@ -351,7 +352,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                     </span>
                   </div>
                   <span className="font-mono font-black text-amber-500 text-sm">
-                    {pr.value} {pr.category === 'rep_pr' ? `reps @ ${pr.reps}kg` : 'kg'}
+                    {formatPRDisplay(pr, weightUnit)}
                   </span>
                 </div>
               ))}

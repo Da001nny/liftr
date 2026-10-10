@@ -40,6 +40,60 @@ import { ExercisePickerModal } from './ExercisePickerModal';
 import { RestTimerBar } from './RestTimerBar';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { Exercise } from '../../data/exerciseCatalog';
+import { 
+  WeightUnit,
+  formatWeight, 
+  formatWeightValue, 
+  formatPRDisplay, 
+  parseWeightInput 
+} from '../../lib/units';
+
+// Local controlled weight input that keeps raw text while user types, converting only on blur/save
+const SetWeightInput: React.FC<{
+  weightKg: number;
+  weightUnit: WeightUnit;
+  onChangeKg: (kg: number) => void;
+  placeholder?: string;
+}> = ({ weightKg, weightUnit, onChangeKg, placeholder = '0' }) => {
+  const [text, setText] = useState<string>(() => 
+    weightKg > 0 ? String(formatWeightValue(weightKg, weightUnit)) : ''
+  );
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setText(weightKg > 0 ? String(formatWeightValue(weightKg, weightUnit)) : '');
+    }
+  }, [weightKg, weightUnit, isFocused]);
+
+  const commitValue = () => {
+    const inKg = parseWeightInput(text, weightUnit);
+    onChangeKg(inKg);
+  };
+
+  return (
+    <input
+      type="number"
+      step="any"
+      value={text}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => {
+        setIsFocused(false);
+        commitValue();
+      }}
+      onChange={(e) => {
+        setText(e.target.value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          commitValue();
+        }
+      }}
+      placeholder={placeholder}
+      className="w-20 px-2 py-1.5 rounded-lg bg-neutral-900 border border-neutral-700 text-center font-mono font-bold text-sm text-white focus:outline-none focus:border-blue-500"
+    />
+  );
+};
 
 interface ActiveWorkoutModalProps {
   session: ActiveWorkoutSession;
@@ -55,7 +109,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   onWorkoutCompleted,
 }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
   const [isMinimized, setIsMinimized] = useState(false);
@@ -382,7 +436,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
           <div className="flex items-center gap-2">
             <div className="hidden sm:block text-right pr-2">
               <span className="text-xs font-mono font-bold block text-neutral-300">
-                {liveStats.totalVolume} kg
+                {formatWeight(liveStats.totalVolume, weightUnit)}
               </span>
               <span className="text-[10px] text-neutral-500 font-athletic uppercase tracking-wider">
                 {liveStats.completedSetsCount} sets done
@@ -457,7 +511,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                 {t('workouts.volumeLabel')}
               </span>
               <p className="text-lg font-black font-stat text-emerald-400">
-                {completionResult.workout.total_volume} kg
+                {formatWeight(completionResult.workout.total_volume, weightUnit)}
               </p>
             </div>
             <div className="space-y-0.5">
@@ -484,7 +538,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                       {pr.exercise_id.replace(/_/g, ' ')}
                     </span>
                     <span className="font-mono font-bold text-amber-300">
-                      {pr.value} {pr.category === 'rep_pr' ? `reps @ ${pr.reps}kg` : 'kg'}
+                      {formatPRDisplay(pr, weightUnit)}
                     </span>
                   </div>
                 ))}
@@ -541,7 +595,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
               </span>
               <span>·</span>
               <span className="font-mono text-neutral-300">
-                {liveStats.totalVolume} kg vol
+                {formatWeight(liveStats.totalVolume, weightUnit)} vol
               </span>
               <span>·</span>
               <span>{liveStats.completedSetsCount} sets</span>
@@ -653,7 +707,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                   <thead>
                     <tr className="text-neutral-400 font-athletic uppercase tracking-wider text-[11px] border-b border-neutral-800/80">
                       <th className="py-2 px-2 w-12 text-center">{t('workoutLogger.setCol')}</th>
-                      <th className="py-2 px-2 w-28 text-center">{t('workoutLogger.weightCol', { unit: 'kg' })}</th>
+                      <th className="py-2 px-2 w-28 text-center">{t('workoutLogger.weightCol', { unit: weightUnit })}</th>
                       <th className="py-2 px-2 w-20 text-center">{t('workoutLogger.repsCol')}</th>
                       <th className="py-2 px-2 w-16 text-center">{t('workoutLogger.rirCol')}</th>
                       <th className="py-2 px-2 w-14 text-center">{t('workoutLogger.checkCol')}</th>
@@ -663,6 +717,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                   <tbody className="divide-y divide-neutral-800/40">
                     {ex.sets.map((set, setIdx) => {
                       const est1RM = calculateEstimated1RM(set.weight, set.reps);
+                      const prevSet = setIdx > 0 ? ex.sets[setIdx - 1] : undefined;
                       return (
                         <tr 
                           key={set.id || setIdx}
@@ -692,16 +747,19 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                             </button>
                           </td>
 
-                          {/* Weight */}
+                          {/* Weight & Previous Value Suggestion */}
                           <td className="py-2.5 px-2 text-center">
-                            <input
-                              type="number"
-                              step="0.5"
-                              value={set.weight === 0 ? '' : set.weight}
-                              onChange={(e) => handleUpdateSet(exIdx, setIdx, 'weight', parseFloat(e.target.value) || 0)}
-                              placeholder="0"
-                              className="w-20 px-2 py-1.5 rounded-lg bg-neutral-900 border border-neutral-700 text-center font-mono font-bold text-sm text-white focus:outline-none focus:border-blue-500"
+                            <SetWeightInput
+                              weightKg={set.weight}
+                              weightUnit={weightUnit}
+                              onChangeKg={(valKg) => handleUpdateSet(exIdx, setIdx, 'weight', valKg)}
+                              placeholder={prevSet && prevSet.weight > 0 ? String(formatWeightValue(prevSet.weight, weightUnit)) : '0'}
                             />
+                            {prevSet && prevSet.weight > 0 && prevSet.reps > 0 && (
+                              <span className="text-[10px] text-neutral-400 font-mono block mt-1 whitespace-nowrap">
+                                Prev: {formatWeight(prevSet.weight, weightUnit)} × {prevSet.reps}
+                              </span>
+                            )}
                           </td>
 
                           {/* Reps */}

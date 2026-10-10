@@ -24,6 +24,8 @@ export const DEFAULT_PROFILE: Omit<UserProfile, 'id' | 'created_at' | 'updated_a
   gender: 'male',
   skin_tone: 'medium',
   heatmap_glow_color: '#00f0ff',
+  weight_unit: 'kg',
+  distance_unit: 'km',
 };
 
 /**

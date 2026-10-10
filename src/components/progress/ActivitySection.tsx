@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Footprints, Target, Plus, Check, TrendingUp, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Footprints, Target, Plus, Check, TrendingUp, Calendar as CalendarIcon, X, Compass } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { StepEntryRow } from '../../types/database';
 import { fetchStepEntry, saveStepEntry } from '../../lib/progressService';
+import { formatDistance } from '../../lib/units';
 
 interface ActivitySectionProps {
   onRefresh?: () => void;
@@ -12,7 +13,7 @@ interface ActivitySectionProps {
 
 export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, distanceUnit } = useTheme();
   const { token } = useAuth();
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -73,6 +74,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
   const goal = stepData?.goal || 10000;
   const progressPercent = Math.min(100, Math.round((steps / goal) * 100));
   const isGoalReached = steps >= goal && goal > 0;
+  const estimatedDistanceKm = steps * 0.00075;
 
   return (
     <div 
@@ -124,7 +126,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
       {/* Main Activity Progress Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 items-center">
         
-        {/* Metric 1: Step Count */}
+        {/* Metric 1: Step Count & Distance */}
         <div className="space-y-1">
           <span className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
             <Footprints className="w-3.5 h-3.5 text-blue-500" />
@@ -139,7 +141,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
             </span>
           </div>
           <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block">
-            {isGoalReached 
+            <strong className="text-neutral-700 dark:text-neutral-300 font-mono">{formatDistance(estimatedDistanceKm, distanceUnit)}</strong> · {isGoalReached 
               ? 'Goal achieved! Exceptional daily energy output.' 
               : `${Math.max(0, goal - steps).toLocaleString()} steps remaining to hit target.`}
           </span>

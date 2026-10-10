@@ -6,13 +6,14 @@ import { useAuth } from '../../context/AuthContext';
 import { EXERCISES } from '../../data/exerciseCatalog';
 import { ExerciseProgressPoint } from '../../types/database';
 import { fetchExerciseProgressData } from '../../lib/progressService';
+import { formatWeight, formatWeightValue } from '../../lib/units';
 
 type MetricType = 'estimated1RM' | 'heaviestWeight' | 'maxReps' | 'totalVolume';
 type RangeType = '7d' | '30d' | '3m' | '6m' | '1y' | 'all';
 
 export const ExerciseProgressSection: React.FC = () => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
   // Selected Exercise (defaults to first popular exercise like Barbell Bench Press)
@@ -50,30 +51,34 @@ export const ExerciseProgressSection: React.FC = () => {
   // SVG Chart points
   const chartCoordinates = useMemo(() => {
     if (points.length < 2) return [];
-    const values = points.map(p => Number(p[metric]));
+    const values = points.map(p => {
+      const raw = Number(p[metric]);
+      return metric === 'maxReps' ? raw : formatWeightValue(raw, weightUnit);
+    });
     const minVal = Math.min(...values);
     const maxVal = Math.max(...values);
     const valRange = Math.max(1, maxVal - minVal);
     const padding = valRange * 0.15;
     const yMin = Math.max(0, minVal - padding);
     const yMax = maxVal + padding;
-    const yRange = yMax - yMin;
+    const yRange = Math.max(1, yMax - yMin);
 
     const width = 600;
     const height = 180;
 
     return points.map((p, index) => {
+      const val = metric === 'maxReps' ? Number(p[metric]) : formatWeightValue(Number(p[metric]), weightUnit);
       const x = (index / (points.length - 1)) * (width - 40) + 20;
-      const y = height - 25 - ((Number(p[metric]) - yMin) / yRange) * (height - 50);
+      const y = height - 25 - ((val - yMin) / yRange) * (height - 50);
       return {
         x,
         y,
-        val: Number(p[metric]),
+        val,
         date: p.date,
         workoutName: p.workoutName,
       };
     });
-  }, [points, metric]);
+  }, [points, metric, weightUnit]);
 
   const svgPath = useMemo(() => {
     if (chartCoordinates.length < 2) return '';
@@ -102,11 +107,11 @@ export const ExerciseProgressSection: React.FC = () => {
       case 'estimated1RM':
       case 'heaviestWeight':
       case 'totalVolume':
-        return 'kg';
+        return weightUnit;
       case 'maxReps':
         return 'reps';
     }
-  }, [metric]);
+  }, [metric, weightUnit]);
 
   return (
     <div 
@@ -207,7 +212,9 @@ export const ExerciseProgressSection: React.FC = () => {
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
-              {latestPoint ? latestPoint[metric] : '—'}
+              {latestPoint 
+                ? (metric === 'maxReps' ? latestPoint[metric] : formatWeightValue(latestPoint[metric], weightUnit)) 
+                : '—'}
             </span>
             <span className="text-xs font-mono text-neutral-400">{metricUnit}</span>
           </div>
@@ -223,7 +230,9 @@ export const ExerciseProgressSection: React.FC = () => {
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
-              {bestMetricValue > 0 ? bestMetricValue : '—'}
+              {bestMetricValue > 0 
+                ? (metric === 'maxReps' ? bestMetricValue : formatWeightValue(bestMetricValue, weightUnit)) 
+                : '—'}
             </span>
             <span className="text-xs font-mono text-neutral-400">{metricUnit}</span>
           </div>
@@ -324,10 +333,10 @@ export const ExerciseProgressSection: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-4 font-mono text-[11px]">
-                  <span><strong className="text-neutral-400 font-normal">1RM:</strong> {pt.estimated1RM}kg</span>
-                  <span><strong className="text-neutral-400 font-normal">Load:</strong> {pt.heaviestWeight}kg</span>
+                  <span><strong className="text-neutral-400 font-normal">1RM:</strong> {formatWeight(pt.estimated1RM, weightUnit)}</span>
+                  <span><strong className="text-neutral-400 font-normal">Load:</strong> {formatWeight(pt.heaviestWeight, weightUnit)}</span>
                   <span><strong className="text-neutral-400 font-normal">Reps:</strong> {pt.maxReps}</span>
-                  <span className="hidden sm:inline"><strong className="text-neutral-400 font-normal">Vol:</strong> {pt.totalVolume}kg</span>
+                  <span className="hidden sm:inline"><strong className="text-neutral-400 font-normal">Vol:</strong> {formatWeight(pt.totalVolume, weightUnit)}</span>
                 </div>
               </div>
             ))}

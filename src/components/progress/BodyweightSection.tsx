@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { BodyweightEntryRow, BodyweightStats } from '../../types/database';
 import { fetchBodyweightEntries, saveBodyweightEntry, deleteBodyweightEntry } from '../../lib/progressService';
 import { calculateBodyweightStats } from '../../lib/calculations';
+import { formatWeight, formatWeightValue, parseWeightInput } from '../../lib/units';
 
 interface BodyweightSectionProps {
   onRefresh?: () => void;
@@ -13,7 +14,7 @@ interface BodyweightSectionProps {
 
 export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
   const [entries, setEntries] = useState<BodyweightEntryRow[]>([]);
@@ -23,9 +24,13 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [inputDate, setInputDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [inputWeight, setInputWeight] = useState<string>('');
-  const [inputUnit, setInputUnit] = useState<'kg' | 'lbs'>('kg');
+  const [inputUnit, setInputUnit] = useState<'kg' | 'lbs'>(weightUnit);
   const [inputNotes, setInputNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  useEffect(() => {
+    setInputUnit(weightUnit);
+  }, [weightUnit]);
 
   const loadData = async () => {
     if (!token) return;
@@ -40,21 +45,21 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
   }, [token]);
 
   const stats: BodyweightStats = useMemo(() => {
-    return calculateBodyweightStats(entries, inputUnit);
-  }, [entries, inputUnit]);
+    return calculateBodyweightStats(entries);
+  }, [entries]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || isSubmitting) return;
 
-    const parsedWeight = parseFloat(inputWeight);
-    if (isNaN(parsedWeight) || parsedWeight <= 0) return;
+    const canonicalKg = parseWeightInput(inputWeight, inputUnit);
+    if (canonicalKg <= 0) return;
 
     setIsSubmitting(true);
     const res = await saveBodyweightEntry(token, {
       date: inputDate,
-      weight: parsedWeight,
-      unit: inputUnit,
+      weight: canonicalKg,
+      unit: 'kg',
       notes: inputNotes.trim() || undefined,
       source: 'manual',
     });
@@ -81,23 +86,25 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
   // Chart coordinate calculations
   const chartPoints = useMemo(() => {
     if (stats.entries.length < 2) return [];
-    const minWeight = Math.min(...stats.entries.map(e => Number(e.weight)));
-    const maxWeight = Math.max(...stats.entries.map(e => Number(e.weight)));
+    const values = stats.entries.map(e => formatWeightValue(Number(e.weight), weightUnit));
+    const minWeight = Math.min(...values);
+    const maxWeight = Math.max(...values);
     const range = Math.max(1, maxWeight - minWeight);
     const padding = range * 0.15;
     const yMin = minWeight - padding;
     const yMax = maxWeight + padding;
-    const yRange = yMax - yMin;
+    const yRange = Math.max(1, yMax - yMin);
 
     const width = 600;
     const height = 180;
 
     return stats.entries.map((entry, index) => {
+      const val = formatWeightValue(Number(entry.weight), weightUnit);
       const x = (index / (stats.entries.length - 1)) * (width - 40) + 20;
-      const y = height - 20 - ((Number(entry.weight) - yMin) / yRange) * (height - 40);
-      return { x, y, weight: Number(entry.weight), date: entry.date };
+      const y = height - 20 - ((val - yMin) / yRange) * (height - 40);
+      return { x, y, weight: val, date: entry.date };
     });
-  }, [stats.entries]);
+  }, [stats.entries, weightUnit]);
 
   const svgPath = useMemo(() => {
     if (chartPoints.length < 2) return '';
@@ -155,9 +162,9 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
-              {stats.currentWeight !== null ? stats.currentWeight : '—'}
+              {stats.currentWeight !== null ? formatWeightValue(stats.currentWeight, weightUnit) : '—'}
             </span>
-            <span className="text-xs font-mono text-neutral-400">{stats.unit}</span>
+            <span className="text-xs font-mono text-neutral-400">{weightUnit}</span>
           </div>
         </div>
 
@@ -168,9 +175,9 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-neutral-800 dark:text-neutral-200">
-              {stats.startingWeight !== null ? stats.startingWeight : '—'}
+              {stats.startingWeight !== null ? formatWeightValue(stats.startingWeight, weightUnit) : '—'}
             </span>
-            <span className="text-xs font-mono text-neutral-400">{stats.unit}</span>
+            <span className="text-xs font-mono text-neutral-400">{weightUnit}</span>
           </div>
         </div>
 
@@ -188,10 +195,10 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
                   : (stats.netChange < 0 ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-800 dark:text-neutral-200'))
             }`}>
               {stats.netChange !== null 
-                ? (stats.netChange > 0 ? `+${stats.netChange}` : `${stats.netChange}`)
+                ? (stats.netChange > 0 ? `+${formatWeightValue(stats.netChange, weightUnit)}` : `${formatWeightValue(stats.netChange, weightUnit)}`)
                 : '—'}
             </span>
-            <span className="text-xs font-mono text-neutral-400">{stats.unit}</span>
+            <span className="text-xs font-mono text-neutral-400">{weightUnit}</span>
           </div>
         </div>
 
@@ -202,9 +209,9 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
-              {stats.sevenDayAverage !== null ? stats.sevenDayAverage : '—'}
+              {stats.sevenDayAverage !== null ? formatWeightValue(stats.sevenDayAverage, weightUnit) : '—'}
             </span>
-            <span className="text-xs font-mono text-neutral-400">{stats.unit}</span>
+            <span className="text-xs font-mono text-neutral-400">{weightUnit}</span>
           </div>
         </div>
 
@@ -221,9 +228,9 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
                     ? 'text-amber-500 dark:text-amber-400' 
                     : (stats.thirtyDayTrend < 0 ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-800 dark:text-neutral-200')
                 }`}>
-                  {stats.thirtyDayTrend > 0 ? `+${stats.thirtyDayTrend}` : `${stats.thirtyDayTrend}`}
+                  {stats.thirtyDayTrend > 0 ? `+${formatWeightValue(stats.thirtyDayTrend, weightUnit)}` : `${formatWeightValue(stats.thirtyDayTrend, weightUnit)}`}
                 </span>
-                <span className="text-xs font-mono text-neutral-400">{stats.unit}</span>
+                <span className="text-xs font-mono text-neutral-400">{weightUnit}</span>
               </>
             ) : (
               <span className="text-xs sm:text-sm font-medium text-neutral-400 dark:text-neutral-500">
@@ -292,7 +299,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
         ) : (
           <div className="py-12 text-center text-xs text-neutral-500 dark:text-neutral-400 font-medium">
             {stats.entries.length === 1 
-              ? `Logged ${stats.entries[0].weight}${stats.entries[0].unit} on ${stats.entries[0].date}. Add at least 2 entries to render the trend line.` 
+              ? `Logged ${formatWeight(stats.entries[0].weight, weightUnit)} on ${stats.entries[0].date}. Add at least 2 entries to render the trend line.` 
               : t('progress.noWeightEntries')}
           </div>
         )}
@@ -312,7 +319,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-neutral-500 text-[11px] font-semibold">{entry.date}</span>
                   <span className="font-mono font-bold text-neutral-900 dark:text-white">
-                    {entry.weight} {entry.unit}
+                    {formatWeight(entry.weight, weightUnit)}
                   </span>
                   {entry.notes && (
                     <span className="text-neutral-500 truncate max-w-[200px] text-[11px]">
@@ -383,9 +390,9 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
                   </label>
                   <input
                     type="number"
-                    step="0.05"
-                    min="20"
-                    max="500"
+                    step="any"
+                    min="1"
+                    max="1000"
                     required
                     autoFocus
                     placeholder={t('progress.weightPlaceholder')}

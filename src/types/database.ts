@@ -2,6 +2,8 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export type SurfaceIntensity = 'low' | 'medium' | 'high';
 export type GenderModel = 'male' | 'female';
 export type SkinTone = 'fair' | 'medium' | 'tan' | 'dark';
+export type WeightUnit = 'kg' | 'lbs';
+export type DistanceUnit = 'km' | 'mi';
 
 export interface RestTimerDefaults {
   defaultRestSeconds: number;
@@ -18,6 +20,8 @@ export interface UserProfile {
   gender: GenderModel;
   skin_tone?: SkinTone;
   heatmap_glow_color?: string;
+  weight_unit?: WeightUnit;
+  distance_unit?: DistanceUnit;
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +47,8 @@ export interface Database {
           gender: GenderModel;
           skin_tone?: SkinTone;
           heatmap_glow_color?: string;
+          weight_unit?: WeightUnit;
+          distance_unit?: DistanceUnit;
           created_at: string;
           updated_at: string;
         };
@@ -55,6 +61,8 @@ export interface Database {
           gender?: GenderModel;
           skin_tone?: SkinTone;
           heatmap_glow_color?: string;
+          weight_unit?: WeightUnit;
+          distance_unit?: DistanceUnit;
           created_at?: string;
           updated_at?: string;
         };
@@ -67,6 +75,8 @@ export interface Database {
           gender?: GenderModel;
           skin_tone?: SkinTone;
           heatmap_glow_color?: string;
+          weight_unit?: WeightUnit;
+          distance_unit?: DistanceUnit;
           created_at?: string;
           updated_at?: string;
         };

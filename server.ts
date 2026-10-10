@@ -333,13 +333,26 @@ async function startServer() {
             compoundRestSeconds: 180,
           },
           gender: 'male',
+          weight_unit: 'kg',
+          distance_unit: 'km',
         };
 
-        const { data: created, error: insertError } = await client
+        let { data: created, error: insertError } = await client
           .from('profiles')
           .insert(defaultProfile)
           .select('*')
           .single();
+
+        if (insertError && (insertError.message.includes('weight_unit') || insertError.message.includes('distance_unit') || insertError.message.includes('schema cache'))) {
+          const { weight_unit, distance_unit, ...baseProfile } = defaultProfile;
+          const retry = await client
+            .from('profiles')
+            .insert(baseProfile)
+            .select('*')
+            .single();
+          created = retry.data;
+          insertError = retry.error;
+        }
 
         if (insertError) {
           // If insert fails due to missing table
@@ -363,7 +376,7 @@ async function startServer() {
   app.patch('/api/profile', requireAuth, async (req: Request, res: Response) => {
     const user = (req as any).user;
     const client = (req as any).userClient;
-    const { theme_mode, accent_color, surface_intensity, rest_timer_defaults, gender } = req.body;
+    const { theme_mode, accent_color, surface_intensity, rest_timer_defaults, gender, weight_unit, distance_unit } = req.body;
 
     // Build sanitised payload
     const updates: Record<string, any> = {
@@ -385,13 +398,32 @@ async function startServer() {
     if (gender && ['male', 'female'].includes(gender)) {
       updates.gender = gender;
     }
+    if (weight_unit && ['kg', 'lbs'].includes(weight_unit)) {
+      updates.weight_unit = weight_unit;
+    }
+    if (distance_unit && ['km', 'mi'].includes(distance_unit)) {
+      updates.distance_unit = distance_unit;
+    }
 
     try {
-      const { data, error } = await client
+      let { data, error } = await client
         .from('profiles')
         .upsert({ id: user.id, ...updates })
         .select('*')
         .single();
+
+      if (error && (error.message.includes('weight_unit') || error.message.includes('distance_unit') || error.message.includes('schema cache'))) {
+        const fallbackUpdates = { ...updates };
+        delete fallbackUpdates.weight_unit;
+        delete fallbackUpdates.distance_unit;
+        const retry = await client
+          .from('profiles')
+          .upsert({ id: user.id, ...fallbackUpdates })
+          .select('*')
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         return res.status(500).json(apiError(`Failed to update profile: ${error.message}`));

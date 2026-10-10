@@ -16,6 +16,7 @@ import {
   calculateCrossExerciseComparison,
   CrossExerciseComparison
 } from '../../lib/calculations';
+import { formatWeight, formatWeightValue } from '../../lib/units';
 
 interface CrossExerciseSectionProps {
   workouts: any[];
@@ -26,7 +27,7 @@ type MetricChoice = 'estimated1RM' | 'totalVolume';
 
 export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ workouts }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
 
   // Exercise selection
   const [exerciseAId, setExerciseAId] = useState<string>(EXERCISES[0]?.id || 'ex_barbell_bench_press');
@@ -237,7 +238,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
             {comparison.exerciseA.name} Best 1RM
           </span>
           <span className="text-xl font-black font-display text-neutral-900 dark:text-white mt-0.5 block">
-            {comparison.exerciseA.best1RM > 0 ? `${comparison.exerciseA.best1RM}kg` : '—'}
+            {comparison.exerciseA.best1RM > 0 ? formatWeight(comparison.exerciseA.best1RM, weightUnit) : '—'}
           </span>
         </div>
 
@@ -255,7 +256,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
             {comparison.exerciseB.name} Best 1RM
           </span>
           <span className="text-xl font-black font-display text-neutral-900 dark:text-white mt-0.5 block">
-            {comparison.exerciseB.best1RM > 0 ? `${comparison.exerciseB.best1RM}kg` : '—'}
+            {comparison.exerciseB.best1RM > 0 ? formatWeight(comparison.exerciseB.best1RM, weightUnit) : '—'}
           </span>
         </div>
 
@@ -356,7 +357,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
               </div>
 
               <span className="text-[11px] font-mono text-neutral-400 font-semibold">
-                Metric: {metric === 'estimated1RM' ? 'Estimated 1RM (kg)' : 'Volume (kg)'}
+                Metric: {metric === 'estimated1RM' ? `Estimated 1RM (${weightUnit})` : `Volume (${weightUnit})`}
               </span>
             </div>
 

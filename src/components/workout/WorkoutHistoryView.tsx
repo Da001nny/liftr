@@ -17,6 +17,7 @@ import { WorkoutRow, PersonalRecordRow } from '../../types/database';
 import { fetchWorkouts, deleteWorkoutSession, fetchPersonalRecords } from '../../lib/workoutService';
 import { formatLocalTimestamp } from '../../lib/calculations';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { formatWeight, formatPRDisplay } from '../../lib/units';
 
 interface WorkoutHistoryViewProps {
   onRefreshTrigger?: number;
@@ -24,7 +25,7 @@ interface WorkoutHistoryViewProps {
 
 export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefreshTrigger }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
   const [workouts, setWorkouts] = useState<WorkoutRow[]>([]);
@@ -156,7 +157,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
                         Volume
                       </span>
                       <span className="text-sm sm:text-base font-black text-neutral-900 dark:text-emerald-400">
-                        {workout.total_volume} kg
+                        {formatWeight(workout.total_volume, weightUnit)}
                       </span>
                     </div>
 
@@ -193,7 +194,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
                       key={idx} 
                       className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
                     >
-                      {pr.exercise_id.replace(/_/g, ' ')}: {pr.value} {pr.category === 'rep_pr' ? `reps @ ${pr.reps}kg` : 'kg'}
+                      {pr.exercise_id.replace(/_/g, ' ')}: {formatPRDisplay(pr, weightUnit)}
                     </span>
                   ))}
                 </div>

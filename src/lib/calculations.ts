@@ -20,6 +20,7 @@ import {
   CONTRIBUTIONS_BY_EXERCISE,
   EXERCISES
 } from '../data/exerciseCatalog';
+import { WeightUnit, formatWeightValue, lbsToKg, roundToFourDecimals } from './units';
 
 export interface ExerciseSet {
   weight: number; // in user's unit (kg or lbs)
@@ -209,12 +210,23 @@ export function detectPersonalRecords(
   const est1RM = calculateEstimated1RM(weight, reps);
   const setVolume = calculateSingleSetVolume(weight, reps);
 
-  // Strict > for all categories
-  const isHeaviestWeightPR = weight > currentRecords.heaviestWeight;
-  const isEstimated1RMPR = est1RM > currentRecords.bestEstimated1RM;
-  const isSingleSetVolumePR = setVolume > currentRecords.bestSingleSetVolume;
+  // Strict > for all categories: compare canonical values rounded to 4 decimals
+  // to eliminate floating-point noise so a tie is never treated as a PR.
+  const candWeight = Math.round(weight * 10000) / 10000;
+  const currWeight = Math.round((currentRecords.heaviestWeight ?? 0) * 10000) / 10000;
+  const isHeaviestWeightPR = candWeight > currWeight;
 
-  const previousBestRepsForWeight = currentRecords.repPRsByWeight[weight] ?? 0;
+  const candEst1RM = Math.round(est1RM * 10000) / 10000;
+  const currEst1RM = Math.round((currentRecords.bestEstimated1RM ?? 0) * 10000) / 10000;
+  const isEstimated1RMPR = candEst1RM > currEst1RM;
+
+  const candVol = Math.round(setVolume * 10000) / 10000;
+  const currVol = Math.round((currentRecords.bestSingleSetVolume ?? 0) * 10000) / 10000;
+  const isSingleSetVolumePR = candVol > currVol;
+
+  const previousBestRepsForWeight = currentRecords.repPRsByWeight[candWeight] 
+    ?? currentRecords.repPRsByWeight[weight] 
+    ?? 0;
   const isRepPR = reps > previousBestRepsForWeight;
 
   return {
@@ -312,8 +324,14 @@ export function calculateBodyweightStats(
 
   // Sort ascending by date
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
-  const starting = Number(sorted[0].weight);
-  const current = Number(sorted[sorted.length - 1].weight);
+
+  // Canonical storage: treats every stored row as kg whatever the leftover unit column says
+  const getCanonicalWeight = (e: BodyweightEntryRow): number => {
+    return Number(e.weight) || 0;
+  };
+
+  const starting = getCanonicalWeight(sorted[0]);
+  const current = getCanonicalWeight(sorted[sorted.length - 1]);
   const netChange = Math.round((current - starting) * 100) / 100;
 
   // Helper to parse 'YYYY-MM-DD' into UTC Date to avoid timezone drift
@@ -330,7 +348,7 @@ export function calculateBodyweightStats(
 
   const last7DaysEntries = sorted.filter(e => e.date >= sevenDaysAgoStr);
   const sevenDayAverage = last7DaysEntries.length > 0
-    ? Math.round((last7DaysEntries.reduce((sum, e) => sum + Number(e.weight), 0) / last7DaysEntries.length) * 100) / 100
+    ? Math.round((last7DaysEntries.reduce((sum, e) => sum + getCanonicalWeight(e), 0) / last7DaysEntries.length) * 100) / 100
     : current;
 
   // 30-day trend: compare recent 7-day average with entries ~30 days ago (window: 30 to 36 days prior)
@@ -345,7 +363,7 @@ export function calculateBodyweightStats(
   const entries30DaysAgo = sorted.filter(e => e.date >= thirtyDaysWindowStartStr && e.date <= thirtyDaysAgoStr);
   let thirtyDayTrend: number | null = null;
   if (entries30DaysAgo.length > 0) {
-    const avg30DaysAgo = entries30DaysAgo.reduce((sum, e) => sum + Number(e.weight), 0) / entries30DaysAgo.length;
+    const avg30DaysAgo = entries30DaysAgo.reduce((sum, e) => sum + getCanonicalWeight(e), 0) / entries30DaysAgo.length;
     thirtyDayTrend = Math.round((sevenDayAverage - avg30DaysAgo) * 100) / 100;
   }
   // Return thirtyDayTrend: null when there's no data in the comparison window, instead of falling back to net change.
@@ -356,7 +374,7 @@ export function calculateBodyweightStats(
     netChange,
     sevenDayAverage,
     thirtyDayTrend,
-    unit: sorted[sorted.length - 1].unit || preferredUnit,
+    unit: 'kg',
     entries: sorted,
   };
 }
@@ -988,8 +1006,9 @@ export function escapeCsvCell(val: any): string {
  * Authoritative CSV export of workout history:
  * One row per set: date, workout, exercise, set type, weight, reps, volume, estimated 1RM.
  * Uses calculateSetVolume for volume and calculateEstimated1RM for 1RM.
+ * When weightUnit is passed, headers include unit ('Weight (lbs)') and values are formatted in that unit.
  */
-export function generateWorkoutsCsv(workouts: any[]): string {
+export function generateWorkoutsCsv(workouts: any[], weightUnit?: WeightUnit): string {
   const completed = (workouts || []).filter(w => w.status === 'completed');
   const sorted = [...completed].sort((a, b) => {
     const dateA = a.completed_at || a.started_at || a.created_at || '';
@@ -997,7 +1016,11 @@ export function generateWorkoutsCsv(workouts: any[]): string {
     return dateA.localeCompare(dateB);
   });
 
-  const headers = ['Date', 'Workout', 'Exercise', 'Set Type', 'Weight', 'Reps', 'Volume', 'Estimated 1RM'];
+  const weightCol = weightUnit ? `Weight (${weightUnit})` : 'Weight';
+  const volumeCol = weightUnit ? `Volume (${weightUnit})` : 'Volume';
+  const est1RMCol = weightUnit ? `Estimated 1RM (${weightUnit})` : 'Estimated 1RM';
+
+  const headers = ['Date', 'Workout', 'Exercise', 'Set Type', weightCol, 'Reps', volumeCol, est1RMCol];
   const rows: string[] = [headers.join(',')];
 
   for (const w of sorted) {
@@ -1017,15 +1040,19 @@ export function generateWorkoutsCsv(workouts: any[]): string {
           ? calculateEstimated1RM(weight, reps)
           : 0;
 
+        const displayWeight = weightUnit ? formatWeightValue(weight, weightUnit) : weight;
+        const displayVolume = weightUnit ? formatWeightValue(volume, weightUnit) : volume;
+        const displayEst1RM = weightUnit ? formatWeightValue(est1RM, weightUnit) : est1RM;
+
         rows.push([
           escapeCsvCell(date),
           escapeCsvCell(workoutName),
           escapeCsvCell(exerciseName),
           escapeCsvCell(setType),
-          escapeCsvCell(weight),
+          escapeCsvCell(displayWeight),
           escapeCsvCell(reps),
-          escapeCsvCell(volume),
-          escapeCsvCell(est1RM),
+          escapeCsvCell(displayVolume),
+          escapeCsvCell(displayEst1RM),
         ].join(','));
       }
     }
@@ -1038,16 +1065,21 @@ export function generateWorkoutsCsv(workouts: any[]): string {
 /**
  * Authoritative CSV export of bodyweight entries.
  */
-export function generateBodyweightCsv(entries: BodyweightEntryRow[]): string {
+export function generateBodyweightCsv(entries: BodyweightEntryRow[], weightUnit?: WeightUnit): string {
   const sorted = [...(entries || [])].sort((a, b) => a.date.localeCompare(b.date));
-  const headers = ['Date', 'Weight', 'Unit', 'Notes', 'Source'];
+  const weightCol = weightUnit ? `Weight (${weightUnit})` : 'Weight';
+  const headers = ['Date', weightCol, 'Unit', 'Notes', 'Source'];
   const rows: string[] = [headers.join(',')];
 
   for (const e of sorted) {
+    const canonicalKg = Number(e.weight) || 0;
+    const displayWeight = weightUnit ? formatWeightValue(canonicalKg, weightUnit) : e.weight;
+    const displayUnit = weightUnit || 'kg';
+
     rows.push([
       escapeCsvCell(e.date),
-      escapeCsvCell(e.weight),
-      escapeCsvCell(e.unit || 'kg'),
+      escapeCsvCell(displayWeight),
+      escapeCsvCell(displayUnit),
       escapeCsvCell(e.notes || ''),
       escapeCsvCell(e.source || 'manual'),
     ].join(','));

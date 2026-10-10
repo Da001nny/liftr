@@ -13,7 +13,9 @@ import {
   ShieldCheck, 
   Sparkles,
   ExternalLink,
-  Save
+  Save,
+  Scale,
+  Gauge
 } from 'lucide-react';
 
 interface ProfileViewProps {
@@ -31,6 +33,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onClose }) => {
     setGender,
     restTimerDefaults,
     setRestTimerDefaults,
+    weightUnit,
+    distanceUnit,
+    setWeightUnit,
+    setDistanceUnit,
     isSavingProfile,
   } = useTheme();
 
@@ -201,6 +207,94 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onClose }) => {
             {gender === 'female' && <Check className="w-3.5 h-3.5" />}
             <span>{t('profile.female')}</span>
           </button>
+        </div>
+      </div>
+
+      {/* Unit Preferences Card (Weight: kg/lbs, Distance: km/mi) */}
+      <div 
+        data-surface="secondary-flat" 
+        className="rounded-xl p-5 sm:p-6 space-y-4 bg-neutral-100/90 dark:bg-[#141414] border border-neutral-200/90 dark:border-[#242424] text-neutral-900 dark:text-white shadow-sm dark:shadow-md transition-all"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl premium-icon-container">
+            <Scale className="w-4 h-4 text-neutral-700 dark:text-neutral-300 premium-icon-embedded" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-neutral-900 dark:text-white font-display uppercase tracking-wide">
+              {t('profile.unitsTitle')}
+            </h3>
+            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+              {t('profile.unitsDesc')}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          {/* Weight Unit */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-neutral-700 dark:text-neutral-300 block uppercase font-athletic">
+              {t('profile.weightUnitLabel')}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setWeightUnit('kg')}
+                className={`p-3 rounded-lg border text-xs font-bold uppercase tracking-wider font-athletic flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  weightUnit === 'kg'
+                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-neutral-800 shadow-sm'
+                    : 'border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                }`}
+              >
+                {weightUnit === 'kg' && <Check className="w-3.5 h-3.5" />}
+                <span>{t('profile.unitKg')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWeightUnit('lbs')}
+                className={`p-3 rounded-lg border text-xs font-bold uppercase tracking-wider font-athletic flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  weightUnit === 'lbs'
+                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-neutral-800 shadow-sm'
+                    : 'border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                }`}
+              >
+                {weightUnit === 'lbs' && <Check className="w-3.5 h-3.5" />}
+                <span>{t('profile.unitLbs')}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Distance Unit */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-neutral-700 dark:text-neutral-300 block uppercase font-athletic">
+              {t('profile.distanceUnitLabel')}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDistanceUnit('km')}
+                className={`p-3 rounded-lg border text-xs font-bold uppercase tracking-wider font-athletic flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  distanceUnit === 'km'
+                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-neutral-800 shadow-sm'
+                    : 'border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                }`}
+              >
+                {distanceUnit === 'km' && <Check className="w-3.5 h-3.5" />}
+                <span>{t('profile.unitKm')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDistanceUnit('mi')}
+                className={`p-3 rounded-lg border text-xs font-bold uppercase tracking-wider font-athletic flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  distanceUnit === 'mi'
+                    ? 'border-neutral-900 bg-neutral-900 text-white dark:border-white dark:bg-neutral-800 shadow-sm'
+                    : 'border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                }`}
+              >
+                {distanceUnit === 'mi' && <Check className="w-3.5 h-3.5" />}
+                <span>{t('profile.unitMi')}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
