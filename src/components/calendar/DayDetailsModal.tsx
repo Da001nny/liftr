@@ -33,6 +33,7 @@ import {
 } from '../../lib/calendarService';
 import { formatLocalTimestamp } from '../../lib/calculations';
 import { formatWeight, formatPRDisplay } from '../../lib/units';
+import { getPRCategoryLabel, getNoteCategoryLabel } from '../../lib/labels';
 
 interface DayDetailsModalProps {
   isOpen: boolean;
@@ -250,7 +251,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                           className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold font-athletic uppercase text-xs flex items-center gap-1 transition-colors cursor-pointer"
                         >
                           <Play className="w-3 h-3 fill-current" />
-                          <span>Start</span>
+                          <span>{t('common.start')}</span>
                         </button>
                       )}
                       <button
@@ -262,7 +263,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                         className="px-3 py-1.5 rounded-xl bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold font-athletic uppercase text-xs flex items-center gap-1 transition-colors cursor-pointer"
                       >
                         <Edit3 className="w-3 h-3" />
-                        <span>Edit</span>
+                        <span>{t('common.edit')}</span>
                       </button>
                     </div>
                   </div>
@@ -316,7 +317,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
           <div className="space-y-2 pt-3 border-t border-neutral-200 dark:border-neutral-800">
             <span className="text-xs font-bold uppercase tracking-wider text-yellow-500 font-athletic flex items-center gap-1.5">
               <Trophy className="w-3.5 h-3.5" />
-              <span>Personal Records Achieved</span>
+              <span>{t('calendar.personalRecordsAchieved')}</span>
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {personalRecords.map(pr => (
@@ -329,7 +330,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                       {pr.exercise_id?.replace(/^ex_/, '').replace(/_/g, ' ')}
                     </span>
                     <span className="text-[10px] text-yellow-800 dark:text-yellow-400/80 font-athletic uppercase tracking-wider">
-                      {pr.category.replace(/_/g, ' ')}
+                      {getPRCategoryLabel(pr.category)}
                     </span>
                   </div>
                   <span className="text-sm font-mono font-black text-yellow-900 dark:text-yellow-100">
@@ -355,7 +356,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
             >
               <div className="space-y-1">
                 <span className="px-2 py-0.5 rounded text-[9px] font-bold font-athletic uppercase tracking-wider bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400">
-                  {n.category}
+                  {getNoteCategoryLabel(n.category)}
                 </span>
                 <p className="text-neutral-800 dark:text-neutral-200 leading-relaxed font-medium">
                   {n.content}
@@ -365,7 +366,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                 type="button"
                 onClick={() => handleDeleteNote(n.id)}
                 className="text-neutral-400 hover:text-red-400 p-1 transition-colors cursor-pointer"
-                title="Delete note"
+                title={t('calendar.deleteNoteTitle')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

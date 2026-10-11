@@ -245,8 +245,8 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
       {/* Bodyweight Trend Chart */}
       <div className="p-5 rounded-2xl bg-neutral-50 dark:bg-neutral-950/60 border border-neutral-200 dark:border-neutral-800/80 space-y-3">
         <div className="flex items-center justify-between text-xs font-bold font-athletic uppercase text-neutral-500">
-          <span>Bodyweight Trend Line</span>
-          <span className="font-mono text-[10px]">{stats.entries.length} data points</span>
+          <span>{t('progress.bodyweightTrendLine')}</span>
+          <span className="font-mono text-[10px]">{stats.entries.length} {t('progress.dataPointsSuffix')}</span>
         </div>
 
         {chartPoints.length >= 2 ? (
@@ -309,8 +309,8 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
       {stats.entries.length > 0 && (
         <div className="mt-6 pt-5 border-t border-neutral-200 dark:border-neutral-800 space-y-3">
           <div className="flex items-center justify-between text-xs font-bold font-athletic uppercase text-neutral-500">
-            <span>Recent Weigh-ins</span>
-            <span>{stats.entries.length} total</span>
+            <span>{t('progress.recentWeighIns')}</span>
+            <span>{stats.entries.length} {t('progress.totalSuffix')}</span>
           </div>
 
           <div className="divide-y divide-neutral-200 dark:divide-neutral-800 max-h-48 overflow-y-auto">
@@ -371,7 +371,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
               <div className="space-y-1.5">
                 <label className="font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
                   <CalendarIcon className="w-3.5 h-3.5" />
-                  <span>Date *</span>
+                  <span>{t('progress.dateRequired')}</span>
                 </label>
                 <input
                   type="date"
@@ -386,7 +386,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
                 <div className="col-span-2 space-y-1.5">
                   <label className="font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
                     <Scale className="w-3.5 h-3.5" />
-                    <span>Weight *</span>
+                    <span>{t('progress.weightRequired')}</span>
                   </label>
                   <input
                     type="number"
@@ -423,7 +423,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Morning fasted weigh-in"
+                  placeholder={t('progress.bodyweightPlaceholder')}
                   value={inputNotes}
                   onChange={(e) => setInputNotes(e.target.value)}
                   className="w-full h-11 px-3.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -436,7 +436,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 font-bold font-athletic uppercase text-xs cursor-pointer"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"

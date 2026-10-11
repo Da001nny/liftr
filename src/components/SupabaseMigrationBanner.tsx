@@ -340,7 +340,7 @@ export const SupabaseMigrationBanner: React.FC = () => {
             onClick={runCheck}
             disabled={checking}
             className={`p-1 rounded transition-colors cursor-pointer hover:opacity-80`}
-            title="Re-check Supabase schema"
+            title={t('supabaseSetup.recheckTitle')}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin' : ''}`} />
           </button>

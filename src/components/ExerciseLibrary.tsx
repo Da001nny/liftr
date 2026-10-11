@@ -9,6 +9,7 @@ import {
   EnrichedExercise 
 } from '../lib/exerciseService';
 import { MuscleRegion } from '../data/exerciseCatalog';
+import { getRegionLabel, getEquipmentLabel, getDifficultyLabel } from '../lib/labels';
 
 interface ExerciseLibraryProps {
   onSelectExercise: (exercise: EnrichedExercise) => void;
@@ -254,9 +255,6 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ onSelectExerci
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {exercises.map(exercise => {
             const primaryContribs = exercise.contributions.filter(c => c.role === 'Primary');
-            const regionKey = `regions.${exercise.targetRegionId}` as any;
-            const equipKey = `equipment.${exercise.equipment}` as any;
-            const diffKey = `difficulty.${exercise.difficulty}` as any;
 
             return (
               <div
@@ -272,16 +270,16 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ onSelectExerci
                       className="px-2 py-0.5 rounded-full text-[10px] font-athletic uppercase tracking-wider font-bold text-white shadow-sm"
                       style={{ backgroundColor: accentColor }}
                     >
-                      {t(regionKey)}
+                      {getRegionLabel(exercise.targetRegionId)}
                     </span>
                     <div className="flex items-center gap-1.5">
                       {exercise.videoUrl && (
-                        <span className="p-1 rounded-md bg-amber-500/15 text-amber-500" title="Video Guide Available">
+                        <span className="p-1 rounded-md bg-amber-500/15 text-amber-500" title={t('exerciseLibrary.videoAvailable')}>
                           <Video className="w-3 h-3" />
                         </span>
                       )}
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-athletic uppercase tracking-wider font-bold bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
-                        {t(equipKey)}
+                        {getEquipmentLabel(exercise.equipment)}
                       </span>
                     </div>
                   </div>
@@ -318,7 +316,7 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ onSelectExerci
                 {/* Footer Action */}
                 <div className="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between text-xs">
                   <span className="text-[11px] font-athletic uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-bold">
-                    {t(diffKey)}
+                    {getDifficultyLabel(exercise.difficulty)}
                   </span>
                   <span className="font-bold text-neutral-900 dark:text-white group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
                     <span>{t('exerciseLibrary.viewDetails')}</span>

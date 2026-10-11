@@ -17,6 +17,14 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { Muscle, MuscleRegion, MUSCLES, REGION_MAP } from '../../data/exerciseCatalog';
 import { 
+  getMuscleLabel, 
+  getMuscleCommonName, 
+  getEquipmentLabel, 
+  getDifficultyLabel, 
+  getMovementTypeLabel, 
+  getContributionRoleLabel 
+} from '../../lib/labels';
+import { 
   fetchReverseSearch, 
   ReverseSearchResult, 
   EnrichedExercise 
@@ -159,10 +167,10 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
                         </span>
                       </div>
                       <div className="text-sm font-bold font-display uppercase tracking-tight truncate">
-                        {m.commonName}
+                        {getMuscleCommonName(m.id, m.commonName)}
                       </div>
                       <div className="text-[10px] font-mono text-neutral-400 truncate">
-                        {m.name}
+                        {getMuscleLabel(m.id, m.name)}
                       </div>
                     </div>
 
@@ -204,10 +212,10 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
         </div>
 
         <h3 className="text-2xl font-black font-display uppercase tracking-tight text-neutral-900 dark:text-white">
-          {muscle.commonName}
+          {getMuscleCommonName(muscle.id, muscle.commonName)}
         </h3>
         <span className="text-xs font-mono font-semibold text-neutral-500 dark:text-neutral-400 block mb-3">
-          {muscle.name}
+          {getMuscleLabel(muscle.id, muscle.name)}
         </span>
 
         {/* Biomechanical Function */}
@@ -240,7 +248,7 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
           <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-neutral-800 shadow-lg">
             <iframe
               src={activeVideoExercise.videoUrl}
-              title={`${activeVideoExercise.name} Form Guide`}
+              title={t('body.formGuideTitle', { exercise: activeVideoExercise.name })}
               className="w-full h-full border-0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -284,14 +292,7 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
                 ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30'
                 : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
 
-              const roleLabel = isPrimary
-                ? t('body.primaryDriverRole')
-                : isSecondary
-                ? t('body.secondarySynergistRole')
-                : t('body.dynamicStabilizerRole');
-
-              const equipKey = `equipment.${exercise.equipment}` as any;
-              const diffKey = `difficulty.${exercise.difficulty}` as any;
+              const roleLabel = getContributionRoleLabel(contribution.role);
 
               return (
                 <div
@@ -328,10 +329,10 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
                               ? 'bg-amber-500 text-black border-amber-500 shadow-sm'
                               : 'bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 border-neutral-300 dark:border-neutral-700'
                           }`}
-                          title="Watch execution video"
+                          title={t('body.watchVideoTitle')}
                         >
                           <Play className="w-3.5 h-3.5 fill-current" />
-                          <span className="hidden sm:inline">Watch</span>
+                          <span className="hidden sm:inline">{t('body.watchVideo')}</span>
                         </button>
                       )}
 
@@ -347,11 +348,11 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800 text-[11px] font-mono text-neutral-500 dark:text-neutral-400">
-                    <span className="capitalize">{t(equipKey)}</span>
+                    <span className="capitalize">{getEquipmentLabel(exercise.equipment)}</span>
                     <span>•</span>
-                    <span className="capitalize">{t(diffKey)}</span>
+                    <span className="capitalize">{getDifficultyLabel(exercise.difficulty)}</span>
                     <span>•</span>
-                    <span className="capitalize">{exercise.movementType}</span>
+                    <span className="capitalize">{getMovementTypeLabel(exercise.movementType)}</span>
                   </div>
                 </div>
               );

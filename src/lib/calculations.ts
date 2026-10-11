@@ -267,31 +267,7 @@ export function calculateCalendarConsistency(
  * - Timestamps are stored in UTC (ISO 8601).
  * - Converted to local timezone only for display.
  */
-export function toUtcIsoString(date: Date = new Date()): string {
-  return date.toISOString();
-}
-
-/**
- * Formats a UTC ISO timestamp for local display.
- */
-export function formatLocalTimestamp(
-  utcIsoString: string,
-  options?: Intl.DateTimeFormatOptions
-): string {
-  try {
-    const d = new Date(utcIsoString);
-    if (isNaN(d.getTime())) return '';
-    return new Intl.DateTimeFormat(undefined, options ?? {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d);
-  } catch {
-    return '';
-  }
-}
+export { toUtcIsoString, formatLocalTimestamp } from './date';
 
 // ============================================================================
 // PHASE 5: BODYWEIGHT, EXERCISE PROGRESS & MUSCLE EXPOSURE CALCULATIONS

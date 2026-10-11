@@ -11,6 +11,13 @@ import {
   ReverseSearchResult 
 } from '../lib/exerciseService';
 import { Muscle, MuscleRegion } from '../data/exerciseCatalog';
+import { 
+  getRegionLabel, 
+  getMuscleCommonName, 
+  getContributionRoleLabel, 
+  getEquipmentLabel, 
+  getDifficultyLabel 
+} from '../lib/labels';
 
 interface ReverseMuscleSearchProps {
   onSelectExercise: (exercise: EnrichedExercise) => void;
@@ -91,7 +98,7 @@ export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSele
               {t('reverseSearch.title')}
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-white font-display uppercase tracking-wide">
-              {selectedMuscleObj ? selectedMuscleObj.commonName : t('reverseSearch.title')}
+              {selectedMuscleObj ? getMuscleCommonName(selectedMuscleObj.id, selectedMuscleObj.commonName) : t('reverseSearch.title')}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium max-w-2xl">
               {selectedMuscleObj?.description || t('reverseSearch.subtitle')}
@@ -112,14 +119,11 @@ export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSele
               className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               <option value="all">{t('exerciseLibrary.allRegions')}</option>
-              {regions.map(r => {
-                const regKey = `regions.${r.id}` as any;
-                return (
-                  <option key={r.id} value={r.id}>
-                    {t(regKey)}
-                  </option>
-                );
-              })}
+              {regions.map(r => (
+                <option key={r.id} value={r.id}>
+                  {getRegionLabel(r.id, r.name)}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -135,7 +139,7 @@ export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSele
             >
               {muscles.map(m => (
                 <option key={m.id} value={m.id}>
-                  {m.commonName} — {m.subregion}
+                  {getMuscleCommonName(m.id, m.commonName)} — {m.subregion}
                 </option>
               ))}
             </select>
@@ -147,7 +151,7 @@ export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSele
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
         <div>
           <h3 className="text-base font-bold text-neutral-900 dark:text-white font-display uppercase tracking-wide">
-            {t('reverseSearch.resultsTitle', { muscle: selectedMuscleObj?.commonName || '' })}
+            {t('reverseSearch.resultsTitle', { muscle: selectedMuscleObj ? getMuscleCommonName(selectedMuscleObj.id, selectedMuscleObj.commonName) : '' })}
           </h3>
           <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
             {t('reverseSearch.rankedByWeight')}
@@ -183,14 +187,7 @@ export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSele
               ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30'
               : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
 
-            const roleLabel = isPrimary
-              ? t('reverseSearch.rolePrimary')
-              : isSecondary
-              ? t('reverseSearch.roleSecondary')
-              : t('reverseSearch.roleStabilizer');
-
-            const equipKey = `equipment.${exercise.equipment}` as any;
-            const diffKey = `difficulty.${exercise.difficulty}` as any;
+            const roleLabel = getContributionRoleLabel(contribution.role);
 
             return (
               <div
@@ -219,9 +216,9 @@ export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSele
 
                 <div className="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between text-[11px]">
                   <div className="flex items-center gap-2 text-neutral-500 dark:text-neutral-400 font-athletic uppercase tracking-wider">
-                    <span>{t(equipKey)}</span>
+                    <span>{getEquipmentLabel(exercise.equipment)}</span>
                     <span aria-hidden="true">·</span>
-                    <span>{t(diffKey)}</span>
+                    <span>{getDifficultyLabel(exercise.difficulty)}</span>
                   </div>
 
                   <span className="flex items-center gap-1 font-bold text-neutral-700 dark:text-neutral-300 group-hover:translate-x-0.5 transition-transform">

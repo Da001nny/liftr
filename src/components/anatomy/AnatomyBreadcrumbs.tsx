@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRight, ArrowLeft, Layers } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import { Muscle, MuscleRegion } from '../../data/exerciseCatalog';
+import { getRegionLabel, getMuscleCommonName } from '../../lib/labels';
 
 interface AnatomyBreadcrumbsProps {
   selectedRegion: MuscleRegion | null;
@@ -30,14 +31,13 @@ export const AnatomyBreadcrumbs: React.FC<AnatomyBreadcrumbsProps> = ({
   if (selectedMuscle && selectedSubregion) {
     backTargetName = selectedSubregion;
   } else if (selectedSubregion && selectedRegion) {
-    const regKey = `regions.${selectedRegion.id}` as any;
-    backTargetName = t(regKey);
+    backTargetName = getRegionLabel(selectedRegion.id, selectedRegion.name);
   }
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 p-3 sm:p-3.5 rounded-xl bg-white/80 dark:bg-[#141414]/90 border border-neutral-200/90 dark:border-neutral-800/90 shadow-sm backdrop-blur-sm">
       {/* Breadcrumb Trail */}
-      <nav aria-label="Anatomical hierarchy" className="flex flex-wrap items-center gap-1.5 text-xs font-athletic font-bold uppercase tracking-wider">
+      <nav aria-label={t('body.hierarchyAria')} className="flex flex-wrap items-center gap-1.5 text-xs font-athletic font-bold uppercase tracking-wider">
         <button
           onClick={onSelectRoot}
           className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors cursor-pointer ${
@@ -61,7 +61,7 @@ export const AnatomyBreadcrumbs: React.FC<AnatomyBreadcrumbsProps> = ({
                   : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800/50'
               }`}
             >
-              <span>{selectedRegion.name}</span>
+              <span>{getRegionLabel(selectedRegion.id, selectedRegion.name)}</span>
             </button>
           </>
         )}
@@ -86,7 +86,7 @@ export const AnatomyBreadcrumbs: React.FC<AnatomyBreadcrumbsProps> = ({
           <>
             <ChevronRight className="w-3 h-3 text-neutral-400" />
             <span className="px-2 py-1 rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-white">
-              {selectedMuscle.commonName}
+              {getMuscleCommonName(selectedMuscle.id, selectedMuscle.commonName)}
             </span>
           </>
         )}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -16,13 +17,17 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   isDestructive = true,
   onConfirm,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
+
+  const resolvedConfirmLabel = confirmLabel || t('common.save');
+  const resolvedCancelLabel = cancelLabel || t('common.cancel');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
@@ -53,7 +58,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            aria-label="Close dialog"
+            aria-label={t('common.closeDialog')}
             className="absolute top-4 right-4 p-1.5 rounded-lg text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -66,7 +71,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             onClick={onCancel}
             className="px-4 py-2 text-xs font-athletic font-bold uppercase tracking-wider rounded-xl bg-neutral-200/80 hover:bg-neutral-300 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 transition-colors cursor-pointer"
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             type="button"
@@ -77,7 +82,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 : 'bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 hover:opacity-90'
             }`}
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </button>
         </div>
       </div>

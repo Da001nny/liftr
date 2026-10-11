@@ -38,6 +38,8 @@ import {
 } from '../types/database';
 import { MUSCLES, EXERCISES, CONTRIBUTIONS_BY_EXERCISE } from '../data/exerciseCatalog';
 import { formatLocalTimestamp } from '../lib/calculations';
+import { formatMonthYear, formatFullDate } from '../lib/date';
+import { getMuscleLabel, getMuscleCommonName } from '../lib/labels';
 import { formatWeight } from '../lib/units';
 import { ScheduleWorkoutModal } from './calendar/ScheduleWorkoutModal';
 import { EditScheduledModal } from './calendar/EditScheduledModal';
@@ -326,13 +328,13 @@ export const CalendarView: React.FC = () => {
   // Title formatting
   const formattedTitle = useMemo(() => {
     if (viewMode === 'month') {
-      return currentDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      return formatMonthYear(currentDate);
     } else if (viewMode === 'week') {
       const first = weekViewDays[0]?.dateStr;
       const last = weekViewDays[6]?.dateStr;
       return `Week of ${first} – ${last}`;
     } else {
-      return currentDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+      return formatFullDate(currentDate);
     }
   }, [viewMode, currentDate, weekViewDays]);
 
@@ -426,7 +428,7 @@ export const CalendarView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-neutral-500 font-bold font-athletic uppercase">
             <Filter className="w-3.5 h-3.5" />
-            <span>Highlights:</span>
+            <span>{t('calendar.highlights')}</span>
           </div>
 
           {/* Muscle filter */}
@@ -437,7 +439,7 @@ export const CalendarView: React.FC = () => {
           >
             <option value="">{t('calendar.allMuscles')}</option>
             {MUSCLES.map(m => (
-              <option key={m.id} value={m.id}>{m.name} ({m.commonName})</option>
+              <option key={m.id} value={m.id}>{getMuscleLabel(m.id, m.name)} ({getMuscleCommonName(m.id, m.commonName)})</option>
             ))}
           </select>
 
@@ -517,7 +519,7 @@ export const CalendarView: React.FC = () => {
           <button
             type="button"
             onClick={handlePrev}
-            aria-label="Previous Period"
+            aria-label={t('calendar.prevPeriod')}
             className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -534,7 +536,7 @@ export const CalendarView: React.FC = () => {
           <button
             type="button"
             onClick={handleNext}
-            aria-label="Next Period"
+            aria-label={t('calendar.nextPeriod')}
             className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors cursor-pointer"
           >
             <ChevronRight className="w-4 h-4" />
@@ -551,13 +553,13 @@ export const CalendarView: React.FC = () => {
         <div className="rounded-3xl border border-neutral-300 dark:border-neutral-800 overflow-hidden bg-white dark:bg-[#121212] shadow-sm">
           {/* Day of Week Header */}
           <div className="grid grid-cols-7 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 text-center py-2.5 text-xs font-bold font-athletic uppercase tracking-wider text-neutral-500">
-            <span>Sun</span>
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
+            <span>{t('calendar.daysShort.sun')}</span>
+            <span>{t('calendar.daysShort.mon')}</span>
+            <span>{t('calendar.daysShort.tue')}</span>
+            <span>{t('calendar.daysShort.wed')}</span>
+            <span>{t('calendar.daysShort.thu')}</span>
+            <span>{t('calendar.daysShort.fri')}</span>
+            <span>{t('calendar.daysShort.sat')}</span>
           </div>
 
           {/* Grid Cells */}
@@ -589,7 +591,7 @@ export const CalendarView: React.FC = () => {
 
                     <div className="flex items-center gap-1">
                       {day.restDay && (
-                        <span title="Rest Day" className="text-amber-500">
+                        <span title={t('calendar.restDayTitle')} className="text-amber-500">
                           <Moon className="w-3 h-3 fill-amber-500/20" />
                         </span>
                       )}
@@ -742,7 +744,7 @@ export const CalendarView: React.FC = () => {
                   className="text-[11px] font-bold font-athletic uppercase tracking-wider text-neutral-500 hover:text-blue-500 transition-colors flex items-center justify-end gap-1 ml-auto"
                 >
                   <Plus className="w-3 h-3" />
-                  <span>Schedule</span>
+                  <span>{t('calendar.scheduleBtnShort')}</span>
                 </button>
               </div>
             </div>

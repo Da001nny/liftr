@@ -1,5 +1,6 @@
 import React from 'react';
 import { Minus, Plus } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 interface NumericStepperProps {
   value: number;
@@ -26,6 +27,7 @@ export const NumericStepper: React.FC<NumericStepperProps> = ({
   label,
   unit,
 }) => {
+  const { t } = useTranslation();
   const [textValue, setTextValue] = React.useState<string>(String(value));
 
   // Sync internal text state with external numeric value when external value changes
@@ -85,7 +87,7 @@ export const NumericStepper: React.FC<NumericStepperProps> = ({
           type="button"
           onClick={handleDecrement}
           disabled={value <= min}
-          aria-label="Decrease interval"
+          aria-label={t('calendar.decreaseInterval')}
           className="w-10 h-10 rounded-xl bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed text-neutral-900 dark:text-white flex items-center justify-center transition-colors cursor-pointer"
         >
           <Minus className="w-4 h-4" />
@@ -107,7 +109,7 @@ export const NumericStepper: React.FC<NumericStepperProps> = ({
           type="button"
           onClick={handleIncrement}
           disabled={value >= max}
-          aria-label="Increase interval"
+          aria-label={t('calendar.increaseInterval')}
           className="w-10 h-10 rounded-xl bg-neutral-200 dark:bg-neutral-800 hover:bg-neutral-300 dark:hover:bg-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed text-neutral-900 dark:text-white flex items-center justify-center transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" />

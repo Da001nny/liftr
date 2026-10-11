@@ -227,7 +227,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
               <div className="space-y-1.5">
                 <label className="font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
                   <CalendarIcon className="w-3.5 h-3.5" />
-                  <span>Date</span>
+                  <span>{t('progress.dateLabel')}</span>
                 </label>
                 <input
                   type="date"
@@ -241,7 +241,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
               <div className="space-y-1.5">
                 <label className="font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
                   <Footprints className="w-3.5 h-3.5" />
-                  <span>Step Count *</span>
+                  <span>{t('progress.stepCountRequired')}</span>
                 </label>
                 <input
                   type="number"
@@ -259,7 +259,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
               <div className="space-y-1.5">
                 <label className="font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
                   <Target className="w-3.5 h-3.5" />
-                  <span>Daily Goal</span>
+                  <span>{t('progress.dailyGoal')}</span>
                 </label>
                 <input
                   type="number"

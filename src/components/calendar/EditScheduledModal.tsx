@@ -282,7 +282,7 @@ export const EditScheduledModal: React.FC<EditScheduledModalProps> = ({
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Session notes or observations..."
+              placeholder={t('calendar.workoutNotesPlaceholder')}
               className="w-full p-3 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

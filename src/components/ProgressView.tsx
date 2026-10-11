@@ -47,10 +47,10 @@ export const ProgressView: React.FC = () => {
           type="button"
           onClick={handleRefresh}
           className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-300 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors cursor-pointer self-start sm:self-auto flex items-center gap-1.5 text-xs font-bold font-athletic uppercase"
-          title="Refresh Progress Data"
+          title={t('progress.refreshData')}
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          <span>Sync</span>
+          <span>{t('common.sync')}</span>
         </button>
       </div>
 
@@ -94,7 +94,7 @@ export const ProgressView: React.FC = () => {
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5" style={{ color: accentColor }} />
-            <span>The 4 Authoritative Personal Record Categories (Strict &gt; Rule)</span>
+            <span>{t('progress.prRulesBanner')}</span>
           </h3>
           <span className="text-[11px] font-mono text-neutral-500 dark:text-neutral-400 font-semibold hidden sm:inline-block">
             Strict tie !== PR

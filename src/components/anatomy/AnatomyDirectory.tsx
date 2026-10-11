@@ -3,6 +3,7 @@ import { Search, ChevronRight, Layers, X, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../context/ThemeContext';
 import { MUSCLES, MUSCLE_REGIONS, Muscle, MuscleRegion } from '../../data/exerciseCatalog';
+import { getRegionLabel, getMuscleLabel, getMuscleCommonName } from '../../lib/labels';
 
 interface AnatomyDirectoryProps {
   onSelectMuscle: (muscle: Muscle) => void;
@@ -86,7 +87,6 @@ export const AnatomyDirectory: React.FC<AnatomyDirectoryProps> = ({
             {t('body.allRegions')}
           </button>
           {MUSCLE_REGIONS.map(r => {
-            const regKey = `regions.${r.id}` as any;
             const isSelected = selectedRegionId === r.id;
             return (
               <button
@@ -99,7 +99,7 @@ export const AnatomyDirectory: React.FC<AnatomyDirectoryProps> = ({
                 }`}
                 style={isSelected ? { backgroundColor: accentColor } : undefined}
               >
-                {t(regKey)}
+                {getRegionLabel(r.id, r.name)}
               </button>
             );
           })}
@@ -157,10 +157,10 @@ export const AnatomyDirectory: React.FC<AnatomyDirectoryProps> = ({
                           </div>
 
                           <h4 className="text-base font-black text-neutral-900 dark:text-white font-display uppercase tracking-wide">
-                            {m.commonName}
+                            {getMuscleCommonName(m.id, m.commonName)}
                           </h4>
                           <span className="text-xs font-mono font-medium text-neutral-500 dark:text-neutral-400 block mb-2">
-                            {m.name}
+                            {getMuscleLabel(m.id, m.name)}
                           </span>
 
                           <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium line-clamp-2 leading-relaxed">
@@ -170,10 +170,10 @@ export const AnatomyDirectory: React.FC<AnatomyDirectoryProps> = ({
 
                         <div className="mt-4 pt-3 border-t border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between text-xs">
                           <span className="text-[11px] font-athletic uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-bold">
-                            {reg?.name}
+                            {getRegionLabel(reg?.id, reg?.name)}
                           </span>
                           <span className="font-bold text-neutral-900 dark:text-white flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                            <span>Explore Action</span>
+                            <span>{t('body.exploreAction')}</span>
                             <ChevronRight className="w-3.5 h-3.5" />
                           </span>
                         </div>

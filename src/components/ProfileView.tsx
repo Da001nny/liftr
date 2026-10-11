@@ -18,6 +18,8 @@ import {
   Gauge
 } from 'lucide-react';
 
+import { formatDateOnly } from '../lib/date';
+
 interface ProfileViewProps {
   onClose: () => void;
 }
@@ -94,7 +96,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onClose }) => {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 dark:text-blue-400 hover:underline pt-1"
           >
-            <span>Open Supabase Table Editor</span>
+            <span>{t('common.openTableEditor')}</span>
             <ExternalLink className="w-3 h-3" />
           </a>
         </div>
@@ -404,7 +406,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onClose }) => {
           <div className="flex items-center justify-between">
             <span className="font-semibold">{t('profile.createdAtLabel')}:</span>
             <span className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400 font-bold">
-              {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+              {user?.created_at ? formatDateOnly(user.created_at) : 'N/A'}
             </span>
           </div>
         </div>

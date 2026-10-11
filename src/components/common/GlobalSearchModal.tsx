@@ -100,7 +100,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search exercises, muscles, regions, workouts, or dates (e.g. 'Bench', 'Biceps', 'Chest', '2026-10-05')..."
+            placeholder={t('globalSearch.searchPlaceholder')}
             className="flex-1 bg-transparent border-none text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none text-sm font-medium"
           />
           {query && (
@@ -158,13 +158,13 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             </div>
           ) : (
             <div className="py-10 text-center text-xs text-neutral-400 font-medium space-y-2">
-              <span className="block">Type to instantly search across:</span>
+              <span className="block">{t('globalSearch.typeToSearch')}</span>
               <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">203 Exercises</span>
-                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">36 Muscles</span>
-                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">8 Regions</span>
-                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">Workout History</span>
-                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">Calendar Dates</span>
+                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">{t('globalSearch.exercisesCount')}</span>
+                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">{t('globalSearch.musclesCount')}</span>
+                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">{t('globalSearch.regionsCount')}</span>
+                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">{t('globalSearch.workoutHistory')}</span>
+                <span className="px-2 py-1 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-[11px] font-mono">{t('globalSearch.calendarDates')}</span>
               </div>
             </div>
           )}
@@ -172,7 +172,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
         {/* Footer */}
         <div className="p-3 bg-neutral-50 dark:bg-neutral-900/60 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between text-[11px] text-neutral-500">
-          <span>Navigate directly with Enter or Click</span>
+          <span>{t('globalSearch.navigateHint')}</span>
           <button
             type="button"
             onClick={onClose}

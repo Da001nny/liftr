@@ -203,10 +203,10 @@ export const AuthScreen: React.FC = () => {
           <div className="mt-6 pt-5 border-t border-neutral-300/80 dark:border-neutral-800 text-[11px] text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
             <div className="flex items-center gap-1.5 font-bold text-neutral-800 dark:text-neutral-200 mb-1">
               <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
-              <span>Phase 0: Supabase Persistence Verification</span>
+              <span>{t('auth.tableEditorCheckStep')}</span>
             </div>
             <p>
-              Identity is derived purely from Supabase Auth. Upon signup, verify your user in the Supabase Table Editor: both <code className="bg-neutral-200 dark:bg-neutral-800 px-1 py-0.5 rounded text-neutral-900 dark:text-neutral-100 font-mono font-bold">auth.users</code> and <code className="bg-neutral-200 dark:bg-neutral-800 px-1 py-0.5 rounded text-neutral-900 dark:text-neutral-100 font-mono font-bold">public.profiles</code>.
+              {t('auth.tableEditorCheckNotice')}
             </p>
           </div>
         </div>

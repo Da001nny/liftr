@@ -7,6 +7,7 @@ import { EXERCISES } from '../../data/exerciseCatalog';
 import { ExerciseProgressPoint } from '../../types/database';
 import { fetchExerciseProgressData } from '../../lib/progressService';
 import { formatWeight, formatWeightValue } from '../../lib/units';
+import { getRegionLabel, getEquipmentLabel, getMovementTypeLabel } from '../../lib/labels';
 
 type MetricType = 'estimated1RM' | 'heaviestWeight' | 'maxReps' | 'totalVolume';
 type RangeType = '7d' | '30d' | '3m' | '6m' | '1y' | 'all';
@@ -226,7 +227,7 @@ export const ExerciseProgressSection: React.FC = () => {
         <div className="p-4 rounded-2xl bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 space-y-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic flex items-center gap-1">
             <Trophy className="w-3 h-3 text-yellow-500" />
-            <span>Peak Milestone in Window</span>
+            <span>{t('progress.peakMilestone')}</span>
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
@@ -237,19 +238,19 @@ export const ExerciseProgressSection: React.FC = () => {
             <span className="text-xs font-mono text-neutral-400">{metricUnit}</span>
           </div>
           <span className="text-[11px] text-neutral-400 block">
-            {points.length} logged sessions in timeframe
+            {points.length} {t('progress.loggedSessionsInTimeframe')}
           </span>
         </div>
 
         <div className="p-4 rounded-2xl bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 space-y-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic">
-            Exercise Classification
+            {t('progress.exerciseClassification')}
           </span>
           <div className="text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate">
             {selectedExercise?.name}
           </div>
           <span className="text-xs text-neutral-500 capitalize block">
-            {selectedExercise?.targetRegionId} · {selectedExercise?.movementType} · {selectedExercise?.equipment}
+            {getRegionLabel(selectedExercise?.targetRegionId)} · {getMovementTypeLabel(selectedExercise?.movementType)} · {getEquipmentLabel(selectedExercise?.equipment)}
           </span>
         </div>
       </div>
@@ -257,8 +258,8 @@ export const ExerciseProgressSection: React.FC = () => {
       {/* Strength Curve SVG Chart */}
       <div className="p-5 rounded-2xl bg-neutral-50 dark:bg-neutral-950/60 border border-neutral-200 dark:border-neutral-800/80 space-y-3">
         <div className="flex items-center justify-between text-xs font-bold font-athletic uppercase text-neutral-500">
-          <span>{metricLabel} Curve</span>
-          <span className="font-mono text-[10px]">{points.length} sessions logged</span>
+          <span>{metricLabel} {t('progress.curveSuffix')}</span>
+          <span className="font-mono text-[10px]">{points.length} {t('progress.sessionsLogged')}</span>
         </div>
 
         {chartCoordinates.length >= 2 ? (
@@ -318,8 +319,8 @@ export const ExerciseProgressSection: React.FC = () => {
       {points.length > 0 && (
         <div className="mt-6 pt-5 border-t border-neutral-200 dark:border-neutral-800 space-y-3">
           <div className="flex items-center justify-between text-xs font-bold font-athletic uppercase text-neutral-500">
-            <span>Logged Performance Entries</span>
-            <span>{points.length} entries</span>
+            <span>{t('progress.loggedPerformances')}</span>
+            <span>{points.length} {t('progress.entriesSuffix')}</span>
           </div>
 
           <div className="divide-y divide-neutral-200 dark:divide-neutral-800 max-h-52 overflow-y-auto">
@@ -333,10 +334,10 @@ export const ExerciseProgressSection: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-4 font-mono text-[11px]">
-                  <span><strong className="text-neutral-400 font-normal">1RM:</strong> {formatWeight(pt.estimated1RM, weightUnit)}</span>
-                  <span><strong className="text-neutral-400 font-normal">Load:</strong> {formatWeight(pt.heaviestWeight, weightUnit)}</span>
-                  <span><strong className="text-neutral-400 font-normal">Reps:</strong> {pt.maxReps}</span>
-                  <span className="hidden sm:inline"><strong className="text-neutral-400 font-normal">Vol:</strong> {formatWeight(pt.totalVolume, weightUnit)}</span>
+                  <span><strong className="text-neutral-400 font-normal">{t('progress.metric1RM')}</strong> {formatWeight(pt.estimated1RM, weightUnit)}</span>
+                  <span><strong className="text-neutral-400 font-normal">{t('progress.metricLoad')}</strong> {formatWeight(pt.heaviestWeight, weightUnit)}</span>
+                  <span><strong className="text-neutral-400 font-normal">{t('progress.metricReps')}</strong> {pt.maxReps}</span>
+                  <span className="hidden sm:inline"><strong className="text-neutral-400 font-normal">{t('progress.metricVol')}</strong> {formatWeight(pt.totalVolume, weightUnit)}</span>
                 </div>
               </div>
             ))}

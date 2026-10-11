@@ -184,7 +184,7 @@ export const ScheduleWorkoutModal: React.FC<ScheduleWorkoutModalProps> = ({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Upper Body Power, Heavy Squats..."
+              placeholder={t('calendar.workoutNamePlaceholder')}
               className="w-full h-11 px-3.5 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white font-medium placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -342,7 +342,7 @@ export const ScheduleWorkoutModal: React.FC<ScheduleWorkoutModalProps> = ({
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Focus on deep pause reps, remember mobility warmup..."
+              placeholder={t('calendar.workoutNotesPlaceholder')}
               className="w-full p-3 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white font-medium placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

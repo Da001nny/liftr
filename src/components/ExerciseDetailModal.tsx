@@ -3,6 +3,7 @@ import { X, Video, Dumbbell, Award, Layers, Compass, CheckCircle2, AlertCircle }
 import { useTranslation } from '../i18n';
 import { useTheme } from '../context/ThemeContext';
 import { EnrichedExercise } from '../lib/exerciseService';
+import { getRegionLabel, getEquipmentLabel, getDifficultyLabel, getMovementTypeLabel } from '../lib/labels';
 
 interface ExerciseDetailModalProps {
   exercise: EnrichedExercise | null;
@@ -28,12 +29,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({ exerci
   const secondaryContribs = exercise.contributions.filter(c => c.role === 'Secondary');
   const stabilizerContribs = exercise.contributions.filter(c => c.role === 'Stabilizer');
 
-  // Format region key safely
-  const regionTranslationKey = `regions.${exercise.targetRegionId}` as any;
-  const regionName = exercise.targetRegion?.name || t(regionTranslationKey);
-  const equipmentKey = `equipment.${exercise.equipment}` as any;
-  const difficultyKey = `difficulty.${exercise.difficulty}` as any;
-  const movementKey = `movementType.${exercise.movementType}` as any;
+  const regionName = getRegionLabel(exercise.targetRegionId, exercise.targetRegion?.name);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm overflow-y-auto">
@@ -59,13 +55,13 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({ exerci
               {regionName}
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-athletic uppercase tracking-wider font-bold bg-neutral-800 text-neutral-300 border border-neutral-700">
-              {t(equipmentKey)}
+              {getEquipmentLabel(exercise.equipment)}
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-athletic uppercase tracking-wider font-bold bg-neutral-800 text-neutral-300 border border-neutral-700">
-              {t(difficultyKey)}
+              {getDifficultyLabel(exercise.difficulty)}
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-athletic uppercase tracking-wider font-bold bg-neutral-800 text-neutral-300 border border-neutral-700">
-              {t(movementKey)}
+              {getMovementTypeLabel(exercise.movementType)}
             </span>
           </div>
 
@@ -91,7 +87,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({ exerci
               <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-neutral-800 shadow-lg">
                 <iframe
                   src={exercise.videoUrl}
-                  title={`${exercise.name} Video Tutorial`}
+                  title={t('exerciseLibrary.videoTutorialTitle', { name: exercise.name })}
                   className="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen

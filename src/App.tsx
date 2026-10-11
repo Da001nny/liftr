@@ -12,8 +12,10 @@ import { ProgressView } from './components/ProgressView';
 import { CalendarView } from './components/CalendarView';
 import { ProfileView } from './components/ProfileView';
 import { GlobalSearchModal } from './components/common/GlobalSearchModal';
+import { useTranslation } from './i18n';
 
 const MainApp: React.FC = () => {
+  const { t } = useTranslation();
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
@@ -40,7 +42,7 @@ const MainApp: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-[#fafafa] dark:bg-[#0c0c0c]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 rounded-full border-2 border-neutral-300 dark:border-neutral-700 border-t-neutral-900 dark:border-t-white animate-spin" />
-          <span className="text-xs font-athletic uppercase tracking-widest text-neutral-600 dark:text-neutral-400 font-bold">Connecting to liftr...</span>
+          <span className="text-xs font-athletic uppercase tracking-widest text-neutral-600 dark:text-neutral-400 font-bold">{t('common.connecting')}</span>
         </div>
       </div>
     );

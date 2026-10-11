@@ -12,6 +12,7 @@ import {
   Compass
 } from 'lucide-react';
 import { MUSCLE_REGIONS } from '../data/exerciseCatalog';
+import { getRegionLabel } from '../lib/labels';
 
 export const BodyView: React.FC = () => {
   const { t } = useTranslation();
@@ -69,7 +70,7 @@ export const BodyView: React.FC = () => {
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5" style={{ color: accentColor }} />
-            <span>Preserved Data Architecture &amp; Planned Visual Features</span>
+            <span>{t('body.plannedFeaturesTitle')}</span>
           </h3>
         </div>
 
@@ -103,7 +104,7 @@ export const BodyView: React.FC = () => {
                     key={r.id} 
                     className="px-2 py-0.5 rounded bg-neutral-200/70 dark:bg-neutral-800/80 text-[10px] font-athletic uppercase font-bold text-neutral-700 dark:text-neutral-300"
                   >
-                    {r.name}
+                    {getRegionLabel(r.id, r.name)}
                   </span>
                 ))}
                 <span className="px-2 py-0.5 rounded bg-neutral-200/70 dark:bg-neutral-800/80 text-[10px] font-athletic uppercase font-bold text-neutral-500">

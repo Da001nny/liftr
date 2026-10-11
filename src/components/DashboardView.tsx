@@ -18,6 +18,7 @@ import { calculateCalendarConsistency, formatLocalTimestamp } from '../lib/calcu
 import { fetchDashboardSummary, DashboardSummaryData } from '../lib/workoutService';
 import { useWorkout } from '../context/WorkoutContext';
 import { formatWeight, formatWeightValue, formatPRDisplay } from '../lib/units';
+import { getPRCategoryLabel } from '../lib/labels';
 
 interface DashboardViewProps {
   onNavigateTab: (tab: TabId) => void;
@@ -169,7 +170,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
         {/* Metallic progress bar fill */}
         <div className="mt-6 pt-5 border-t border-neutral-200 dark:border-neutral-800 relative z-10">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 mb-2 font-athletic">
-            <span>Weekly Training Consistency</span>
+            <span>{t('dashboard.weeklyConsistency')}</span>
             <span className="font-stat tabular-nums text-neutral-900 dark:text-white text-sm">{consistencyPercent}%</span>
           </div>
           <div className="h-2.5 w-full bg-neutral-200 dark:bg-neutral-800 rounded-full p-0.5 border border-neutral-300/50 dark:border-neutral-700/50 shadow-inner overflow-hidden">
@@ -243,7 +244,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
           className="rounded-xl p-5 bg-neutral-100/90 dark:bg-[#141414] border border-neutral-200/90 dark:border-[#242424] text-neutral-900 dark:text-white shadow-sm dark:shadow-md transition-all"
         >
           <div className="flex items-center justify-between text-neutral-600 dark:text-neutral-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider font-athletic">Personal Records</span>
+            <span className="text-xs font-bold uppercase tracking-wider font-athletic">{t('dashboard.personalRecords')}</span>
             <Trophy className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-3xl sm:text-4xl font-black text-neutral-900 dark:text-white font-stat">
@@ -348,7 +349,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                       {pr.exercise_id.replace(/_/g, ' ')}
                     </span>
                     <span className="text-[10px] text-neutral-500 uppercase font-athletic font-bold">
-                      {pr.category.replace(/_/g, ' ')}
+                      {getPRCategoryLabel(pr.category)}
                     </span>
                   </div>
                   <span className="font-mono font-black text-amber-500 text-sm">

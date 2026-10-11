@@ -67,7 +67,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 className="w-2.5 h-2.5 rounded-full inline-block transition-transform group-hover:scale-125"
                 style={{ backgroundColor: accentColor }}
               />
-              <span>liftr</span>
+              <span>{t('common.appName')}</span>
             </button>
           </div>
 
@@ -98,12 +98,12 @@ export const Navigation: React.FC<NavigationProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenSearch}
-              aria-label="Global Search"
-              title="Search exercises, muscles, workouts (⌘K)"
+              aria-label={t('nav.globalSearch')}
+              title={t('nav.searchShortcut')}
               className="h-9 px-2.5 rounded-xl bg-neutral-100 dark:bg-[#1a1a1a] hover:bg-neutral-200 dark:hover:bg-[#252525] border border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white flex items-center gap-2 transition-all cursor-pointer text-xs font-medium"
             >
               <Search className="w-3.5 h-3.5 text-neutral-500" />
-              <span className="hidden sm:inline">Search</span>
+              <span className="hidden sm:inline">{t('nav.search')}</span>
               <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-[10px] font-mono font-bold text-neutral-400">
                 ⌘K
               </kbd>
@@ -136,7 +136,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           Touch target >= 44px
           ========================================================================= */}
       <nav 
-        aria-label="Mobile Navigation"
+        aria-label={t('nav.mobileNav')}
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[#fafafa]/95 dark:bg-[#0c0c0c]/95 backdrop-blur-lg border-t border-neutral-200 dark:border-[#222222] pb-safe transition-colors"
       >
         <div className="grid grid-cols-5 h-full max-w-md mx-auto">
