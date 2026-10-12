@@ -224,10 +224,20 @@ export function detectPersonalRecords(
   const currVol = Math.round((currentRecords.bestSingleSetVolume ?? 0) * 10000) / 10000;
   const isSingleSetVolumePR = candVol > currVol;
 
-  const previousBestRepsForWeight = currentRecords.repPRsByWeight[candWeight] 
-    ?? currentRecords.repPRsByWeight[weight] 
-    ?? 0;
-  const isRepPR = reps > previousBestRepsForWeight;
+  // Rep PR: Reps must strictly exceed the best reps achieved at ANY recorded weight >= candidate weight.
+  // Weights are compared at 4 decimal places of precision to eliminate floating-point noise.
+  let bestRepsAtOrAbove = 0;
+  if (currentRecords.repPRsByWeight) {
+    for (const [recordedWeightStr, recordedReps] of Object.entries(currentRecords.repPRsByWeight)) {
+      const recWeight = Math.round(Number(recordedWeightStr) * 10000) / 10000;
+      if (recWeight >= candWeight) {
+        if (recordedReps > bestRepsAtOrAbove) {
+          bestRepsAtOrAbove = recordedReps;
+        }
+      }
+    }
+  }
+  const isRepPR = reps > bestRepsAtOrAbove;
 
   return {
     isHeaviestWeightPR,

@@ -7,6 +7,8 @@
 
 import { en, TranslationKeyPath } from './en';
 
+export type { TranslationKeyPath };
+
 /**
  * Authoritative translation lookup function.
  * 

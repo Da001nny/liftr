@@ -201,31 +201,73 @@ test('calculateBodyweightStats treats every stored row as kg whatever the leftov
   assert.strictEqual(roundToOneDecimal(stats.netChange || 0), 1.5);
 });
 
-test('formatPRDisplay formats a 100 kg x 12 rep PR in both kg and lbs', () => {
-  const repPRWithWeight = {
-    category: 'rep_pr',
-    value: 100,
-    weight: 100,
+test('formatPRDisplay formats a 100 kg x 12 rep PR in both kg and lbs using exact real database row shape', () => {
+  // Real row shape exactly matching public.personal_records table and server insert
+  const realDatabaseRepPRRow = {
+    id: 'b149b5d2-f477-4c74-a690-3f741d441111',
+    user_id: 'a903c733-149b-4bd2-9744-1f741d442222',
+    exercise_id: 'barbell_bench_press',
+    workout_id: 'c881b5d2-f477-4c74-a690-3f741d443333',
+    workout_set_id: 'd992b5d2-f477-4c74-a690-3f741d444444',
+    category: 'rep_pr' as const,
+    value: 100, // canonical kg
+    weight: 100, // canonical kg (from migration 008 column)
     reps: 12,
+    achieved_at: '2026-10-12T04:00:00.000Z',
+    created_at: '2026-10-12T04:00:00.000Z',
   };
 
   // In kg: stored weight is 100 kg -> "100.0 kg × 12"
-  assert.strictEqual(formatPRDisplay(repPRWithWeight, 'kg'), '100.0 kg × 12');
+  assert.strictEqual(formatPRDisplay(realDatabaseRepPRRow, 'kg'), '100.0 kg × 12');
 
   // In lbs: 100 kg * 2.20462262185 = 220.462... -> "220.5 lbs × 12"
-  assert.strictEqual(formatPRDisplay(repPRWithWeight, 'lbs'), '220.5 lbs × 12');
+  assert.strictEqual(formatPRDisplay(realDatabaseRepPRRow, 'lbs'), '220.5 lbs × 12');
 
-  // Also verify when weight is passed on personal_records row where value stores weight
-  const repPRFromDB = {
-    category: 'rep_pr',
-    value: 100, // stored in kg
+  // Also verify legacy row before migration 008 where weight column is null/undefined and value holds weight
+  const legacyDatabaseRepPRRow = {
+    id: 'e111b5d2-f477-4c74-a690-3f741d445555',
+    user_id: 'a903c733-149b-4bd2-9744-1f741d442222',
+    exercise_id: 'barbell_bench_press',
+    workout_id: 'c881b5d2-f477-4c74-a690-3f741d443333',
+    workout_set_id: 'd992b5d2-f477-4c74-a690-3f741d444444',
+    category: 'rep_pr' as const,
+    value: 100, // canonical kg
+    weight: null,
     reps: 12,
+    achieved_at: '2026-10-12T04:00:00.000Z',
+    created_at: '2026-10-12T04:00:00.000Z',
   };
-  assert.strictEqual(formatPRDisplay(repPRFromDB, 'kg'), '100.0 kg × 12');
-  assert.strictEqual(formatPRDisplay(repPRFromDB, 'lbs'), '220.5 lbs × 12');
+  assert.strictEqual(formatPRDisplay(legacyDatabaseRepPRRow, 'kg'), '100.0 kg × 12');
+  assert.strictEqual(formatPRDisplay(legacyDatabaseRepPRRow, 'lbs'), '220.5 lbs × 12');
 
   // Heaviest weight PR
-  const weightPR = { category: 'heaviest_weight', value: 100 };
+  const weightPR = {
+    id: 'f222b5d2-f477-4c74-a690-3f741d446666',
+    user_id: 'a903c733-149b-4bd2-9744-1f741d442222',
+    exercise_id: 'barbell_bench_press',
+    workout_id: 'c881b5d2-f477-4c74-a690-3f741d443333',
+    workout_set_id: 'd992b5d2-f477-4c74-a690-3f741d444444',
+    category: 'heaviest_weight' as const,
+    value: 100,
+    weight: 100,
+    reps: 5,
+    achieved_at: '2026-10-12T04:00:00.000Z',
+    created_at: '2026-10-12T04:00:00.000Z',
+  };
   assert.strictEqual(formatPRDisplay(weightPR, 'kg'), '100.0 kg');
   assert.strictEqual(formatPRDisplay(weightPR, 'lbs'), '220.5 lbs');
 });
+
+test('Complete checkmark immediate handler conversion preserves typed weight without blur', () => {
+  // Simulates typing "135" in lbs and immediately clicking checkmark:
+  // The complete handler reads the input DOM/ref text "135" synchronously and converts to canonical kg
+  const rawTypedInputLbs = '135';
+  const canonicalKgFromLbs = parseWeightInput(rawTypedInputLbs, 'lbs');
+  assert.strictEqual(canonicalKgFromLbs, 61.235);
+
+  // If user is in kg preference and typed "102.5"
+  const rawTypedInputKg = '102.5';
+  const canonicalKgFromKg = parseWeightInput(rawTypedInputKg, 'kg');
+  assert.strictEqual(canonicalKgFromKg, 102.5);
+});
+

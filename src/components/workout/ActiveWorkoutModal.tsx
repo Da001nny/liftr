@@ -48,13 +48,27 @@ import {
   parseWeightInput 
 } from '../../lib/units';
 
-// Local controlled weight input that keeps raw text while user types, converting only on blur/save
+// Local controlled weight input that keeps raw text while user types, converting on blur/save
+// or directly when the set completion checkmark is tapped.
 const SetWeightInput: React.FC<{
+  exerciseIndex: number;
+  setIndex: number;
   weightKg: number;
   weightUnit: WeightUnit;
   onChangeKg: (kg: number) => void;
+  onRawChange?: (raw: string) => void;
+  inputRef?: (el: HTMLInputElement | null) => void;
   placeholder?: string;
-}> = ({ weightKg, weightUnit, onChangeKg, placeholder = '0' }) => {
+}> = ({ 
+  exerciseIndex, 
+  setIndex, 
+  weightKg, 
+  weightUnit, 
+  onChangeKg, 
+  onRawChange,
+  inputRef,
+  placeholder = '0' 
+}) => {
   const [text, setText] = useState<string>(() => 
     weightKg > 0 ? String(formatWeightValue(weightKg, weightUnit)) : ''
   );
@@ -73,9 +87,11 @@ const SetWeightInput: React.FC<{
 
   return (
     <input
+      ref={inputRef}
       type="number"
       step="any"
       value={text}
+      data-weight-input={`${exerciseIndex}-${setIndex}`}
       onFocus={() => setIsFocused(true)}
       onBlur={() => {
         setIsFocused(false);
@@ -83,6 +99,9 @@ const SetWeightInput: React.FC<{
       }}
       onChange={(e) => {
         setText(e.target.value);
+        if (onRawChange) {
+          onRawChange(e.target.value);
+        }
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {
@@ -127,6 +146,10 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   const [restRemaining, setRestRemaining] = useState(0);
   const [restTotal, setRestTotal] = useState(defaultRest);
   const [isRestActive, setIsRestActive] = useState(false);
+
+  // References to input elements and latest raw typed text for immediate conversion on complete
+  const weightInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
+  const rawWeightMap = useRef<Record<string, string>>({});
 
   // Elapsed Timer effect
   useEffect(() => {
@@ -203,11 +226,24 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   };
 
   const handleToggleSetCompleted = (exerciseIndex: number, setIndex: number) => {
+    // 1. Immediately read input's current raw text from the input ref or DOM in the same handler
+    // This guarantees that typing a weight and immediately tapping complete never loses the typed weight
+    const inputKey = `${exerciseIndex}-${setIndex}`;
+    const rawVal = weightInputsRef.current[inputKey]?.value ?? rawWeightMap.current[inputKey];
+    const parsedKg = (rawVal !== undefined && rawVal.trim() !== '') 
+      ? parseWeightInput(rawVal.trim(), weightUnit) 
+      : null;
+
     setExercises(prev => {
       const next = [...prev];
       const targetEx = { ...next[exerciseIndex] };
       const nextSets = [...targetEx.sets];
       const targetSet = { ...nextSets[setIndex] };
+
+      // Apply the raw typed weight immediately if present
+      if (parsedKg !== null) {
+        targetSet.weight = parsedKg;
+      }
 
       const willBeCompleted = !targetSet.completed;
       targetSet.completed = willBeCompleted;
@@ -750,9 +786,17 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                           {/* Weight & Previous Value Suggestion */}
                           <td className="py-2.5 px-2 text-center">
                             <SetWeightInput
+                              exerciseIndex={exIdx}
+                              setIndex={setIdx}
                               weightKg={set.weight}
                               weightUnit={weightUnit}
                               onChangeKg={(valKg) => handleUpdateSet(exIdx, setIdx, 'weight', valKg)}
+                              onRawChange={(val) => {
+                                rawWeightMap.current[`${exIdx}-${setIdx}`] = val;
+                              }}
+                              inputRef={(el) => {
+                                weightInputsRef.current[`${exIdx}-${setIdx}`] = el;
+                              }}
                               placeholder={prevSet && prevSet.weight > 0 ? String(formatWeightValue(prevSet.weight, weightUnit)) : '0'}
                             />
                             {prevSet && prevSet.weight > 0 && prevSet.reps > 0 && (

@@ -136,3 +136,45 @@ test('Phase 3 - 23. Calendar Consistency: 4 completed / 4 scheduled = 100%', () 
 test('Phase 3 - 24. Calendar Consistency: Overcompleted capped at 100% max', () => {
   assert.strictEqual(calculateCalendarConsistency(5, 4), 100);
 });
+
+test('Phase 3 - 25. Rep PR Rule: 5 reps at 100 kg after 8 reps at 120 kg is NOT a rep PR', () => {
+  const state: PersonalRecordState = {
+    heaviestWeight: 120,
+    bestEstimated1RM: 152,
+    bestSingleSetVolume: 960,
+    repPRsByWeight: {
+      120: 8,
+    },
+  };
+  const result = detectPersonalRecords({ weight: 100, reps: 5 }, state);
+  assert.strictEqual(result.isRepPR, false, '5 reps at 100kg should not be a PR when user already did 8 reps at 120kg');
+});
+
+test('Phase 3 - 26. Rep PR Rule: 9 reps at 100 kg after 8 reps at 120 kg IS a rep PR', () => {
+  const state: PersonalRecordState = {
+    heaviestWeight: 120,
+    bestEstimated1RM: 152,
+    bestSingleSetVolume: 960,
+    repPRsByWeight: {
+      120: 8,
+    },
+  };
+  const result = detectPersonalRecords({ weight: 100, reps: 9 }, state);
+  assert.strictEqual(result.isRepPR, true, '9 reps at 100kg should be a PR because 9 exceeds the 8 reps at 120kg');
+  assert.strictEqual(result.newRepPR?.weight, 100);
+  assert.strictEqual(result.newRepPR?.reps, 9);
+});
+
+test('Phase 3 - 27. Rep PR Rule: 8 reps at 100 kg after 8 reps at 120 kg is a strict tie and NOT a PR', () => {
+  const state: PersonalRecordState = {
+    heaviestWeight: 120,
+    bestEstimated1RM: 152,
+    bestSingleSetVolume: 960,
+    repPRsByWeight: {
+      120: 8,
+    },
+  };
+  const result = detectPersonalRecords({ weight: 100, reps: 8 }, state);
+  assert.strictEqual(result.isRepPR, false, '8 reps at 100kg should tie the 8 reps at 120kg and be rejected by strict > rule');
+});
+

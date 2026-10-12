@@ -425,6 +425,7 @@ export interface Database {
           workout_set_id: string | null;
           category: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
           value: number;
+          weight: number | null;
           reps: number | null;
           achieved_at: string;
           created_at: string;
@@ -437,6 +438,7 @@ export interface Database {
           workout_set_id?: string | null;
           category: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
           value: number;
+          weight?: number | null;
           reps?: number | null;
           achieved_at?: string;
           created_at?: string;
@@ -449,6 +451,7 @@ export interface Database {
           workout_set_id?: string | null;
           category?: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
           value?: number;
+          weight?: number | null;
           reps?: number | null;
           achieved_at?: string;
           created_at?: string;

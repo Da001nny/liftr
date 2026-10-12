@@ -782,6 +782,7 @@ async function startServer() {
         workout_set_id: string;
         category: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
         value: number;
+        weight: number | null;
         reps: number | null;
         achieved_at: string;
       }> = [];
@@ -807,6 +808,7 @@ async function startServer() {
               workout_set_id: cand.setId,
               category: 'heaviest_weight',
               value: res.newHeaviestWeight,
+              weight: res.newHeaviestWeight,
               reps: cand.reps,
               achieved_at: cand.achievedAt,
             });
@@ -821,6 +823,7 @@ async function startServer() {
               workout_set_id: cand.setId,
               category: 'best_estimated_1rm',
               value: res.newEstimated1RM,
+              weight: cand.weight,
               reps: cand.reps,
               achieved_at: cand.achievedAt,
             });
@@ -835,6 +838,7 @@ async function startServer() {
               workout_set_id: cand.setId,
               category: 'best_single_set_volume',
               value: res.newSingleSetVolume,
+              weight: cand.weight,
               reps: cand.reps,
               achieved_at: cand.achievedAt,
             });
@@ -849,6 +853,7 @@ async function startServer() {
               workout_set_id: cand.setId,
               category: 'rep_pr',
               value: res.newRepPR.weight,
+              weight: res.newRepPR.weight,
               reps: res.newRepPR.reps,
               achieved_at: cand.achievedAt,
             });
@@ -2470,8 +2475,8 @@ async function startServer() {
       const payload = {
         user_id: user.id,
         date,
-        weight: Math.round(numWeight * 100) / 100,
-        unit: unit === 'lbs' ? 'lbs' : 'kg',
+        weight: Math.round(numWeight * 10000) / 10000,
+        unit: 'kg', // Canonical storage is ALWAYS 'kg'
         notes: notes ? String(notes).trim() : null,
         source,
         updated_at: new Date().toISOString(),
