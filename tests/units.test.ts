@@ -16,6 +16,7 @@ import {
   formatPRDisplay,
   KG_TO_LBS_RATIO,
   MI_TO_KM_RATIO,
+  WeightUnit,
 } from '../src/lib/units';
 import {
   detectPersonalRecords,
@@ -25,7 +26,14 @@ import {
   calculateTotalSessionVolume,
   calculateBodyweightStats,
 } from '../src/lib/calculations';
-import { BodyweightEntryRow } from '../src/types/database';
+import {
+  completeSet,
+  deleteSet,
+  handlePendingTextUnitSwitch,
+  resolveCompletedSetWeight,
+  SetPendingInputState,
+} from '../src/lib/setEditing';
+import { BodyweightEntryRow, ActiveWorkoutExercise } from '../src/types/database';
 
 test('exact constants match authoritative standards', () => {
   assert.strictEqual(KG_TO_LBS_RATIO, 2.20462262185);
@@ -258,16 +266,171 @@ test('formatPRDisplay formats a 100 kg x 12 rep PR in both kg and lbs using exac
   assert.strictEqual(formatPRDisplay(weightPR, 'lbs'), '220.5 lbs');
 });
 
-test('Complete checkmark immediate handler conversion preserves typed weight without blur', () => {
-  // Simulates typing "135" in lbs and immediately clicking checkmark:
-  // The complete handler reads the input DOM/ref text "135" synchronously and converts to canonical kg
-  const rawTypedInputLbs = '135';
-  const canonicalKgFromLbs = parseWeightInput(rawTypedInputLbs, 'lbs');
-  assert.strictEqual(canonicalKgFromLbs, 61.235);
+test('ActiveWorkoutModal pure handlers: (a) immediate checkmark, (b) set deletion isolation, (c) mid-workout unit switch', () => {
+  // Real active workout exercise state matching ActiveWorkoutExercise
+  let exercise: ActiveWorkoutExercise = {
+    id: 'we-1',
+    workout_id: 'w-1',
+    exercise_id: 'barbell_bench_press',
+    exerciseName: 'Barbell Bench Press',
+    order_index: 0,
+    notes: '',
+    rest_timer_seconds: 90,
+    created_at: new Date().toISOString(),
+    sets: [
+      {
+        id: 'set-1',
+        workout_exercise_id: 'we-1',
+        set_number: 1,
+        set_type: 'working',
+        weight: 0,
+        reps: 10,
+        rir: null,
+        completed: false,
+        completed_at: null,
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: 'set-2',
+        workout_exercise_id: 'we-1',
+        set_number: 2,
+        set_type: 'working',
+        weight: 80, // canonical kg
+        reps: 8,
+        rir: null,
+        completed: false,
+        completed_at: null,
+        created_at: new Date().toISOString(),
+      },
+    ],
+  };
 
-  // If user is in kg preference and typed "102.5"
-  const rawTypedInputKg = '102.5';
-  const canonicalKgFromKg = parseWeightInput(rawTypedInputKg, 'kg');
-  assert.strictEqual(canonicalKgFromKg, 102.5);
+  const pendingWeightsMap: Record<string, SetPendingInputState> = {};
+  let currentUnit: WeightUnit = 'lbs';
+
+  // Scenario (a): Type "135" (in lbs) and tap complete checkmark immediately without blur
+  pendingWeightsMap['set-1'] = {
+    rawText: '135',
+    heldCanonicalKg: null,
+    editedSinceSwitch: false,
+  };
+
+  const resA = completeSet(exercise, 0, {
+    rawText: pendingWeightsMap['set-1'].rawText,
+    unit: currentUnit,
+    heldCanonicalKg: pendingWeightsMap['set-1'].heldCanonicalKg,
+    editedSinceSwitch: pendingWeightsMap['set-1'].editedSinceSwitch,
+  });
+
+  exercise = resA.updatedExercise;
+  assert.strictEqual(resA.willBeCompleted, true, 'Set 1 must be completed');
+  assert.strictEqual(resA.restTimerSeconds, 90, 'Rest timer must be triggered for completed set');
+  assert.strictEqual(exercise.sets[0].completed, true, 'Set 1 completed state in exercise');
+  assert.strictEqual(exercise.sets[0].weight, 61.235, 'Set 1 must convert 135 lbs to canonical 61.235 kg');
+
+  // Scenario (b): Remove a set, then complete the next set
+  // User types "225" into set-1
+  pendingWeightsMap['set-1'] = {
+    rawText: '225',
+    heldCanonicalKg: null,
+    editedSinceSwitch: false,
+  };
+
+  // User deletes set-1
+  const delRes = deleteSet(exercise, 0);
+  exercise = delRes.updatedExercise;
+  if (delRes.deletedSetId) {
+    delete pendingWeightsMap[delRes.deletedSetId];
+  }
+
+  assert.strictEqual(pendingWeightsMap['set-1'], undefined, 'Deleted set ref must be removed from pending map');
+  assert.strictEqual(exercise.sets.length, 1, 'Only set-2 remains in exercise');
+  assert.strictEqual(exercise.sets[0].id, 'set-2', 'set-2 is now the first set at index 0');
+
+  // Complete set-2 (which had 80 kg) without typing new text
+  const resB = completeSet(exercise, 0, {
+    rawText: pendingWeightsMap['set-2']?.rawText,
+    unit: currentUnit,
+    heldCanonicalKg: pendingWeightsMap['set-2']?.heldCanonicalKg,
+    editedSinceSwitch: pendingWeightsMap['set-2']?.editedSinceSwitch,
+  });
+  exercise = resB.updatedExercise;
+
+  assert.strictEqual(resB.willBeCompleted, true, 'set-2 must be completed');
+  assert.strictEqual(exercise.sets[0].weight, 80, 'set-2 must preserve its own 80 kg and NEVER inherit set-1 225 value');
+});
+
+test('Unit switching with pending text preserves canonical kg without rounding drift', () => {
+  // Test case 1: Type 100 kg, switch to lbs (shows 220.5), complete -> stored exactly 100 kg
+  const switch1 = handlePendingTextUnitSwitch('100', 'kg', 'lbs');
+  assert.strictEqual(switch1.displayText, '220.5', '100 kg displays as 220.5 in lbs');
+  assert.strictEqual(switch1.heldCanonicalKg, 100, 'heldCanonicalKg must be exactly 100');
+
+  const resolvedWeight1 = resolveCompletedSetWeight({
+    rawText: switch1.displayText,
+    unit: 'lbs',
+    heldCanonicalKg: switch1.heldCanonicalKg,
+    editedSinceSwitch: false,
+    fallbackWeightKg: 0,
+  });
+  assert.strictEqual(resolvedWeight1, 100, 'Completing without editing must store exactly 100 kg');
+
+  // Test case 2: Type 135 lbs, switch to kg (shows 61.2), complete -> stored exactly 61.235 kg
+  const switch2 = handlePendingTextUnitSwitch('135', 'lbs', 'kg');
+  assert.strictEqual(switch2.displayText, '61.2', '135 lbs displays as 61.2 in kg');
+  assert.strictEqual(switch2.heldCanonicalKg, 61.235, 'heldCanonicalKg must be 61.235');
+
+  const resolvedWeight2 = resolveCompletedSetWeight({
+    rawText: switch2.displayText,
+    unit: 'kg',
+    heldCanonicalKg: switch2.heldCanonicalKg,
+    editedSinceSwitch: false,
+    fallbackWeightKg: 0,
+  });
+  assert.strictEqual(resolvedWeight2, 61.235, 'Completing without editing must store exactly 61.235 kg');
+
+  // Test case 3: If user edits the field after switching units, edited text is parsed in new unit
+  const resolvedEdited = resolveCompletedSetWeight({
+    rawText: '225',
+    unit: 'lbs',
+    heldCanonicalKg: switch1.heldCanonicalKg,
+    editedSinceSwitch: true, // User edited after switch
+    fallbackWeightKg: 0,
+  });
+  assert.strictEqual(resolvedEdited, 102.0583, 'Edited text must parse 225 lbs to 102.0583 kg');
+});
+
+test('Unit switching tie test: 100 kg switched to 220.5 lbs can never create a false heaviest-weight PR', () => {
+  // Baseline: User's existing PR is exactly 100 kg
+  const existingPRs = {
+    heaviestWeight: 100, // canonical kg
+    bestEstimated1RM: 115,
+    bestSingleSetVolume: 500,
+    repPRsByWeight: { 100: 5 },
+  };
+
+  // 1. Without canonical preservation:
+  // If the system naive re-parsed "220.5" from lbs:
+  const naiveKg = parseWeightInput('220.5', 'lbs'); // 100.0171 kg
+  assert.strictEqual(naiveKg > 100, true, 'Naive conversion 100.0171 kg would falsely exceed 100 kg');
+  const naivePR = detectPersonalRecords({ weight: naiveKg, reps: 5 }, existingPRs);
+  assert.strictEqual(naivePR.isHeaviestWeightPR, true, 'Naive conversion would incorrectly trigger heaviest_weight PR');
+
+  // 2. Authoritative system with held canonical kg:
+  const switchResult = handlePendingTextUnitSwitch('100', 'kg', 'lbs');
+  assert.strictEqual(switchResult.displayText, '220.5');
+  assert.strictEqual(switchResult.heldCanonicalKg, 100);
+
+  const authoritativeStoredKg = resolveCompletedSetWeight({
+    rawText: switchResult.displayText,
+    unit: 'lbs',
+    heldCanonicalKg: switchResult.heldCanonicalKg,
+    editedSinceSwitch: false,
+  });
+  assert.strictEqual(authoritativeStoredKg, 100, 'Stored weight must remain exact 100 kg');
+
+  // Strict > tie check: 100 > 100 is false
+  const authoritativePR = detectPersonalRecords({ weight: authoritativeStoredKg, reps: 5 }, existingPRs);
+  assert.strictEqual(authoritativePR.isHeaviestWeightPR, false, 'Tie lift at 100 kg after switching to 220.5 lbs can NEVER create a heaviest-weight PR');
 });
 

@@ -47,25 +47,30 @@ import {
   formatPRDisplay, 
   parseWeightInput 
 } from '../../lib/units';
+import {
+  completeSet,
+  deleteSet,
+  handlePendingTextUnitSwitch,
+  resolveCompletedSetWeight,
+  SetPendingInputState
+} from '../../lib/setEditing';
 
 // Local controlled weight input that keeps raw text while user types, converting on blur/save
 // or directly when the set completion checkmark is tapped.
 const SetWeightInput: React.FC<{
-  exerciseIndex: number;
-  setIndex: number;
+  setId: string;
   weightKg: number;
   weightUnit: WeightUnit;
   onChangeKg: (kg: number) => void;
-  onRawChange?: (raw: string) => void;
+  onPendingChange?: (state: SetPendingInputState) => void;
   inputRef?: (el: HTMLInputElement | null) => void;
   placeholder?: string;
 }> = ({ 
-  exerciseIndex, 
-  setIndex, 
+  setId,
   weightKg, 
   weightUnit, 
   onChangeKg, 
-  onRawChange,
+  onPendingChange,
   inputRef,
   placeholder = '0' 
 }) => {
@@ -73,16 +78,47 @@ const SetWeightInput: React.FC<{
     weightKg > 0 ? String(formatWeightValue(weightKg, weightUnit)) : ''
   );
   const [isFocused, setIsFocused] = useState(false);
+  const prevWeightUnit = useRef<WeightUnit>(weightUnit);
+  const heldCanonicalRef = useRef<number | null>(null);
+  const editedSinceSwitchRef = useRef<boolean>(false);
 
   useEffect(() => {
-    if (!isFocused) {
+    if (prevWeightUnit.current !== weightUnit) {
+      if (text.trim() !== '') {
+        // Pure conversion of pending text: hold canonical kg so no rounding error pollutes PR checks
+        const result = handlePendingTextUnitSwitch(text, prevWeightUnit.current, weightUnit);
+        setText(result.displayText);
+        heldCanonicalRef.current = result.heldCanonicalKg;
+        editedSinceSwitchRef.current = false;
+        if (onPendingChange) {
+          onPendingChange({
+            rawText: result.displayText,
+            heldCanonicalKg: result.heldCanonicalKg,
+            editedSinceSwitch: false,
+          });
+        }
+      } else {
+        setText(weightKg > 0 ? String(formatWeightValue(weightKg, weightUnit)) : '');
+        heldCanonicalRef.current = null;
+        editedSinceSwitchRef.current = false;
+      }
+      prevWeightUnit.current = weightUnit;
+    } else if (!isFocused) {
       setText(weightKg > 0 ? String(formatWeightValue(weightKg, weightUnit)) : '');
+      heldCanonicalRef.current = null;
+      editedSinceSwitchRef.current = false;
     }
-  }, [weightKg, weightUnit, isFocused]);
+  }, [weightKg, weightUnit, isFocused, text, onPendingChange]);
 
   const commitValue = () => {
-    const inKg = parseWeightInput(text, weightUnit);
-    onChangeKg(inKg);
+    const finalKg = resolveCompletedSetWeight({
+      rawText: text,
+      unit: weightUnit,
+      heldCanonicalKg: heldCanonicalRef.current,
+      editedSinceSwitch: editedSinceSwitchRef.current,
+      fallbackWeightKg: weightKg,
+    });
+    onChangeKg(finalKg);
   };
 
   return (
@@ -91,7 +127,7 @@ const SetWeightInput: React.FC<{
       type="number"
       step="any"
       value={text}
-      data-weight-input={`${exerciseIndex}-${setIndex}`}
+      data-weight-input={setId}
       onFocus={() => setIsFocused(true)}
       onBlur={() => {
         setIsFocused(false);
@@ -99,8 +135,14 @@ const SetWeightInput: React.FC<{
       }}
       onChange={(e) => {
         setText(e.target.value);
-        if (onRawChange) {
-          onRawChange(e.target.value);
+        editedSinceSwitchRef.current = true;
+        heldCanonicalRef.current = null;
+        if (onPendingChange) {
+          onPendingChange({
+            rawText: e.target.value,
+            heldCanonicalKg: null,
+            editedSinceSwitch: true,
+          });
         }
       }}
       onKeyDown={(e) => {
@@ -147,9 +189,9 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   const [restTotal, setRestTotal] = useState(defaultRest);
   const [isRestActive, setIsRestActive] = useState(false);
 
-  // References to input elements and latest raw typed text for immediate conversion on complete
+  // References to input elements and latest raw/held input state for immediate conversion on complete
   const weightInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
-  const rawWeightMap = useRef<Record<string, string>>({});
+  const pendingWeightsRef = useRef<Record<string, SetPendingInputState>>({});
 
   // Elapsed Timer effect
   useEffect(() => {
@@ -226,40 +268,28 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   };
 
   const handleToggleSetCompleted = (exerciseIndex: number, setIndex: number) => {
-    // 1. Immediately read input's current raw text from the input ref or DOM in the same handler
-    // This guarantees that typing a weight and immediately tapping complete never loses the typed weight
-    const inputKey = `${exerciseIndex}-${setIndex}`;
-    const rawVal = weightInputsRef.current[inputKey]?.value ?? rawWeightMap.current[inputKey];
-    const parsedKg = (rawVal !== undefined && rawVal.trim() !== '') 
-      ? parseWeightInput(rawVal.trim(), weightUnit) 
-      : null;
+    const targetEx = exercises[exerciseIndex];
+    if (!targetEx) return;
+    const targetSet = targetEx.sets[setIndex];
+    if (!targetSet) return;
 
-    setExercises(prev => {
-      const next = [...prev];
-      const targetEx = { ...next[exerciseIndex] };
-      const nextSets = [...targetEx.sets];
-      const targetSet = { ...nextSets[setIndex] };
+    const setId = targetSet.id;
+    const pending = pendingWeightsRef.current[setId];
+    const domVal = weightInputsRef.current[setId]?.value;
 
-      // Apply the raw typed weight immediately if present
-      if (parsedKg !== null) {
-        targetSet.weight = parsedKg;
-      }
-
-      const willBeCompleted = !targetSet.completed;
-      targetSet.completed = willBeCompleted;
-      targetSet.completed_at = willBeCompleted ? new Date().toISOString() : null;
-
-      nextSets[setIndex] = targetSet;
-      targetEx.sets = nextSets;
-      next[exerciseIndex] = targetEx;
-
-      // Trigger Rest timer if set was marked completed
-      if (willBeCompleted) {
-        handleStartRestTimer(targetEx.rest_timer_seconds);
-      }
-
-      return next;
+    const result = completeSet(targetEx, setIndex, {
+      rawText: pending?.rawText ?? domVal,
+      unit: weightUnit,
+      heldCanonicalKg: pending?.heldCanonicalKg,
+      editedSinceSwitch: pending?.editedSinceSwitch,
     });
+
+    setExercises(prev => prev.map((ex, idx) => idx === exerciseIndex ? result.updatedExercise : ex));
+
+    // Side effect executed OUTSIDE state updater to prevent duplicate runs
+    if (result.willBeCompleted) {
+      handleStartRestTimer(result.restTimerSeconds);
+    }
   };
 
   const handleUpdateSet = (
@@ -308,15 +338,16 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   };
 
   const handleDeleteSet = (exerciseIndex: number, setIndex: number) => {
-    setExercises(prev => {
-      const next = [...prev];
-      const targetEx = { ...next[exerciseIndex] };
-      targetEx.sets = targetEx.sets
-        .filter((_, idx) => idx !== setIndex)
-        .map((s, idx) => ({ ...s, set_number: idx + 1 }));
-      next[exerciseIndex] = targetEx;
-      return next;
-    });
+    const targetEx = exercises[exerciseIndex];
+    if (!targetEx) return;
+
+    const result = deleteSet(targetEx, setIndex);
+    if (result.deletedSetId) {
+      delete pendingWeightsRef.current[result.deletedSetId];
+      delete weightInputsRef.current[result.deletedSetId];
+    }
+
+    setExercises(prev => prev.map((ex, idx) => idx === exerciseIndex ? result.updatedExercise : ex));
   };
 
   const handleAddExercise = (exercise: Exercise) => {
@@ -388,6 +419,13 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   };
 
   const handleRemoveExercise = (index: number) => {
+    const ex = exercises[index];
+    if (ex) {
+      ex.sets.forEach(s => {
+        delete pendingWeightsRef.current[s.id];
+        delete weightInputsRef.current[s.id];
+      });
+    }
     setExercises(prev => prev.filter((_, idx) => idx !== index));
   };
 
@@ -786,16 +824,15 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                           {/* Weight & Previous Value Suggestion */}
                           <td className="py-2.5 px-2 text-center">
                             <SetWeightInput
-                              exerciseIndex={exIdx}
-                              setIndex={setIdx}
+                              setId={set.id}
                               weightKg={set.weight}
                               weightUnit={weightUnit}
                               onChangeKg={(valKg) => handleUpdateSet(exIdx, setIdx, 'weight', valKg)}
-                              onRawChange={(val) => {
-                                rawWeightMap.current[`${exIdx}-${setIdx}`] = val;
+                              onPendingChange={(pendingState) => {
+                                pendingWeightsRef.current[set.id] = pendingState;
                               }}
                               inputRef={(el) => {
-                                weightInputsRef.current[`${exIdx}-${setIdx}`] = el;
+                                weightInputsRef.current[set.id] = el;
                               }}
                               placeholder={prevSet && prevSet.weight > 0 ? String(formatWeightValue(prevSet.weight, weightUnit)) : '0'}
                             />

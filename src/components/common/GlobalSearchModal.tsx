@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { GlobalSearchResult, GlobalSearchResultType } from '../../types/database';
 import { executeGlobalSearch } from '../../lib/progressService';
+import { formatWeight } from '../../lib/units';
 import { TabId } from '../Navigation';
 
 interface GlobalSearchModalProps {
@@ -19,7 +20,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   onNavigateTab,
 }) => {
   const { t } = useTranslation();
-  const { accentColor } = useTheme();
+  const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
   const [query, setQuery] = useState<string>('');
@@ -144,7 +145,9 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                       </span>
                     </div>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate mt-0.5 font-medium">
-                      {item.subtitle}
+                      {item.type === 'workout' && item.payload?.totalVolume !== undefined
+                        ? `${item.payload.date || item.subtitle} · ${formatWeight(item.payload.totalVolume, weightUnit)} total volume`
+                        : item.subtitle}
                     </p>
                   </div>
                 </div>

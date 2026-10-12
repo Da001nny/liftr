@@ -20,10 +20,10 @@ import {
   CONTRIBUTIONS_BY_EXERCISE,
   EXERCISES
 } from '../data/exerciseCatalog';
-import { WeightUnit, formatWeightValue, lbsToKg, roundToFourDecimals } from './units';
+import { WeightUnit, formatWeightValue, roundToFourDecimals } from './units';
 
 export interface ExerciseSet {
-  weight: number; // in user's unit (kg or lbs)
+  weight: number; // in canonical kg
   reps: number;
   completed?: boolean;
 }

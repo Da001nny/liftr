@@ -2810,11 +2810,11 @@ async function startServer() {
             results.push({
               id: `workout_${w.id}`,
               title: w.name || 'Workout Session',
-              subtitle: `${wDate} · ${w.total_volume || 0}kg total volume`,
+              subtitle: wDate,
               type: 'workout',
               badge: 'Workout',
               targetTab: 'workouts',
-              payload: { workoutId: w.id },
+              payload: { workoutId: w.id, totalVolume: Number(w.total_volume) || 0, date: wDate },
             });
             if (results.length >= 30) break;
           }
