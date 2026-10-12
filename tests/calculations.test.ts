@@ -645,3 +645,70 @@ test('generateWorkoutsCsv, generateBodyweightCsv, and generateStepsCsv generate 
   assert.ok(stepLines[1].includes('2026-10-07,10500,10000,manual'));
 });
 
+test('CSV export precision: 61.235 kg set exports with 4-decimal weight and 2-decimal volume and 1RM', () => {
+  const workouts = [
+    {
+      id: 'w_precision_1',
+      status: 'completed',
+      completed_at: '2026-10-12T10:00:00Z',
+      name: 'Bench Session',
+      workout_exercises: [
+        {
+          exercise_id: 'ex_barbell_bench_press',
+          workout_sets: [
+            { weight: 61.235, reps: 10, completed: true, set_type: 'working' },
+          ],
+        },
+      ],
+    },
+  ];
+
+  // 1. Canonical kg export (default without unit preference)
+  const csvKg = generateWorkoutsCsv(workouts);
+  const linesKg = csvKg.replace('\uFEFF', '').split('\r\n');
+  assert.ok(
+    linesKg[1].includes('working,61.235,10,612.35,81.65'),
+    `Canonical kg CSV must keep exact 61.235 weight, 612.35 volume, and 81.65 1RM. Got: ${linesKg[1]}`
+  );
+
+  // 2. Explicit kg preference export
+  const csvExplicitKg = generateWorkoutsCsv(workouts, 'kg');
+  const linesExplicitKg = csvExplicitKg.replace('\uFEFF', '').split('\r\n');
+  assert.strictEqual(linesExplicitKg[0], 'Date,Workout,Exercise,Set Type,Weight (kg),Reps,Volume (kg),Estimated 1RM (kg)');
+  assert.ok(
+    linesExplicitKg[1].includes('working,61.235,10,612.35,81.65'),
+    `Explicit kg CSV must keep exact 61.235 weight, 612.35 volume, and 81.65 1RM. Got: ${linesExplicitKg[1]}`
+  );
+
+  // 3. Lbs preference export (2 decimals)
+  const csvLbs = generateWorkoutsCsv(workouts, 'lbs');
+  const linesLbs = csvLbs.replace('\uFEFF', '').split('\r\n');
+  assert.strictEqual(linesLbs[0], 'Date,Workout,Exercise,Set Type,Weight (lbs),Reps,Volume (lbs),Estimated 1RM (lbs)');
+  assert.ok(
+    linesLbs[1].includes('working,135,10,1350,180.01'),
+    `Lbs CSV must format weight to 2 decimals (135), volume to 2 decimals (1350), and 1RM to 2 decimals (180.01). Got: ${linesLbs[1]}`
+  );
+
+  // 4. Bodyweight CSV precision test with 61.235 kg
+  const bwEntries: BodyweightEntryRow[] = [
+    {
+      id: 'bw_1',
+      user_id: 'u1',
+      date: '2026-10-12',
+      weight: 61.235,
+      unit: 'kg',
+      notes: null,
+      source: 'manual',
+      created_at: '2026-10-12T08:00:00Z',
+      updated_at: '2026-10-12T08:00:00Z',
+    },
+  ];
+  const bwCsvKg = generateBodyweightCsv(bwEntries);
+  const bwLinesKg = bwCsvKg.replace('\uFEFF', '').split('\r\n');
+  assert.ok(bwLinesKg[1].includes('2026-10-12,61.235,kg,,manual'), `Bodyweight kg CSV must retain 61.235`);
+
+  const bwCsvLbs = generateBodyweightCsv(bwEntries, 'lbs');
+  const bwLinesLbs = bwCsvLbs.replace('\uFEFF', '').split('\r\n');
+  assert.ok(bwLinesLbs[1].includes('2026-10-12,135,lbs,,manual'), `Bodyweight lbs CSV must format to 2 decimals (135)`);
+});
+

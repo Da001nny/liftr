@@ -435,34 +435,6 @@ async function startServer() {
     }
   });
 
-  // 5. Dashboard Data (Protected)
-  // Real empty state for Phase 0: 0 workouts, 0 volume, 100% consistency default
-  app.get('/api/dashboard', requireAuth, async (req: Request, res: Response) => {
-    const user = (req as any).user;
-    const client = (req as any).userClient;
-
-    try {
-      // In Phase 0, no workout tables exist yet; return clean, honest empty state
-      // consistency default is 100% (0 completed / 0 scheduled = 100% documented default)
-      const dashboardState = {
-        userId: user.id,
-        userEmail: user.email,
-        totalVolume: 0,
-        volumeUnit: 'kg',
-        sessionsCompleted: 0,
-        activeSplit: null,
-        consistencyPercentage: 100, // Intentional default: 0 scheduled sessions = 100%
-        recentSessions: [],
-        muscleExposure: [],
-        nextScheduledSession: null,
-      };
-
-      return res.json(apiResponse(dashboardState, 1, 1, 1));
-    } catch (err: any) {
-      return res.status(500).json(apiError(`Dashboard error: ${err.message}`));
-    }
-  });
-
   // Helper to enrich exercise with full contributions & muscle metadata
   function enrichExercise(ex: any) {
     const contribs = (CONTRIBUTIONS_BY_EXERCISE.get(ex.id) || []).map(c => {

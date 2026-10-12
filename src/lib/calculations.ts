@@ -20,7 +20,7 @@ import {
   CONTRIBUTIONS_BY_EXERCISE,
   EXERCISES
 } from '../data/exerciseCatalog';
-import { WeightUnit, formatWeightValue, roundToFourDecimals } from './units';
+import { WeightUnit, kgToLbs } from './units';
 
 export interface ExerciseSet {
   weight: number; // in canonical kg
@@ -1026,9 +1026,16 @@ export function generateWorkoutsCsv(workouts: any[], weightUnit?: WeightUnit): s
           ? calculateEstimated1RM(weight, reps)
           : 0;
 
-        const displayWeight = weightUnit ? formatWeightValue(weight, weightUnit) : weight;
-        const displayVolume = weightUnit ? formatWeightValue(volume, weightUnit) : volume;
-        const displayEst1RM = weightUnit ? formatWeightValue(est1RM, weightUnit) : est1RM;
+        const isLbs = weightUnit === 'lbs';
+        const displayWeight = isLbs
+          ? Math.round(kgToLbs(weight) * 100) / 100
+          : Math.round(weight * 10000) / 10000;
+        const displayVolume = isLbs
+          ? Math.round(kgToLbs(volume) * 100) / 100
+          : Math.round(volume * 100) / 100;
+        const displayEst1RM = isLbs
+          ? Math.round(kgToLbs(est1RM) * 100) / 100
+          : Math.round(est1RM * 100) / 100;
 
         rows.push([
           escapeCsvCell(date),
@@ -1059,7 +1066,10 @@ export function generateBodyweightCsv(entries: BodyweightEntryRow[], weightUnit?
 
   for (const e of sorted) {
     const canonicalKg = Number(e.weight) || 0;
-    const displayWeight = weightUnit ? formatWeightValue(canonicalKg, weightUnit) : e.weight;
+    const isLbs = weightUnit === 'lbs';
+    const displayWeight = isLbs
+      ? Math.round(kgToLbs(canonicalKg) * 100) / 100
+      : Math.round(canonicalKg * 10000) / 10000;
     const displayUnit = weightUnit || 'kg';
 
     rows.push([
