@@ -26,6 +26,12 @@ import {
   triggerBrowserDownload 
 } from '../../lib/progressService';
 
+import {
+  getWorkoutsCsvHeaderPreview,
+  getBodyweightCsvHeaderPreview,
+  STEPS_CSV_HEADER_PREVIEW
+} from '../../constants/csvHeaders';
+
 interface ExportDataCenterSectionProps {
   workouts: any[];
 }
@@ -107,21 +113,21 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-black font-display uppercase tracking-wide">
-                Data &amp; CSV Export Center
+                {t('progress.exportDataCenterTitle')}
               </h2>
               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold font-athletic uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                Premium Infrastructure
+                {t('progress.exportInfrastructureBadge')}
               </span>
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-              RFC 4180 compliant CSV files with UTF-8 BOM encoding for Microsoft Excel &amp; Google Sheets
+              {t('progress.exportSubtitle')}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs font-mono text-neutral-500 font-semibold self-start sm:self-auto">
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>Full Data Sovereignty</span>
+          <span>{t('progress.fullDataSovereignty')}</span>
         </div>
       </div>
 
@@ -138,23 +144,23 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
                 <Layers className="w-4 h-4 text-blue-500" />
               </div>
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
-                Set-by-Set
+                {t('progress.exportCardWorkoutsBadge')}
               </span>
             </div>
 
             <div>
               <h3 className="text-sm font-black font-display uppercase tracking-wide text-neutral-900 dark:text-white">
-                Workout Sets History
+                {t('progress.exportCardWorkoutsTitle')}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mt-1 leading-relaxed">
-                One discrete row per set containing completed load, volume, and Epley estimated 1RM.
+                {t('progress.exportCardWorkoutsDesc')}
               </p>
             </div>
 
             <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-[10px] font-mono text-neutral-500 space-y-1">
-              <div className="font-bold text-neutral-700 dark:text-neutral-300">Schema Headers:</div>
+              <div className="font-bold text-neutral-700 dark:text-neutral-300">{t('progress.schemaHeaders')}</div>
               <div className="truncate text-neutral-400">
-                Date, Workout, Exercise, Set Type, Weight ({weightUnit}), Reps, Volume ({weightUnit}), Estimated 1RM ({weightUnit})
+                {getWorkoutsCsvHeaderPreview(weightUnit)}
               </div>
             </div>
           </div>
@@ -168,14 +174,14 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
             {downloadSuccess === 'workouts' ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
-                <span>Downloaded!</span>
+                <span>{t('progress.downloaded')}</span>
               </>
             ) : downloading === 'workouts' ? (
-              <span>Preparing CSV...</span>
+              <span>{t('progress.preparingCsv')}</span>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>Export Workouts CSV</span>
+                <span>{t('progress.exportWorkoutsCsv')}</span>
               </>
             )}
           </button>
@@ -192,23 +198,23 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
                 <Scale className="w-4 h-4 text-purple-500" />
               </div>
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
-                Daily Weigh-ins
+                {t('progress.exportCardBodyweightBadge')}
               </span>
             </div>
 
             <div>
               <h3 className="text-sm font-black font-display uppercase tracking-wide text-neutral-900 dark:text-white">
-                Bodyweight Ledger
+                {t('progress.exportCardBodyweightTitle')}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mt-1 leading-relaxed">
-                Complete historical record of scale weigh-ins with notes, timestamp, and source metadata.
+                {t('progress.exportCardBodyweightDesc')}
               </p>
             </div>
 
             <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-[10px] font-mono text-neutral-500 space-y-1">
-              <div className="font-bold text-neutral-700 dark:text-neutral-300">Schema Headers:</div>
+              <div className="font-bold text-neutral-700 dark:text-neutral-300">{t('progress.schemaHeaders')}</div>
               <div className="truncate text-neutral-400">
-                Date, Weight ({weightUnit}), Unit, Notes, Source
+                {getBodyweightCsvHeaderPreview(weightUnit)}
               </div>
             </div>
           </div>
@@ -222,14 +228,14 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
             {downloadSuccess === 'bodyweight' ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
-                <span>Downloaded!</span>
+                <span>{t('progress.downloaded')}</span>
               </>
             ) : downloading === 'bodyweight' ? (
-              <span>Preparing CSV...</span>
+              <span>{t('progress.preparingCsv')}</span>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>Export Bodyweight CSV</span>
+                <span>{t('progress.exportBodyweightCsv')}</span>
               </>
             )}
           </button>
@@ -246,23 +252,23 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
                 <Footprints className="w-4 h-4 text-amber-500" />
               </div>
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
-                Daily Movement
+                {t('progress.exportCardStepsBadge')}
               </span>
             </div>
 
             <div>
               <h3 className="text-sm font-black font-display uppercase tracking-wide text-neutral-900 dark:text-white">
-                Steps &amp; Activity
+                {t('progress.exportCardStepsTitle')}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mt-1 leading-relaxed">
-                Daily step logs, step goals, and synchronization source metadata.
+                {t('progress.exportCardStepsDesc')}
               </p>
             </div>
 
             <div className="p-2.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-[10px] font-mono text-neutral-500 space-y-1">
-              <div className="font-bold text-neutral-700 dark:text-neutral-300">Schema Headers:</div>
+              <div className="font-bold text-neutral-700 dark:text-neutral-300">{t('progress.schemaHeaders')}</div>
               <div className="truncate text-neutral-400">
-                Date, Steps, Goal, Source
+                {STEPS_CSV_HEADER_PREVIEW}
               </div>
             </div>
           </div>
@@ -276,14 +282,14 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
             {downloadSuccess === 'steps' ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600" />
-                <span>Downloaded!</span>
+                <span>{t('progress.downloaded')}</span>
               </>
             ) : downloading === 'steps' ? (
-              <span>Preparing CSV...</span>
+              <span>{t('progress.preparingCsv')}</span>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                <span>Export Steps CSV</span>
+                <span>{t('progress.exportStepsCsv')}</span>
               </>
             )}
           </button>
@@ -295,10 +301,10 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
         <Sparkles className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <strong className="text-neutral-900 dark:text-white font-athletic uppercase tracking-wider block">
-            Spreadsheet Compatibility &amp; Escaping
+            {t('progress.spreadsheetCompatibilityTitle')}
           </strong>
           <p className="leading-relaxed">
-            All exported CSV files include a UTF-8 Byte Order Mark (<code className="font-mono text-[11px] px-1 py-0.5 rounded bg-neutral-200 dark:bg-neutral-800">U+FEFF</code>) to guarantee proper character rendering when opened directly in Microsoft Excel (Windows/Mac) and Google Sheets. All quotes, commas, and multiline notes follow strict RFC 4180 escaping rules.
+            {t('progress.spreadsheetCompatibilityNotice', { bom: 'U+FEFF' })}
           </p>
         </div>
       </div>

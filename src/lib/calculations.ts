@@ -1021,9 +1021,19 @@ export function generateWorkoutsCsv(workouts: any[], weightUnit?: WeightUnit): s
         const setType = set.set_type || 'working';
         const weight = Number(set.weight) || 0;
         const reps = Number(set.reps) || 0;
-        const volume = calculateSetVolume(set);
-        const est1RM = (setType !== 'warmup' && weight > 0 && reps > 0)
-          ? calculateEstimated1RM(weight, reps)
+        const isCompleted = set.completed ?? set.is_completed ?? false;
+        const isWarmup = setType === 'warmup';
+
+        // Unrounded volume in canonical kg:
+        // Counts ONLY completed, non-warmup sets with weight > 0 and reps > 0
+        const rawVolumeKg = (isCompleted && !isWarmup && weight > 0 && reps > 0)
+          ? weight * reps
+          : 0;
+
+        // Unrounded estimated 1RM in canonical kg:
+        // Epley formula: weight * (1 + reps / 30); reps === 1 returns weight exactly
+        const rawEst1RMKg = (!isWarmup && weight > 0 && reps > 0)
+          ? (reps === 1 ? weight : weight * (1 + reps / 30))
           : 0;
 
         const isLbs = weightUnit === 'lbs';
@@ -1031,11 +1041,11 @@ export function generateWorkoutsCsv(workouts: any[], weightUnit?: WeightUnit): s
           ? Math.round(kgToLbs(weight) * 100) / 100
           : Math.round(weight * 10000) / 10000;
         const displayVolume = isLbs
-          ? Math.round(kgToLbs(volume) * 100) / 100
-          : Math.round(volume * 100) / 100;
+          ? Math.round(kgToLbs(rawVolumeKg) * 100) / 100
+          : Math.round(rawVolumeKg * 100) / 100;
         const displayEst1RM = isLbs
-          ? Math.round(kgToLbs(est1RM) * 100) / 100
-          : Math.round(est1RM * 100) / 100;
+          ? Math.round(kgToLbs(rawEst1RMKg) * 100) / 100
+          : Math.round(rawEst1RMKg * 100) / 100;
 
         rows.push([
           escapeCsvCell(date),

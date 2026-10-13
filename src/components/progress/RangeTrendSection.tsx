@@ -88,14 +88,14 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-black font-display uppercase tracking-wide">
-                Trend Range Comparisons
+                {t('progress.trendRangeComparisonsTitle')}
               </h2>
               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold font-athletic uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                 Phase 6
               </span>
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-              Side-by-side date range analysis for volume, movements, or muscle regions
+              {t('progress.trendRangeComparisonsSubtitle')}
             </p>
           </div>
         </div>
@@ -103,10 +103,10 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
         {/* Preset Selector */}
         <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 self-start sm:self-auto">
           {[
-            { id: 'this_month_vs_last_month', label: 'This vs Last Month' },
-            { id: 'last_30_days', label: '30D vs Prior 30D' },
-            { id: 'last_7_days', label: '7D vs Prior 7D' },
-            { id: 'custom', label: 'Custom' },
+            { id: 'this_month_vs_last_month', label: t('progress.presetThisVsLastMonth') },
+            { id: 'last_30_days', label: t('progress.preset30dVsPrior') },
+            { id: 'last_7_days', label: t('progress.preset7dVsPrior') },
+            { id: 'custom', label: t('progress.presetCustom') },
           ].map(p => (
             <button
               key={p.id}
@@ -129,7 +129,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
         <div className="py-4 px-4 my-4 rounded-2xl bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <span className="text-[11px] font-bold font-athletic uppercase tracking-wider text-neutral-500 dark:text-neutral-400 block">
-              Period A (Target Window)
+              {t('progress.periodATargetWindow')}
             </span>
             <div className="flex items-center gap-2">
               <input 
@@ -138,7 +138,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
                 onChange={(e) => setCustomPeriodA(prev => ({ ...prev, startDate: e.target.value }))}
                 className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-xs font-mono"
               />
-              <span className="text-xs text-neutral-400 font-bold">to</span>
+              <span className="text-xs text-neutral-400 font-bold">{t('progress.dateRangeSeparator')}</span>
               <input 
                 type="date"
                 value={customPeriodA.endDate}
@@ -150,7 +150,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
 
           <div className="space-y-2">
             <span className="text-[11px] font-bold font-athletic uppercase tracking-wider text-neutral-500 dark:text-neutral-400 block">
-              Period B (Comparison Window)
+              {t('progress.periodBComparisonWindow')}
             </span>
             <div className="flex items-center gap-2">
               <input 
@@ -159,7 +159,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
                 onChange={(e) => setCustomPeriodB(prev => ({ ...prev, startDate: e.target.value }))}
                 className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 text-xs font-mono"
               />
-              <span className="text-xs text-neutral-400 font-bold">to</span>
+              <span className="text-xs text-neutral-400 font-bold">{t('progress.dateRangeSeparator')}</span>
               <input 
                 type="date"
                 value={customPeriodB.endDate}
@@ -175,13 +175,13 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
       <div className="py-4 border-b border-neutral-200 dark:border-neutral-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold font-athletic uppercase tracking-wider text-neutral-500">
-            Compare Target:
+            {t('progress.compareTargetLabel')}
           </span>
           <div className="flex items-center gap-1 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
             {[
-              { id: 'total_volume', label: 'Total Volume', icon: Layers },
-              { id: 'exercise', label: 'Exercise', icon: Dumbbell },
-              { id: 'region', label: 'Region', icon: Compass },
+              { id: 'total_volume', label: t('progress.targetTotalVolume'), icon: Layers },
+              { id: 'exercise', label: t('progress.targetExercise'), icon: Dumbbell },
+              { id: 'region', label: t('progress.targetRegion'), icon: Compass },
             ].map(f => {
               const Icon = f.icon;
               return (
@@ -229,7 +229,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
             >
               {MUSCLE_REGIONS.map(reg => (
                 <option key={reg.id} value={reg.id}>
-                  {reg.name} Region
+                  {reg.name} {t('progress.regionSuffix')}
                 </option>
               ))}
             </select>
@@ -248,7 +248,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
           >
             <div className="flex items-center justify-between">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-athletic uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                Period A (Current)
+                {t('progress.periodACurrent')}
               </span>
               <span className="text-[11px] font-mono text-neutral-500 font-semibold">
                 {trendResult.periodA.startDate} → {trendResult.periodA.endDate}
@@ -256,7 +256,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
             </div>
             <div>
               <span className="text-xs text-neutral-500 dark:text-neutral-400 font-athletic uppercase font-bold block">
-                {trendResult.targetName} Volume
+                {t('progress.targetVolumeHeading', { target: trendResult.targetName })}
               </span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-3xl font-black font-display tracking-tight text-neutral-900 dark:text-white">
@@ -266,8 +266,8 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
               </div>
             </div>
             <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/80 dark:border-neutral-800/80 text-neutral-500 font-medium">
-              <span>Workouts: <strong className="text-neutral-900 dark:text-white font-mono">{trendResult.periodA.workoutCount}</strong></span>
-              <span>Working Sets: <strong className="text-neutral-900 dark:text-white font-mono">{trendResult.periodA.workingSetsCount}</strong></span>
+              <span>{t('progress.workoutsCount')} <strong className="text-neutral-900 dark:text-white font-mono">{trendResult.periodA.workoutCount}</strong></span>
+              <span>{t('progress.workingSetsCount')} <strong className="text-neutral-900 dark:text-white font-mono">{trendResult.periodA.workingSetsCount}</strong></span>
             </div>
           </div>
 
@@ -278,7 +278,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
           >
             <div className="flex items-center justify-between">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-athletic uppercase tracking-wider bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700">
-                Period B (Baseline)
+                {t('progress.periodBBaseline')}
               </span>
               <span className="text-[11px] font-mono text-neutral-500 font-semibold">
                 {trendResult.periodB.startDate} → {trendResult.periodB.endDate}
@@ -286,7 +286,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
             </div>
             <div>
               <span className="text-xs text-neutral-500 dark:text-neutral-400 font-athletic uppercase font-bold block">
-                {trendResult.targetName} Volume
+                {t('progress.targetVolumeHeading', { target: trendResult.targetName })}
               </span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-3xl font-black font-display tracking-tight text-neutral-900 dark:text-white">
@@ -296,8 +296,8 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
               </div>
             </div>
             <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/80 dark:border-neutral-800/80 text-neutral-500 font-medium">
-              <span>Workouts: <strong className="text-neutral-900 dark:text-white font-mono">{trendResult.periodB.workoutCount}</strong></span>
-              <span>Working Sets: <strong className="text-neutral-900 dark:text-white font-mono">{trendResult.periodB.workingSetsCount}</strong></span>
+              <span>{t('progress.workoutsCount')} <strong className="text-neutral-900 dark:text-white font-mono">{trendResult.periodB.workoutCount}</strong></span>
+              <span>{t('progress.workingSetsCount')} <strong className="text-neutral-900 dark:text-white font-mono">{trendResult.periodB.workingSetsCount}</strong></span>
             </div>
           </div>
         </div>
@@ -315,18 +315,28 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                 isPositive ? 'bg-emerald-500 text-white' : isNegative ? 'bg-rose-500 text-white' : 'bg-neutral-500 text-white'
               }`}>
-                {isPositive ? <ArrowUpRight className="w-5 h-5" /> : isNegative ? <ArrowDownRight className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
+                {(() => {
+                  if (isPositive) return <ArrowUpRight className="w-5 h-5" />;
+                  if (isNegative) return <ArrowDownRight className="w-5 h-5" />;
+                  return <Layers className="w-5 h-5" />;
+                })()}
               </div>
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider block font-athletic">
-                  Comparative Delta ({trendResult.targetName})
+                  {t('progress.comparativeDeltaHeading', { target: trendResult.targetName })}
                 </span>
                 <p className="text-xs font-medium opacity-90 mt-0.5">
                   {isPositive
-                    ? `Volume increased by +${formatWeight(trendResult.absoluteChange, weightUnit)} (+${trendResult.percentageChange}%) across the comparison window.`
+                    ? t('progress.deltaPositiveNotice', {
+                        change: formatWeight(trendResult.absoluteChange, weightUnit),
+                        percent: String(trendResult.percentageChange)
+                      })
                     : isNegative
-                    ? `Volume changed by ${formatWeight(trendResult.absoluteChange, weightUnit)} (${trendResult.percentageChange}%) across the comparison window.`
-                    : 'Volume remained identical between the two comparison periods.'}
+                    ? t('progress.deltaNegativeNotice', {
+                        change: formatWeight(trendResult.absoluteChange, weightUnit),
+                        percent: String(trendResult.percentageChange)
+                      })
+                    : t('progress.deltaEqualNotice')}
                 </p>
               </div>
             </div>
@@ -347,10 +357,10 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
             <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
             <div className="text-xs font-medium">
               <strong className="font-bold block font-athletic uppercase tracking-wider">
-                Not enough data yet
+                {t('progress.notEnoughDataYet')}
               </strong>
               <span>
-                {trendResult.statusMessage}. Complete and log workouts in both comparison windows to calculate authoritative trend deltas.
+                {t('progress.notEnoughDataDesc', { status: trendResult.statusMessage })}
               </span>
             </div>
           </div>

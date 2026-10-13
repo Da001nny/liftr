@@ -114,7 +114,7 @@ export const MuscleExposureSection: React.FC = () => {
       <div className="p-3.5 my-4 rounded-2xl bg-neutral-100/80 dark:bg-neutral-900/80 border border-neutral-200 dark:border-neutral-800 flex items-start gap-2.5 text-xs text-neutral-600 dark:text-neutral-400">
         <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
         <span className="font-medium leading-relaxed">
-          <strong>Taxonomy Estimation Model:</strong> Muscle exposure aggregates discrete volume (weight × completed reps) weighted by validated primary, secondary, and stabilizer contribution percentages. All scores are labeled strictly with neutral classifications ({t('progress.exposureHigh')}, {t('progress.exposureModerate')}, {t('progress.exposureLow')}) as mathematical estimates.
+          <strong>{t('progress.taxonomyModel')}</strong> {t('progress.taxonomyModelExplanation', { high: t('progress.exposureHigh'), mod: t('progress.exposureModerate'), low: t('progress.exposureLow') })}
         </span>
       </div>
 
@@ -122,19 +122,19 @@ export const MuscleExposureSection: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4">
         <div className="p-4 rounded-2xl bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 space-y-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic">
-            Workouts Analyzed
+            {t('progress.workoutsAnalyzed')}
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
               {analytics?.totalAnalyzedWorkouts || 0}
             </span>
-            <span className="text-xs font-mono text-neutral-400">sessions</span>
+            <span className="text-xs font-mono text-neutral-400">{t('progress.sessionsUnit')}</span>
           </div>
         </div>
 
         <div className="p-4 rounded-2xl bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 space-y-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic">
-            Total Distributed Volume
+            {t('progress.totalDistributedVolume')}
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
@@ -146,13 +146,13 @@ export const MuscleExposureSection: React.FC = () => {
 
         <div className="p-4 rounded-2xl bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 space-y-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic">
-            Total Completed Sets
+            {t('progress.totalCompletedSets')}
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
               {analytics?.totalSets || 0}
             </span>
-            <span className="text-xs font-mono text-neutral-400">sets</span>
+            <span className="text-xs font-mono text-neutral-400">{t('progress.setsUnit')}</span>
           </div>
         </div>
       </div>
@@ -192,7 +192,7 @@ export const MuscleExposureSection: React.FC = () => {
                           {formatWeight(region.totalVolume, weightUnit)}
                         </span>
                         <span className="text-neutral-400 text-[11px] hidden sm:inline">
-                          ({region.percentageOfTotal}% of total)
+                          {t('progress.percentageOfTotal', { percent: region.percentageOfTotal })}
                         </span>
                         {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
                       </div>
@@ -213,10 +213,10 @@ export const MuscleExposureSection: React.FC = () => {
                     {isExpanded && (
                       <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800 divide-y divide-neutral-200/80 dark:divide-neutral-800/80 text-xs">
                         <div className="grid grid-cols-4 pb-2 text-[10px] font-bold uppercase tracking-wider text-neutral-400 font-athletic">
-                          <span>Muscle</span>
-                          <span>Common Name</span>
-                          <span>Exposure Level</span>
-                          <span className="text-right">Estimated Volume</span>
+                          <span>{t('progress.colMuscle')}</span>
+                          <span>{t('progress.colCommonName')}</span>
+                          <span>{t('progress.colExposureLevel')}</span>
+                          <span className="text-right">{t('progress.colEstVolume')}</span>
                         </div>
                         {region.muscles.map((m: MuscleExposureItem) => (
                           <div key={m.muscleId} className="py-2 grid grid-cols-4 items-center">

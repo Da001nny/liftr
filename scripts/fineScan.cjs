@@ -19,9 +19,15 @@ function walk(dir) {
 const files = walk("src");
 const knownBad = [];
 
+// RFC 4180 CSV column headers and file-format schema tokens (not UI text)
 const ALLOWED = new Set([
   "kg", "lbs", "km", "mi", "N/A", "W", "Set", "Drop", "Fail", "UTC", "ESC",
-  "&quot;", "&#", "·", "•", "—", "–", "×", ":", "/", "%", "+", "-"
+  "&quot;", "&#", "·", "•", "—", "–", "×", ":", "/", "%", "+", "-", "U+FEFF",
+  "Date, Workout, Exercise, Set Type, Weight (kg), Reps, Volume (kg), Estimated 1RM (kg)",
+  "Date, Workout, Exercise, Set Type, Weight (lbs), Reps, Volume (lbs), Estimated 1RM (lbs)",
+  "Date, Weight (kg), Unit, Notes, Source",
+  "Date, Weight (lbs), Unit, Notes, Source",
+  "Date, Steps, Goal, Source"
 ]);
 
 files.forEach(f => {

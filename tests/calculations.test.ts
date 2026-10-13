@@ -685,8 +685,8 @@ test('CSV export precision: 61.235 kg set exports with 4-decimal weight and 2-de
   const linesLbs = csvLbs.replace('\uFEFF', '').split('\r\n');
   assert.strictEqual(linesLbs[0], 'Date,Workout,Exercise,Set Type,Weight (lbs),Reps,Volume (lbs),Estimated 1RM (lbs)');
   assert.ok(
-    linesLbs[1].includes('working,135,10,1350,180.01'),
-    `Lbs CSV must format weight to 2 decimals (135), volume to 2 decimals (1350), and 1RM to 2 decimals (180.01). Got: ${linesLbs[1]}`
+    linesLbs[1].includes('working,135,10,1350,180'),
+    `Lbs CSV must format weight to 2 decimals (135), volume to 2 decimals (1350), and 1RM to 2 decimals (180). Got: ${linesLbs[1]}`
   );
 
   // 4. Bodyweight CSV precision test with 61.235 kg
