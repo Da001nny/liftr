@@ -106,7 +106,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
                 {t('workouts.createTemplate')}
               </h2>
               <span className="text-xs text-neutral-500 font-medium">
-                Save routines for quick 1-tap workout initiation
+                {t('workoutLogger.templateSubtitle')}
               </span>
             </div>
           </div>
@@ -125,13 +125,13 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
           <div className="space-y-3">
             <div>
               <label className="text-xs font-bold font-athletic uppercase tracking-wider text-neutral-600 dark:text-neutral-400 block mb-1">
-                Routine Name
+                {t('workoutLogger.templateNameLabel')}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Upper Body Hypertrophy, Push Day A..."
+                placeholder={t('workoutLogger.templateNamePlaceholder')}
                 required
                 className="w-full px-4 py-2.5 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-sm font-semibold focus:outline-none focus:ring-2"
                 style={{ '--tw-ring-color': accentColor } as any}
@@ -140,13 +140,13 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
 
             <div>
               <label className="text-xs font-bold font-athletic uppercase tracking-wider text-neutral-600 dark:text-neutral-400 block mb-1">
-                Description (Optional)
+                {t('workoutLogger.templateDescLabel')}
               </label>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Target focus, RPE guidelines, warm-up notes..."
+                placeholder={t('workoutLogger.templateDescPlaceholder')}
                 className="w-full px-4 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs focus:outline-none focus:ring-2"
                 style={{ '--tw-ring-color': accentColor } as any}
               />
@@ -157,7 +157,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold font-athletic uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
-                Routine Exercises ({exercises.length})
+                {t('workoutLogger.templateExercisesCount', { count: exercises.length })}
               </label>
 
               <button
@@ -166,14 +166,14 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
                 className="px-3 py-1.5 rounded-lg text-xs font-bold font-athletic uppercase tracking-wider bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add Movement</span>
+                <span>{t('workoutLogger.addMovement')}</span>
               </button>
             </div>
 
             {exercises.length === 0 ? (
               <div className="p-8 text-center rounded-2xl border-2 border-dashed border-neutral-200 dark:border-neutral-800 text-neutral-400 space-y-2">
                 <Dumbbell className="w-8 h-8 mx-auto text-neutral-400" />
-                <p className="text-xs font-medium">No exercises added yet. Click &quot;Add Movement&quot; to pick exercises.</p>
+                <p className="text-xs font-medium">{t('workoutLogger.noExercisesYet')}</p>
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -198,7 +198,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
                     <div className="grid grid-cols-3 gap-3 text-xs">
                       <div>
                         <span className="text-[10px] text-neutral-500 uppercase font-bold font-athletic block mb-1">
-                          Default Sets
+                          {t('workoutLogger.defaultSets')}
                         </span>
                         <input
                           type="number"
@@ -211,7 +211,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
                       </div>
                       <div>
                         <span className="text-[10px] text-neutral-500 uppercase font-bold font-athletic block mb-1">
-                          Target Reps
+                          {t('workoutLogger.targetReps')}
                         </span>
                         <input
                           type="number"
@@ -224,7 +224,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
                       </div>
                       <div>
                         <span className="text-[10px] text-neutral-500 uppercase font-bold font-athletic block mb-1">
-                          Rest Timer (s)
+                          {t('workoutLogger.restTimerSeconds')}
                         </span>
                         <input
                           type="number"
@@ -248,7 +248,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 text-xs font-bold font-athletic uppercase tracking-wider rounded-xl bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 transition-colors cursor-pointer"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -256,7 +256,7 @@ export const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
               className="px-5 py-2 text-xs font-bold font-athletic uppercase tracking-wider rounded-xl text-white shadow-md transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
               style={{ backgroundColor: accentColor }}
             >
-              {isSubmitting ? 'Saving...' : 'Save Routine'}
+              {isSubmitting ? t('common.saving') : t('workoutLogger.saveRoutine')}
             </button>
           </div>
         </form>

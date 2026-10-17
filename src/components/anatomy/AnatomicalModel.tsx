@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from '../../i18n';
 import { useTheme } from '../../context/ThemeContext';
 import { REGION_MAP } from '../../data/exerciseCatalog';
 import { ModelKey, RegionPoint, HotspotCalibrationMap } from '../../lib/calibrationService';
@@ -311,6 +312,7 @@ export const AnatomicalModel: React.FC<AnatomicalModelProps> = ({
   calibrationData,
   onUpdateCalibrationPoint,
 }) => {
+  const { t } = useTranslation();
   const { accentColor, skinTone, heatmapGlowColor } = useTheme();
   const [hoveredRegionId, setHoveredRegionId] = useState<string | null>(null);
   const [activeDragRegionId, setActiveDragRegionId] = useState<string | null>(null);
@@ -439,7 +441,7 @@ export const AnatomicalModel: React.FC<AnatomicalModelProps> = ({
           key={`${gender}_${orientation}_${activeTone}`}
           src={effectiveImageSrc}
           onError={() => setImageError(true)}
-          alt={`${gender} ${orientation} ${activeTone} athletic fitness avatar`}
+          alt={t('body.avatarAlt', { gender, orientation, tone: activeTone })}
           className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none transition-opacity duration-200"
           loading="eager"
         />
@@ -654,15 +656,15 @@ export const AnatomicalModel: React.FC<AnatomicalModelProps> = ({
               style={{ backgroundColor: activeGlowColor }}
             />
             <span className="font-bold text-white uppercase tracking-wider font-athletic text-[11px]">
-              {activeRegionObj ? activeRegionObj.name : 'Select a Region'}
+              {activeRegionObj ? activeRegionObj.name : t('body.selectRegion')}
             </span>
           </div>
           <span className="text-[10px] text-neutral-400 font-mono">
             {isCalibrationMode 
-              ? 'Calibration Active' 
+              ? t('body.calibrationActive') 
               : ((weeklySetsByRegion[activeRegionObj?.id || ''] || 0) > 0 
-                ? `${weeklySetsByRegion[activeRegionObj?.id || '']} sets (7-day)` 
-                : 'No Data Logged (0 sets)')}
+                ? t('body.setsSevenDay', { count: weeklySetsByRegion[activeRegionObj?.id || ''] }) 
+                : t('body.noDataLogged'))}
           </span>
         </div>
       </div>

@@ -29,7 +29,8 @@ import {
 import { 
   calculateEstimated1RM, 
   calculateSingleSetVolume, 
-  calculateTotalSessionVolume 
+  calculateTotalSessionVolume,
+  isCountableSet
 } from '../../lib/calculations';
 import { 
   updateWorkoutSession, 
@@ -246,9 +247,9 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
       ex.sets.forEach(s => {
         if (s.completed) {
           completedSetsCount++;
-          if (s.set_type !== 'warmup' && s.weight > 0 && s.reps > 0) {
-            completedWorkingSets.push({ weight: s.weight, reps: s.reps });
-          }
+        }
+        if (isCountableSet(s)) {
+          completedWorkingSets.push({ weight: s.weight, reps: s.reps });
         }
       });
     });
@@ -684,7 +685,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
             type="button"
             onClick={() => setIsMinimized(true)}
             className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors cursor-pointer"
-            title="Minimize to background"
+            title={t('workoutLogger.minimizeBackground')}
           >
             <Minimize2 className="w-5 h-5" />
           </button>
@@ -815,7 +816,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                                   ? 'bg-red-500/20 text-red-400'
                                   : 'bg-neutral-800 text-neutral-300'
                               }`}
-                              title="Click to toggle set type"
+                              title={t('workoutLogger.toggleSetType')}
                             >
                               {set.set_type === 'warmup' ? 'W' : set.set_type === 'drop' ? 'D' : set.set_type === 'failure' ? 'F' : set.set_number}
                             </button>
@@ -863,7 +864,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                               onChange={(e) => handleUpdateSet(exIdx, setIdx, 'rir', e.target.value === '' ? null : parseFloat(e.target.value))}
                               placeholder="-"
                               className="w-12 px-1 py-1.5 rounded-lg bg-neutral-900 border border-neutral-700 text-center font-mono text-xs text-neutral-300 focus:outline-none focus:border-blue-500"
-                              title="Reps in reserve"
+                              title={t('workoutLogger.repsInReserve')}
                             />
                           </td>
 

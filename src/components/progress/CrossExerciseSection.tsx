@@ -59,6 +59,24 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
   const colorA = '#3b82f6'; // Bright Blue
   const colorB = '#10b981'; // Emerald Green
 
+  const getCrossExerciseStatusText = (): string => {
+    switch (comparison.status.code) {
+      case 'noHistoryBoth':
+        return t('progress.crossExerciseNeitherLogged');
+      case 'noHistorySingle':
+        return t('progress.crossExerciseSingleNoHistory', {
+          exerciseName: comparison.status.params?.exerciseName || ''
+        });
+      case 'success':
+        return '';
+      default: {
+        const _exhaustiveCheck: never = comparison.status.code;
+        return _exhaustiveCheck;
+      }
+    }
+  };
+
+
   // SVG Multi-line coordinates
   const chartData = useMemo(() => {
     if (unifiedDates.length === 0) return null;
@@ -147,14 +165,11 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-black font-display uppercase tracking-wide">
-                Cross-Exercise Comparison
+                {t('progress.crossExerciseComparisonTitle')}
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold font-athletic uppercase tracking-wider bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                Phase 6
-              </span>
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-              Overlay estimated 1RM (Epley) and volume curves across any two exercises
+              {t('progress.crossExerciseComparisonSubtitle')}
             </p>
           </div>
         </div>
@@ -357,7 +372,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
               </div>
 
               <span className="text-[11px] font-mono text-neutral-400 font-semibold">
-                Metric: {metric === 'estimated1RM' ? `Estimated 1RM (${weightUnit})` : `Volume (${weightUnit})`}
+                {t('progress.metricReadout', { metric: metric === 'estimated1RM' ? t('progress.estimated1RMUnit', { unit: weightUnit }) : t('progress.volumeUnit', { unit: weightUnit }) })}
               </span>
             </div>
 
@@ -366,7 +381,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 flex items-center gap-3">
                 <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span className="text-xs font-medium">
-                  {comparison.statusMessage}. Log workouts with this movement to render both progression curves simultaneously.
+                  {t('progress.renderBothCurvesNotice', { status: getCrossExerciseStatusText() })}
                 </span>
               </div>
             )}
@@ -375,10 +390,13 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
           <div className="py-12 px-4 rounded-2xl bg-neutral-100/70 dark:bg-neutral-900/60 border border-neutral-200 dark:border-neutral-800 text-center space-y-2">
             <AlertCircle className="w-8 h-8 text-neutral-400 mx-auto" />
             <h4 className="text-sm font-bold text-neutral-800 dark:text-neutral-200 font-athletic uppercase tracking-wider">
-              No History Recorded Yet
+              {t('progress.crossExerciseNoHistoryRecorded')}
             </h4>
             <p className="text-xs text-neutral-500 max-w-md mx-auto">
-              Neither {comparison.exerciseA.name} nor {comparison.exerciseB.name} has completed workout sets logged yet. Complete workouts in the Workouts tab to begin generating comparison curves.
+              {t('progress.crossExerciseNeitherHasCompletedSets', {
+                exerciseA: comparison.exerciseA.name,
+                exerciseB: comparison.exerciseB.name,
+              })}
             </p>
           </div>
         )}

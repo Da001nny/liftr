@@ -33,6 +33,7 @@ import {
   generateWorkoutsCsv,
   generateBodyweightCsv,
   generateStepsCsv,
+  isCountableSet,
 } from './src/lib/calculations.ts';
 import {
   localTimeToUtcIso,
@@ -727,7 +728,7 @@ async function startServer() {
             exerciseSetsMap.set(we.exercise_id, []);
           }
           for (const s of (we.workout_sets || [])) {
-            if (s.completed && s.set_type !== 'warmup' && Number(s.weight) > 0 && Number(s.reps) > 0) {
+            if (isCountableSet(s)) {
               exerciseSetsMap.get(we.exercise_id)!.push({
                 workoutId: w.id,
                 setId: s.id,
@@ -1261,7 +1262,7 @@ async function startServer() {
         for (const we of fullWorkout.workout_exercises) {
           for (const s of (we.workout_sets || [])) {
             // Authoritative: sum(weight * reps) across completed non-warmup sets only
-            if (s.completed && s.set_type !== 'warmup' && Number(s.weight) > 0 && Number(s.reps) > 0) {
+            if (isCountableSet(s)) {
               totalSessionVolume += calculateSingleSetVolume(Number(s.weight), Number(s.reps));
             }
           }
@@ -2649,7 +2650,8 @@ async function startServer() {
         .eq('status', 'completed')
         .order('completed_at', { ascending: true });
 
-      const csvContent = generateWorkoutsCsv(workouts || []);
+      const unit = (req.query.unit as string) === 'lbs' ? 'lbs' : 'kg';
+      const csvContent = generateWorkoutsCsv(workouts || [], unit);
       const filename = `liftr_workout_history_${new Date().toISOString().slice(0, 10)}.csv`;
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -2673,7 +2675,8 @@ async function startServer() {
 
       const fallbackList = fallbackBodyweight.get(user.id) || [];
       const list = (entries && entries.length > 0) ? entries : fallbackList;
-      const csvContent = generateBodyweightCsv(list);
+      const unit = (req.query.unit as string) === 'lbs' ? 'lbs' : 'kg';
+      const csvContent = generateBodyweightCsv(list, unit);
       const filename = `liftr_bodyweight_${new Date().toISOString().slice(0, 10)}.csv`;
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);

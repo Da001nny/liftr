@@ -197,7 +197,7 @@ export const EditScheduledModal: React.FC<EditScheduledModalProps> = ({
               {[
                 { val: 'scheduled', label: t('calendar.scheduledBadge'), color: 'border-blue-500/40 text-blue-400' },
                 { val: 'completed', label: t('calendar.completedBadge'), color: 'border-emerald-500/40 text-emerald-400' },
-                { val: 'cancelled', label: 'Cancelled', color: 'border-neutral-600 text-neutral-400' },
+                { val: 'cancelled', label: t('calendar.cancelledBadge'), color: 'border-neutral-600 text-neutral-400' },
               ].map(s => (
                 <button
                   key={s.val}
@@ -352,7 +352,7 @@ export const EditScheduledModal: React.FC<EditScheduledModalProps> = ({
                 style={{ backgroundColor: accentColor }}
               >
                 <Check className="w-4 h-4" />
-                <span>{isSubmitting ? 'Updating...' : 'Update Session'}</span>
+                <span>{isSubmitting ? t('calendar.updating') : t('calendar.updateSession')}</span>
               </button>
             </div>
           </div>

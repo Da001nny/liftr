@@ -48,7 +48,7 @@ import { DayDetailsModal } from './calendar/DayDetailsModal';
 type CalendarViewMode = 'month' | 'week' | 'day';
 
 export const CalendarView: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, tn } = useTranslation();
   const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
   const { startBlankWorkout, startWorkoutFromTemplate, setActiveSession } = useWorkout();
@@ -596,7 +596,7 @@ export const CalendarView: React.FC = () => {
                         </span>
                       )}
                       {day.personalRecords.length > 0 && (
-                        <span title={`${day.personalRecords.length} PR(s)`} className="text-yellow-500">
+                        <span title={tn('calendar.prCountShort', day.personalRecords.length)} className="text-yellow-500">
                           <Trophy className="w-3 h-3 fill-yellow-500/20" />
                         </span>
                       )}
@@ -649,7 +649,7 @@ export const CalendarView: React.FC = () => {
 
                     {day.scheduledWorkouts.length + day.completedWorkouts.length > 3 && (
                       <span className="text-[9px] font-bold text-neutral-400 pl-1 block">
-                        +{day.scheduledWorkouts.length + day.completedWorkouts.length - 2} more
+                        {t('calendar.moreWorkouts', { count: day.scheduledWorkouts.length + day.completedWorkouts.length - 2 })}
                       </span>
                     )}
                   </div>
@@ -657,7 +657,7 @@ export const CalendarView: React.FC = () => {
                   {/* Cell Bottom: Highlight tag if matched filter */}
                   {isHighlighted && (
                     <span className="text-[9px] font-bold text-amber-500 font-athletic uppercase tracking-wider truncate">
-                      {isFilteredMuscle ? 'Muscle Hit' : 'Exercise Hit'}
+                      {isFilteredMuscle ? t('calendar.muscleHit') : t('calendar.exerciseHit')}
                     </span>
                   )}
                 </div>

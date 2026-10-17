@@ -31,7 +31,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
   onStartWorkout,
   activeSession,
 }) => {
-  const { t } = useTranslation();
+  const { t, tn } = useTranslation();
   const { accentColor } = useTheme();
   const { token } = useAuth();
 
@@ -56,8 +56,10 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
   const handleStartBlank = async () => {
     if (!token || isStarting) return;
     setIsStarting(true);
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const workoutName = `Workout ${todayIso}`;
     const session = await createWorkout(token, {
-      name: `Workout ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
+      name: workoutName,
     });
     setIsStarting(false);
     if (session) {
@@ -111,18 +113,18 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic">
               <Sparkles className="w-3.5 h-3.5" style={{ color: accentColor }} />
-              <span>Workout Initiation</span>
+              <span>{t('workouts.initiationBadge')}</span>
               <span>·</span>
-              <span className="font-mono text-[11px] text-neutral-500">Live Engine</span>
+              <span className="font-mono text-[11px] text-neutral-500">{t('workouts.liveEngineBadge')}</span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl font-black font-display uppercase tracking-wide">
-              {activeSession ? 'Workout Active' : 'Start Training'}
+              {activeSession ? t('workouts.workoutActiveTitle') : t('workouts.startTrainingTitle')}
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 max-w-xl font-medium leading-relaxed">
               {activeSession 
-                ? 'You have an active session in progress. Resume training or complete your logged sets.'
-                : 'Log exercises in real time with the Epley 1RM engine, automatic rest timer, and personal record detection.'}
+                ? t('workouts.activeSessionDesc')
+                : t('workouts.startTrainingDesc')}
             </p>
           </div>
 
@@ -135,7 +137,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                 style={{ backgroundColor: accentColor }}
               >
                 <Dumbbell className="w-4 h-4 animate-pulse" />
-                <span>Resume Active Session</span>
+                <span>{t('workouts.resumeActiveSession')}</span>
               </button>
             ) : (
               <>
@@ -172,7 +174,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
               {t('workouts.templatesTitle')}
             </h3>
             <span className="text-xs text-neutral-500 font-medium font-athletic uppercase tracking-wider">
-              {templates.length} saved routine{templates.length === 1 ? '' : 's'}
+              {tn('workouts.savedRoutinesCount', templates.length)}
             </span>
           </div>
 
@@ -182,7 +184,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
             className="text-xs font-bold font-athletic uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>New Routine</span>
+            <span>{t('workouts.newRoutine')}</span>
           </button>
         </div>
 

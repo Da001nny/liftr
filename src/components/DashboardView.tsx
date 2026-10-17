@@ -85,7 +85,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
             style={{ backgroundColor: accentColor }}
           >
             <Dumbbell className="w-4 h-4" />
-            <span>{sessionsCompleted > 0 ? 'Log Workout' : t('dashboard.startFirstWorkout')}</span>
+            <span>{sessionsCompleted > 0 ? t('dashboard.startWorkout') : t('dashboard.startFirstWorkout')}</span>
           </button>
         </div>
       </div>
@@ -108,7 +108,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
               </span>
               <span aria-hidden="true" className="text-neutral-400 dark:text-neutral-600">·</span>
               <span className="font-mono text-[11px] text-neutral-500 dark:text-neutral-400">
-                {sessionsCompleted > 0 ? `${sessionsCompleted} Logged Sessions` : 'Phase 3 Ready'}
+                {sessionsCompleted > 0 ? t('dashboard.loggedSessionsCount', { count: sessionsCompleted }) : t('dashboard.zeroSessionsLogged')}
               </span>
             </div>
             
@@ -123,7 +123,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
 
             <p className="text-xs text-neutral-600 dark:text-neutral-400 max-w-md leading-relaxed font-medium">
               {sessionsCompleted > 0 
-                ? 'Total accumulated volume across completed, non-warmup working sets.'
+                ? t('dashboard.totalVolumeDesc')
                 : t('dashboard.noWorkoutsDesc')}
             </p>
           </div>
@@ -138,7 +138,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                 {sessionsCompleted}
               </span>
               <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block font-medium">
-                {sessionsCompleted > 0 ? 'Verified in Supabase' : 'Zero sessions logged'}
+                {sessionsCompleted > 0 ? t('dashboard.allTimeCompleted') : t('dashboard.zeroSessionsLogged')}
               </span>
             </div>
 
@@ -217,7 +217,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
             {sessionsCompleted}
           </div>
           <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block font-medium">
-            {sessionsCompleted > 0 ? 'Completed workouts' : t('dashboard.completedSessionsEmpty')}
+            {sessionsCompleted > 0 ? t('dashboard.completedSessionsSubtitle') : t('dashboard.completedSessionsEmpty')}
           </span>
         </div>
 
@@ -319,7 +319,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
           )}
 
           <div className="pt-2 text-[11px] text-neutral-500 font-athletic uppercase font-bold tracking-wider">
-            {recentWorkout ? 'Most recent logged workout' : 'No workouts logged'}
+            {recentWorkout ? t('dashboard.mostRecentWorkout') : t('dashboard.noWorkoutsLogged')}
           </div>
         </div>
 
@@ -332,7 +332,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
             <div className="flex items-center gap-2">
               <Trophy className="w-4 h-4 text-amber-500" />
               <h2 className="text-lg font-black text-neutral-900 dark:text-white font-display uppercase tracking-wide">
-                Recent Personal Records
+                {t('dashboard.recentPersonalRecords')}
               </h2>
             </div>
           </div>

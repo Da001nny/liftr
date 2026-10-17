@@ -159,11 +159,12 @@ export const ExerciseProgressSection: React.FC = () => {
         {/* Metric Tabs */}
         <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 self-start">
           {[
-            { id: 'estimated1RM', label: '1RM (Epley)' },
-            { id: 'heaviestWeight', label: 'Heaviest Load' },
-            { id: 'maxReps', label: 'Max Reps' },
-            { id: 'totalVolume', label: 'Volume' },
+            { id: 'estimated1RM', label: t('progress.metricEstimated1RM') },
+            { id: 'heaviestWeight', label: t('progress.metricHeaviestWeight') },
+            { id: 'maxReps', label: t('progress.metricMaxReps') },
+            { id: 'totalVolume', label: t('progress.metricVolume') },
           ].map(tab => (
+
             <button
               key={tab.id}
               type="button"
@@ -209,7 +210,7 @@ export const ExerciseProgressSection: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-5">
         <div className="p-4 rounded-2xl bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 space-y-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic">
-            Current / Latest Value
+            {t('progress.currentLatestValue')}
           </span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
@@ -220,7 +221,7 @@ export const ExerciseProgressSection: React.FC = () => {
             <span className="text-xs font-mono text-neutral-400">{metricUnit}</span>
           </div>
           <span className="text-[11px] text-neutral-400 block truncate">
-            {latestPoint ? `${latestPoint.date} · ${latestPoint.workoutName}` : 'No sessions recorded'}
+            {latestPoint ? `${latestPoint.date} · ${latestPoint.workoutName}` : t('progress.noSessionsRecorded')}
           </span>
         </div>
 

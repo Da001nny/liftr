@@ -378,14 +378,14 @@ export const SupabaseMigrationBanner: React.FC = () => {
             </div>
 
             <div className="my-4 overflow-y-auto flex-1 bg-neutral-950 p-4 rounded-xl text-emerald-400 font-mono text-xs leading-relaxed border border-neutral-800">
-              <pre>{(activeModalPhase === 5 ? phase5Sql : (activeModalPhase === 4 ? phase4Sql : (activeModalPhase === 3 ? phase3Sql : phase1Sql))) || 'Loading SQL...'}</pre>
+              <pre>{(activeModalPhase === 5 ? phase5Sql : (activeModalPhase === 4 ? phase4Sql : (activeModalPhase === 3 ? phase3Sql : phase1Sql))) || t('supabasePhase1.loadingSql')}</pre>
             </div>
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-neutral-500">
                 {copied 
                   ? (activeModalPhase === 5 ? t('supabasePhase5.sqlCopied') : (activeModalPhase === 4 ? t('supabasePhase4.sqlCopied') : (activeModalPhase === 3 ? t('supabasePhase3.sqlCopied') : t('supabasePhase1.sqlCopied')))) 
-                  : 'Copy and paste into your Supabase SQL Editor'}
+                  : t('supabasePhase1.copySqlHint')}
               </span>
               <div className="flex items-center gap-2">
                 <button

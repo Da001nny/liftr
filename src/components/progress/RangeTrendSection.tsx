@@ -18,7 +18,8 @@ import {
   calculateRangeTrendComparison, 
   getPresetComparisonPeriods,
   TrendFilter, 
-  TrendPeriodSpec 
+  TrendPeriodSpec,
+  TrendPeriodPresetId
 } from '../../lib/calculations';
 import { formatWeight, formatWeightValue } from '../../lib/units';
 
@@ -71,6 +72,48 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
   const isPositive = trendResult.percentageChange !== null && trendResult.percentageChange >= 0;
   const isNegative = trendResult.percentageChange !== null && trendResult.percentageChange < 0;
 
+  const getTrendStatusText = (): string => {
+    switch (trendResult.status.code) {
+      case 'insufficientDataBoth':
+        return t('progress.trendStatusInsufficientDataBoth');
+      case 'insufficientDataComparison':
+        return t('progress.trendStatusInsufficientDataComparison');
+      case 'insufficientDataSelected':
+        return t('progress.trendStatusInsufficientDataSelected');
+      case 'success':
+        return trendResult.percentageChange !== null
+          ? (trendResult.percentageChange >= 0 ? `+${trendResult.percentageChange}%` : `${trendResult.percentageChange}%`)
+          : '';
+      default: {
+        const _exhaustiveCheck: never = trendResult.status.code;
+        return _exhaustiveCheck;
+      }
+    }
+  };
+
+  const getPresetPeriodLabel = (presetId?: TrendPeriodPresetId, fallbackKey?: 'progress.periodACurrent' | 'progress.periodBBaseline'): string => {
+    if (!presetId) return fallbackKey ? t(fallbackKey) : '';
+    switch (presetId) {
+      case 'thisMonth':
+        return t('progress.periodThisMonth');
+      case 'lastMonth':
+        return t('progress.periodLastMonth');
+      case 'last30':
+        return t('progress.periodLast30');
+      case 'prior30':
+        return t('progress.periodPrior30');
+      case 'last7':
+        return t('progress.periodLast7');
+      case 'prior7':
+        return t('progress.periodPrior7');
+      default: {
+        const _exhaustiveCheck: never = presetId;
+        return _exhaustiveCheck;
+      }
+    }
+  };
+
+
   return (
     <div 
       data-surface="primary-metallic"
@@ -90,9 +133,6 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
               <h2 className="text-xl font-black font-display uppercase tracking-wide">
                 {t('progress.trendRangeComparisonsTitle')}
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold font-athletic uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                Phase 6
-              </span>
             </div>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
               {t('progress.trendRangeComparisonsSubtitle')}
@@ -248,7 +288,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
           >
             <div className="flex items-center justify-between">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-athletic uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                {t('progress.periodACurrent')}
+                {getPresetPeriodLabel(trendResult.periodA.presetId, 'progress.periodACurrent')}
               </span>
               <span className="text-[11px] font-mono text-neutral-500 font-semibold">
                 {trendResult.periodA.startDate} → {trendResult.periodA.endDate}
@@ -278,7 +318,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
           >
             <div className="flex items-center justify-between">
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-athletic uppercase tracking-wider bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-300 dark:border-neutral-700">
-                {t('progress.periodBBaseline')}
+                {getPresetPeriodLabel(trendResult.periodB.presetId, 'progress.periodBBaseline')}
               </span>
               <span className="text-[11px] font-mono text-neutral-500 font-semibold">
                 {trendResult.periodB.startDate} → {trendResult.periodB.endDate}
@@ -348,7 +388,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
               <span className={`px-3 py-1 rounded-full text-xs font-black font-mono ${
                 isPositive ? 'bg-emerald-500 text-white' : isNegative ? 'bg-rose-500 text-white' : 'bg-neutral-600 text-white'
               }`}>
-                {trendResult.statusMessage}
+                {getTrendStatusText()}
               </span>
             </div>
           </div>
@@ -360,7 +400,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
                 {t('progress.notEnoughDataYet')}
               </strong>
               <span>
-                {t('progress.notEnoughDataDesc', { status: trendResult.statusMessage })}
+                {t('progress.notEnoughDataDesc', { status: getTrendStatusText() })}
               </span>
             </div>
           </div>

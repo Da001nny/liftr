@@ -54,7 +54,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
   onScheduleWorkoutOnDate,
   onStartWorkoutNow,
 }) => {
-  const { t } = useTranslation();
+  const { t, tn } = useTranslation();
   const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
@@ -139,7 +139,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                 {personalRecords.length > 0 && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-athletic uppercase tracking-wider bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 flex items-center gap-1">
                     <Trophy className="w-3 h-3" />
-                    <span>{personalRecords.length} PR(s)</span>
+                    <span>{tn('calendar.prCountShort', personalRecords.length)}</span>
                   </span>
                 )}
               </div>
@@ -291,7 +291,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                       {w.name}
                     </span>
                     <span className="text-xs font-mono font-bold text-neutral-400">
-                      {formatWeight(w.total_volume, weightUnit)} {w.total_completed_sets !== undefined ? `· ${w.total_completed_sets} sets` : ''}
+                      {formatWeight(w.total_volume, weightUnit)} {w.total_completed_sets !== undefined ? t('calendar.setsCompletedCount', { count: w.total_completed_sets }) : ''}
                     </span>
                   </div>
                   {w.workout_exercises && (

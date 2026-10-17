@@ -1,70 +1,20 @@
-const fs = require("fs");
-const path = require("path");
+const { walk, scanFile } = require('./scannerHelper.cjs');
 
-function walk(dir) {
-  let results = [];
-  const list = fs.readdirSync(dir);
-  list.forEach(file => {
-    const fullPath = path.join(dir, file);
-    const stat = fs.statSync(fullPath);
-    if (stat && stat.isDirectory()) {
-      results = results.concat(walk(fullPath));
-    } else if (file.endsWith(".tsx")) {
-      results.push(fullPath);
-    }
-  });
-  return results;
-}
-
-const files = walk("src");
-const knownBad = [];
-
-// RFC 4180 CSV column headers and file-format schema tokens (not UI text)
-const ALLOWED = new Set([
-  "kg", "lbs", "km", "mi", "N/A", "W", "Set", "Drop", "Fail", "UTC", "ESC",
-  "&quot;", "&#", "·", "•", "—", "–", "×", ":", "/", "%", "+", "-", "U+FEFF",
-  "Date, Workout, Exercise, Set Type, Weight (kg), Reps, Volume (kg), Estimated 1RM (kg)",
-  "Date, Workout, Exercise, Set Type, Weight (lbs), Reps, Volume (lbs), Estimated 1RM (lbs)",
-  "Date, Weight (kg), Unit, Notes, Source",
-  "Date, Weight (lbs), Unit, Notes, Source",
-  "Date, Steps, Goal, Source"
-]);
-
-files.forEach(f => {
-  const code = fs.readFileSync(f, "utf8");
-  const lines = code.split("\n");
-  lines.forEach((l, idx) => {
-    const trim = l.trim();
-    if (trim.startsWith("//") || trim.startsWith("/*") || trim.startsWith("*") || trim.startsWith("type ") || trim.startsWith("interface ")) return;
-    
-    // Check for raw JSX text
-    const m = l.match(/>([^<>{}\r\n]+)</);
-    if (m) {
-      const text = m[1].trim();
-      if (text && !/^[\d\s.,:;+/%–—×()#\-_&|'"`]+$/.test(text) && !ALLOWED.has(text)) {
-        knownBad.push({ file: f, line: idx + 1, text, type: "jsx-text" });
-      }
-    }
-    
-    // Check for raw placeholder or title props
-    const pm = l.match(/\b(placeholder|title)=["']([^"']+)["']/);
-    if (pm) {
-      const prop = pm[1];
-      const val = pm[2].trim();
-      if (val && !/^[\d\s.,:;+/%–—×()#\-_]+$/.test(val) && !ALLOWED.has(val)) {
-        knownBad.push({ file: f, line: idx + 1, text: `${prop}="${val}"`, type: "prop" });
-      }
-    }
-  });
+const files = [...walk('src'), 'server.ts'];
+let total = 0;
+const results = [];
+files.forEach(file => {
+  const items = scanFile(file);
+  if (items.length > 0) {
+    results.push({ file, items });
+    total += items.length;
+  }
 });
 
-console.log("Raw user-facing JSX/prop occurrences:", knownBad.length);
-const byFile = {};
-knownBad.forEach(x => {
-  if (!byFile[x.file]) byFile[x.file] = [];
-  byFile[x.file].push(x);
-});
-for (const [file, items] of Object.entries(byFile)) {
+console.log('Raw user-facing JSX/prop occurrences:', total);
+results.forEach(({ file, items }) => {
   console.log(`\n${file} (${items.length}):`);
-  items.forEach(it => console.log(`  Line ${it.line}: ${it.type} -> ${it.text}`));
-}
+  items.forEach(it => {
+    console.log(`  Line ${it.line}: ${it.type} -> ${it.text}`);
+  });
+});

@@ -21,6 +21,11 @@ import {
   EXERCISES
 } from '../data/exerciseCatalog';
 import { WeightUnit, kgToLbs } from './units';
+import { 
+  getWorkoutsCsvHeaders, 
+  getBodyweightCsvHeaders, 
+  STEPS_CSV_HEADERS 
+} from '../constants/csvHeaders';
 
 export interface ExerciseSet {
   weight: number; // in canonical kg
@@ -56,10 +61,11 @@ export interface DetectedPRs {
  * Formula: weight * (1 + reps / 30)
  * Note: When reps === 1, returns weight exactly.
  */
-export function calculateEstimated1RM(weight: number, reps: number): number {
+export function calculateEstimated1RM(weight: number, reps: number, unrounded = false): number {
   if (weight <= 0 || reps <= 0) return 0;
   if (reps === 1) return weight;
   const epley = weight * (1 + reps / 30);
+  if (unrounded) return epley;
   return Math.round(epley * 100) / 100;
 }
 
@@ -76,27 +82,46 @@ export function calculateSingleSetVolume(weight: number, reps: number): number {
 }
 
 /**
- * Single set volume calculation: weight * reps.
+ * Shared helper to determine if a set is countable for working volume, 1RM, and PR calculations.
  * Counts ONLY completed, non-warmup sets with weight > 0 and reps > 0.
+ * Incomplete sets, warmup sets, or sets with non-positive weight/reps return false.
+ * Drop ('drop') and failure ('failure') sets count as working sets; only warmup ('warmup') sets are excluded.
+ */
+export function isCountableSet(set: {
+  weight?: number | null;
+  reps?: number | null;
+  completed?: boolean | null;
+  is_completed?: boolean | null;
+  set_type?: string | null;
+} | null | undefined): boolean {
+  if (!set) return false;
+  const isCompleted = set.completed ?? set.is_completed ?? false;
+  if (!isCompleted) return false;
+  if (set.set_type === 'warmup') return false;
+  const weight = Number(set.weight) || 0;
+  const reps = Number(set.reps) || 0;
+  return weight > 0 && reps > 0;
+}
+
+/**
+ * Single set volume calculation: weight * reps.
+ * Counts ONLY completed, non-warmup sets with weight > 0 and reps > 0 via isCountableSet.
  * Incomplete sets, warmup sets, or sets with non-positive weight/reps return 0.
  * 
  * NOTE: Drop ('drop') and failure ('failure') sets count as working sets.
  * Only warmup ('warmup') sets are excluded from working volume and metrics.
  */
 export function calculateSetVolume(set: {
-  weight?: number;
-  reps?: number;
-  completed?: boolean;
-  is_completed?: boolean;
-  set_type?: string;
-}): number {
-  const isCompleted = set.completed ?? set.is_completed ?? false;
-  if (!isCompleted) return 0;
-  // Drop and failure sets count as working sets; only warmup sets are excluded
-  if (set.set_type === 'warmup') return 0;
-  const weight = Number(set.weight) || 0;
-  const reps = Number(set.reps) || 0;
-  if (weight <= 0 || reps <= 0) return 0;
+  weight?: number | null;
+  reps?: number | null;
+  completed?: boolean | null;
+  is_completed?: boolean | null;
+  set_type?: string | null;
+} | null | undefined, unrounded = false): number {
+  if (!isCountableSet(set)) return 0;
+  const weight = Number(set!.weight) || 0;
+  const reps = Number(set!.reps) || 0;
+  if (unrounded) return weight * reps;
   return calculateSingleSetVolume(weight, reps);
 }
 
@@ -111,11 +136,11 @@ export function calculateSetVolume(set: {
  * Warmup ('warmup') sets and incomplete sets are strictly excluded.
  */
 export function calculateWorkoutTotals(sets: Array<{
-  weight?: number;
-  reps?: number;
-  completed?: boolean;
-  is_completed?: boolean;
-  set_type?: string;
+  weight?: number | null;
+  reps?: number | null;
+  completed?: boolean | null;
+  is_completed?: boolean | null;
+  set_type?: string | null;
 }>): {
   totalVolume: number;
   completedWorkingSets: number;
@@ -126,9 +151,8 @@ export function calculateWorkoutTotals(sets: Array<{
   let completedWorkingReps = 0;
 
   for (const s of sets || []) {
-    const vol = calculateSetVolume(s);
-    if (vol > 0) {
-      totalVolume += vol;
+    if (isCountableSet(s)) {
+      totalVolume += calculateSetVolume(s);
       completedWorkingSets += 1;
       completedWorkingReps += Number(s.reps) || 0;
     }
@@ -421,15 +445,13 @@ export function calculateExerciseProgress(
     let estimated1RM = 0;
 
     for (const set of matchedEx.workout_sets) {
-      if (set.completed === false || set.is_completed === false) continue;
-      const vol = calculateSetVolume(set);
-      totalVolume += vol;
+      if (!isCountableSet(set)) continue;
 
-      // Exclude warmup sets from heaviest load and estimated 1RM
-      if (set.set_type === 'warmup') continue;
       const weight = Number(set.weight) || 0;
       const reps = Number(set.reps) || 0;
-      if (weight <= 0 || reps <= 0) continue;
+
+      const vol = calculateSetVolume(set);
+      totalVolume += vol;
 
       if (weight > heaviestWeight) heaviestWeight = weight;
       if (reps > maxReps) maxReps = reps;
@@ -638,9 +660,18 @@ export function calculateMuscleExposureAnalytics(
 // PHASE 6: DETAILED ANALYTICS EXPANSION
 // ============================================================================
 
+export type TrendPeriodPresetId =
+  | 'thisMonth'
+  | 'lastMonth'
+  | 'last30'
+  | 'prior30'
+  | 'last7'
+  | 'prior7';
+
 export interface TrendPeriodSpec {
   startDate: string; // YYYY-MM-DD
   endDate: string;   // YYYY-MM-DD
+  presetId?: TrendPeriodPresetId;
   label?: string;
 }
 
@@ -652,11 +683,24 @@ export type TrendFilter =
 export interface TrendPeriodMetrics {
   startDate: string;
   endDate: string;
-  label: string;
+  presetId?: TrendPeriodPresetId;
+  label?: string;
   volume: number;
   workoutCount: number;
   workingSetsCount: number;
   hasData: boolean;
+}
+
+
+export type RangeTrendStatusCode =
+  | 'insufficientDataBoth'
+  | 'insufficientDataComparison'
+  | 'insufficientDataSelected'
+  | 'success';
+
+export interface RangeTrendStatus {
+  code: RangeTrendStatusCode;
+  params?: Record<string, string | number>;
 }
 
 export interface TrendComparisonResult {
@@ -665,7 +709,7 @@ export interface TrendComparisonResult {
   absoluteChange: number | null;
   percentageChange: number | null;
   hasEnoughData: boolean;
-  statusMessage: string;
+  status: RangeTrendStatus;
   filterType: 'total_volume' | 'exercise' | 'region';
   targetName: string;
 }
@@ -754,6 +798,7 @@ export function calculateRangeTrendComparison(
     return {
       startDate: spec.startDate,
       endDate: spec.endDate,
+      presetId: spec.presetId,
       label: spec.label || `${spec.startDate} - ${spec.endDate}`,
       volume,
       workoutCount,
@@ -783,7 +828,7 @@ export function calculateRangeTrendComparison(
       absoluteChange: null,
       percentageChange: null,
       hasEnoughData: false,
-      statusMessage: 'Not enough data in either comparison period',
+      status: { code: 'insufficientDataBoth' },
       filterType: filter.type,
       targetName,
     };
@@ -796,7 +841,7 @@ export function calculateRangeTrendComparison(
       absoluteChange: null,
       percentageChange: null,
       hasEnoughData: false,
-      statusMessage: 'Not enough data in comparison period',
+      status: { code: 'insufficientDataComparison' },
       filterType: filter.type,
       targetName,
     };
@@ -809,7 +854,7 @@ export function calculateRangeTrendComparison(
       absoluteChange: null,
       percentageChange: null,
       hasEnoughData: false,
-      statusMessage: 'Not enough data in selected period',
+      status: { code: 'insufficientDataSelected' },
       filterType: filter.type,
       targetName,
     };
@@ -833,7 +878,7 @@ export function calculateRangeTrendComparison(
     absoluteChange: absChange,
     percentageChange: pctChange,
     hasEnoughData: true,
-    statusMessage: pctChange !== null ? (pctChange >= 0 ? `+${pctChange}%` : `${pctChange}%`) : '',
+    status: { code: 'success', params: { pctChange: pctChange ?? 0 } },
     filterType: filter.type,
     targetName,
   };
@@ -861,8 +906,8 @@ export function getPresetComparisonPeriods(
     const lastMonthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
 
     return {
-      periodA: { startDate: thisMonthStart, endDate: thisMonthEnd, label: 'This Month' },
-      periodB: { startDate: lastMonthStart, endDate: lastMonthEnd, label: 'Last Month' },
+      periodA: { startDate: thisMonthStart, endDate: thisMonthEnd, presetId: 'thisMonth' },
+      periodB: { startDate: lastMonthStart, endDate: lastMonthEnd, presetId: 'lastMonth' },
     };
   }
 
@@ -872,8 +917,8 @@ export function getPresetComparisonPeriods(
     const prevEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 30)).toISOString().slice(0, 10);
 
     return {
-      periodA: { startDate: curStart, endDate: todayStr, label: 'Last 30 Days' },
-      periodB: { startDate: prevStart, endDate: prevEnd, label: 'Prior 30 Days' },
+      periodA: { startDate: curStart, endDate: todayStr, presetId: 'last30' },
+      periodB: { startDate: prevStart, endDate: prevEnd, presetId: 'prior30' },
     };
   }
 
@@ -883,8 +928,8 @@ export function getPresetComparisonPeriods(
   const prevEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 7)).toISOString().slice(0, 10);
 
   return {
-    periodA: { startDate: curStart, endDate: todayStr, label: 'Last 7 Days' },
-    periodB: { startDate: prevStart, endDate: prevEnd, label: 'Prior 7 Days' },
+    periodA: { startDate: curStart, endDate: todayStr, presetId: 'last7' },
+    periodB: { startDate: prevStart, endDate: prevEnd, presetId: 'prior7' },
   };
 }
 
@@ -904,12 +949,24 @@ export interface CrossExerciseSeries {
   latestVolume: number;
 }
 
+export type CrossExerciseStatusCode =
+  | 'noHistoryBoth'
+  | 'noHistorySingle'
+  | 'success';
+
+export interface CrossExerciseStatus {
+  code: CrossExerciseStatusCode;
+  params?: {
+    exerciseName?: string;
+  };
+}
+
 export interface CrossExerciseComparison {
   exerciseA: CrossExerciseSeries;
   exerciseB: CrossExerciseSeries;
   hasDataAtLeastOne: boolean;
   hasDataBoth: boolean;
-  statusMessage: string;
+  status: CrossExerciseStatus;
 }
 
 /**
@@ -953,13 +1010,15 @@ export function calculateCrossExerciseComparison(
   const hasDataBoth = seriesA.hasData && seriesB.hasData;
   const hasDataAtLeastOne = seriesA.hasData || seriesB.hasData;
 
-  let statusMessage = '';
+  let status: CrossExerciseStatus;
   if (!seriesA.hasData && !seriesB.hasData) {
-    statusMessage = 'Neither exercise has logged history yet';
+    status = { code: 'noHistoryBoth' };
   } else if (!seriesA.hasData) {
-    statusMessage = `${seriesA.name} has no logged workout history yet`;
+    status = { code: 'noHistorySingle', params: { exerciseName: seriesA.name } };
   } else if (!seriesB.hasData) {
-    statusMessage = `${seriesB.name} has no logged workout history yet`;
+    status = { code: 'noHistorySingle', params: { exerciseName: seriesB.name } };
+  } else {
+    status = { code: 'success' };
   }
 
   return {
@@ -967,7 +1026,7 @@ export function calculateCrossExerciseComparison(
     exerciseB: seriesB,
     hasDataAtLeastOne,
     hasDataBoth,
-    statusMessage,
+    status,
   };
 }
 
@@ -977,11 +1036,26 @@ export function calculateCrossExerciseComparison(
 
 /**
  * Escapes an individual cell value according to RFC 4180.
+ * Neutralizes formula injection on text cells starting with =, +, -, @ by prepending a single quote (').
+ * Numbers (typeof val === 'number') and valid numeric literals are NOT neutralized.
  * If the string contains comma, double quote, or newlines, wrap in quotes and escape quotes with double quotes.
  */
 export function escapeCsvCell(val: any): string {
   if (val === null || val === undefined) return '';
-  const str = String(val);
+
+  // Numbers (typeof val === 'number') are not formula injection risks; output directly
+  if (typeof val === 'number') {
+    return String(val);
+  }
+
+  let str = String(val);
+
+  // Neutralize formula injection on text cells starting with =, +, -, @, TAB (\t), or CR (\r)
+  // Every string cell starting with these characters gets a leading apostrophe (')
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
@@ -992,9 +1066,9 @@ export function escapeCsvCell(val: any): string {
  * Authoritative CSV export of workout history:
  * One row per set: date, workout, exercise, set type, weight, reps, volume, estimated 1RM.
  * Uses calculateSetVolume for volume and calculateEstimated1RM for 1RM.
- * When weightUnit is passed, headers include unit ('Weight (lbs)') and values are formatted in that unit.
+ * WeightUnit is strictly required. Values are converted once and rounded once at the end.
  */
-export function generateWorkoutsCsv(workouts: any[], weightUnit?: WeightUnit): string {
+export function generateWorkoutsCsv(workouts: any[], weightUnit: WeightUnit): string {
   const completed = (workouts || []).filter(w => w.status === 'completed');
   const sorted = [...completed].sort((a, b) => {
     const dateA = a.completed_at || a.started_at || a.created_at || '';
@@ -1002,11 +1076,7 @@ export function generateWorkoutsCsv(workouts: any[], weightUnit?: WeightUnit): s
     return dateA.localeCompare(dateB);
   });
 
-  const weightCol = weightUnit ? `Weight (${weightUnit})` : 'Weight';
-  const volumeCol = weightUnit ? `Volume (${weightUnit})` : 'Volume';
-  const est1RMCol = weightUnit ? `Estimated 1RM (${weightUnit})` : 'Estimated 1RM';
-
-  const headers = ['Date', 'Workout', 'Exercise', 'Set Type', weightCol, 'Reps', volumeCol, est1RMCol];
+  const headers = getWorkoutsCsvHeaders(weightUnit);
   const rows: string[] = [headers.join(',')];
 
   for (const w of sorted) {
@@ -1021,19 +1091,13 @@ export function generateWorkoutsCsv(workouts: any[], weightUnit?: WeightUnit): s
         const setType = set.set_type || 'working';
         const weight = Number(set.weight) || 0;
         const reps = Number(set.reps) || 0;
-        const isCompleted = set.completed ?? set.is_completed ?? false;
-        const isWarmup = setType === 'warmup';
 
-        // Unrounded volume in canonical kg:
-        // Counts ONLY completed, non-warmup sets with weight > 0 and reps > 0
-        const rawVolumeKg = (isCompleted && !isWarmup && weight > 0 && reps > 0)
-          ? weight * reps
-          : 0;
+        // Unrounded volume in canonical kg from authoritative calculateSetVolume
+        const rawVolumeKg = calculateSetVolume(set, true);
 
-        // Unrounded estimated 1RM in canonical kg:
-        // Epley formula: weight * (1 + reps / 30); reps === 1 returns weight exactly
-        const rawEst1RMKg = (!isWarmup && weight > 0 && reps > 0)
-          ? (reps === 1 ? weight : weight * (1 + reps / 30))
+        // Unrounded estimated 1RM in canonical kg from authoritative calculateEstimated1RM via isCountableSet
+        const rawEst1RMKg = isCountableSet(set)
+          ? calculateEstimated1RM(weight, reps, true)
           : 0;
 
         const isLbs = weightUnit === 'lbs';
@@ -1067,11 +1131,11 @@ export function generateWorkoutsCsv(workouts: any[], weightUnit?: WeightUnit): s
 
 /**
  * Authoritative CSV export of bodyweight entries.
+ * WeightUnit is strictly required. Values are converted once and rounded once at the end.
  */
-export function generateBodyweightCsv(entries: BodyweightEntryRow[], weightUnit?: WeightUnit): string {
+export function generateBodyweightCsv(entries: BodyweightEntryRow[], weightUnit: WeightUnit): string {
   const sorted = [...(entries || [])].sort((a, b) => a.date.localeCompare(b.date));
-  const weightCol = weightUnit ? `Weight (${weightUnit})` : 'Weight';
-  const headers = ['Date', weightCol, 'Unit', 'Notes', 'Source'];
+  const headers = getBodyweightCsvHeaders(weightUnit);
   const rows: string[] = [headers.join(',')];
 
   for (const e of sorted) {
@@ -1080,7 +1144,7 @@ export function generateBodyweightCsv(entries: BodyweightEntryRow[], weightUnit?
     const displayWeight = isLbs
       ? Math.round(kgToLbs(canonicalKg) * 100) / 100
       : Math.round(canonicalKg * 10000) / 10000;
-    const displayUnit = weightUnit || 'kg';
+    const displayUnit = weightUnit;
 
     rows.push([
       escapeCsvCell(e.date),
@@ -1100,7 +1164,7 @@ export function generateBodyweightCsv(entries: BodyweightEntryRow[], weightUnit?
  */
 export function generateStepsCsv(entries: any[]): string {
   const sorted = [...(entries || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  const headers = ['Date', 'Steps', 'Goal', 'Source'];
+  const headers = STEPS_CSV_HEADERS;
   const rows: string[] = [headers.join(',')];
 
   for (const s of sorted) {

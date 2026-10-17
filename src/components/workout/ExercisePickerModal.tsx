@@ -62,7 +62,7 @@ export const ExercisePickerModal: React.FC<ExercisePickerModalProps> = ({
                 {t('workoutLogger.addExercise')}
               </h2>
               <span className="text-xs text-neutral-500 font-medium">
-                {filteredExercises.length} movements available
+                {t('workoutLogger.movementsAvailable', { count: filteredExercises.length })}
               </span>
             </div>
           </div>
@@ -84,7 +84,7 @@ export const ExercisePickerModal: React.FC<ExercisePickerModalProps> = ({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search exercise name, equipment..."
+              placeholder={t('workoutLogger.searchPlaceholder')}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2"
               style={{ '--tw-ring-color': accentColor } as any}
               autoFocus
@@ -102,7 +102,7 @@ export const ExercisePickerModal: React.FC<ExercisePickerModalProps> = ({
                   : 'bg-neutral-200/80 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
               }`}
             >
-              All
+              {t('common.all')}
             </button>
             {Array.from(REGION_MAP.values()).map(r => (
               <button
@@ -126,7 +126,7 @@ export const ExercisePickerModal: React.FC<ExercisePickerModalProps> = ({
           {filteredExercises.length === 0 ? (
             <div className="py-12 text-center text-neutral-500 space-y-2">
               <Dumbbell className="w-8 h-8 mx-auto text-neutral-400" />
-              <p className="text-sm font-medium">No exercises found</p>
+              <p className="text-sm font-medium">{t('workoutLogger.noExercisesFound')}</p>
             </div>
           ) : (
             filteredExercises.map(ex => {

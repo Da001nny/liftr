@@ -15,8 +15,10 @@ import {
   generateBodyweightCsv,
   generateStepsCsv,
   escapeCsvCell,
+  isCountableSet,
 } from '../src/lib/calculations';
 import { BodyweightEntryRow } from '../src/types/database';
+import { tn } from '../src/i18n';
 
 // ============================================================================
 // TEST SUITE: WORKOUT CONTAINING WARMUP SETS
@@ -502,8 +504,7 @@ test('calculateRangeTrendComparison matches hand calculation on a small dataset'
   const emptyResult = calculateRangeTrendComparison(sampleWorkouts, periodA, emptyPeriodB, { type: 'total_volume' });
   assert.strictEqual(emptyResult.hasEnoughData, false);
   assert.strictEqual(emptyResult.percentageChange, null, 'Must NOT invent a number when comparison period is empty');
-  assert.strictEqual(emptyResult.absoluteChange, null);
-  assert.strictEqual(emptyResult.statusMessage, 'Not enough data in comparison period');
+  assert.strictEqual(emptyResult.status.code, 'insufficientDataComparison');
 });
 
 // ============================================================================
@@ -567,17 +568,13 @@ test('calculateCrossExerciseComparison correctly analyzes two exercises and empt
   const comparisonOneEmpty = calculateCrossExerciseComparison(
     workouts,
     'ex_barbell_bench_press',
-    'ex_dumbbell_incline_press',
+    'ex_incline_dumbbell_press',
     'all'
   );
   assert.strictEqual(comparisonOneEmpty.exerciseA.hasData, true);
   assert.strictEqual(comparisonOneEmpty.exerciseB.hasData, false);
-  assert.strictEqual(comparisonOneEmpty.hasDataBoth, false);
-  assert.strictEqual(comparisonOneEmpty.hasDataAtLeastOne, true);
-  assert.ok(
-    comparisonOneEmpty.statusMessage.includes('has no logged workout history yet'),
-    'Should inform the user that exercise B has no logged workout history'
-  );
+  assert.strictEqual(comparisonOneEmpty.status.code, 'noHistorySingle');
+  assert.strictEqual(comparisonOneEmpty.status.params?.exerciseName, 'Incline Dumbbell Press');
 });
 
 // ============================================================================
@@ -603,10 +600,10 @@ test('generateWorkoutsCsv, generateBodyweightCsv, and generateStepsCsv generate 
     }
   ];
 
-  const workoutsCsv = generateWorkoutsCsv(workouts);
+  const workoutsCsv = generateWorkoutsCsv(workouts, 'kg');
   assert.ok(workoutsCsv.startsWith('\uFEFF'), 'Workouts CSV must start with UTF-8 BOM for Excel');
   const lines = workoutsCsv.replace('\uFEFF', '').split('\r\n');
-  assert.strictEqual(lines[0], 'Date,Workout,Exercise,Set Type,Weight,Reps,Volume,Estimated 1RM');
+  assert.strictEqual(lines[0], 'Date,Workout,Exercise,Set Type,Weight (kg),Reps,Volume (kg),Estimated 1RM (kg)');
   
   // Row 1: Warmup set
   assert.ok(lines[1].includes('"Push ""A"", Hypertrophy"'), 'Must escape title with quotes and comma');
@@ -629,10 +626,10 @@ test('generateWorkoutsCsv, generateBodyweightCsv, and generateStepsCsv generate 
       updated_at: '2026-10-07T08:00:00Z',
     }
   ];
-  const bwCsv = generateBodyweightCsv(bwEntries);
+  const bwCsv = generateBodyweightCsv(bwEntries, 'kg');
   assert.ok(bwCsv.startsWith('\uFEFF'));
   const bwLines = bwCsv.replace('\uFEFF', '').split('\r\n');
-  assert.strictEqual(bwLines[0], 'Date,Weight,Unit,Notes,Source');
+  assert.strictEqual(bwLines[0], 'Date,Weight (kg),Unit,Notes,Source');
   assert.ok(bwLines[1].includes('2026-10-07,81.5,kg,"Post-workout, fasted",manual'));
 
   // Steps CSV (Reconciled to real step_entries schema: Date, Steps, Goal, Source)
@@ -663,24 +660,16 @@ test('CSV export precision: 61.235 kg set exports with 4-decimal weight and 2-de
     },
   ];
 
-  // 1. Canonical kg export (default without unit preference)
-  const csvKg = generateWorkoutsCsv(workouts);
+  // 1. Explicit kg preference export
+  const csvKg = generateWorkoutsCsv(workouts, 'kg');
   const linesKg = csvKg.replace('\uFEFF', '').split('\r\n');
+  assert.strictEqual(linesKg[0], 'Date,Workout,Exercise,Set Type,Weight (kg),Reps,Volume (kg),Estimated 1RM (kg)');
   assert.ok(
     linesKg[1].includes('working,61.235,10,612.35,81.65'),
-    `Canonical kg CSV must keep exact 61.235 weight, 612.35 volume, and 81.65 1RM. Got: ${linesKg[1]}`
+    `Explicit kg CSV must keep exact 61.235 weight, 612.35 volume, and 81.65 1RM. Got: ${linesKg[1]}`
   );
 
-  // 2. Explicit kg preference export
-  const csvExplicitKg = generateWorkoutsCsv(workouts, 'kg');
-  const linesExplicitKg = csvExplicitKg.replace('\uFEFF', '').split('\r\n');
-  assert.strictEqual(linesExplicitKg[0], 'Date,Workout,Exercise,Set Type,Weight (kg),Reps,Volume (kg),Estimated 1RM (kg)');
-  assert.ok(
-    linesExplicitKg[1].includes('working,61.235,10,612.35,81.65'),
-    `Explicit kg CSV must keep exact 61.235 weight, 612.35 volume, and 81.65 1RM. Got: ${linesExplicitKg[1]}`
-  );
-
-  // 3. Lbs preference export (2 decimals)
+  // 2. Lbs preference export (2 decimals: 135 lbs x 10 reps -> volume 1350, 1RM 180.00)
   const csvLbs = generateWorkoutsCsv(workouts, 'lbs');
   const linesLbs = csvLbs.replace('\uFEFF', '').split('\r\n');
   assert.strictEqual(linesLbs[0], 'Date,Workout,Exercise,Set Type,Weight (lbs),Reps,Volume (lbs),Estimated 1RM (lbs)');
@@ -689,7 +678,7 @@ test('CSV export precision: 61.235 kg set exports with 4-decimal weight and 2-de
     `Lbs CSV must format weight to 2 decimals (135), volume to 2 decimals (1350), and 1RM to 2 decimals (180). Got: ${linesLbs[1]}`
   );
 
-  // 4. Bodyweight CSV precision test with 61.235 kg
+  // 3. Bodyweight CSV precision test with 61.235 kg
   const bwEntries: BodyweightEntryRow[] = [
     {
       id: 'bw_1',
@@ -703,7 +692,7 @@ test('CSV export precision: 61.235 kg set exports with 4-decimal weight and 2-de
       updated_at: '2026-10-12T08:00:00Z',
     },
   ];
-  const bwCsvKg = generateBodyweightCsv(bwEntries);
+  const bwCsvKg = generateBodyweightCsv(bwEntries, 'kg');
   const bwLinesKg = bwCsvKg.replace('\uFEFF', '').split('\r\n');
   assert.ok(bwLinesKg[1].includes('2026-10-12,61.235,kg,,manual'), `Bodyweight kg CSV must retain 61.235`);
 
@@ -711,4 +700,232 @@ test('CSV export precision: 61.235 kg set exports with 4-decimal weight and 2-de
   const bwLinesLbs = bwCsvLbs.replace('\uFEFF', '').split('\r\n');
   assert.ok(bwLinesLbs[1].includes('2026-10-12,135,lbs,,manual'), `Bodyweight lbs CSV must format to 2 decimals (135)`);
 });
+
+test('Uncompleted set (100 kg x 5, completed: false) exports volume 0 and 1RM 0 in CSV', () => {
+  const workouts = [
+    {
+      id: 'w_uncompleted_1',
+      status: 'completed',
+      completed_at: '2026-10-12T10:00:00Z',
+      name: 'Bench Session',
+      workout_exercises: [
+        {
+          exercise_id: 'ex_barbell_bench_press',
+          workout_sets: [
+            { weight: 100, reps: 5, completed: false, set_type: 'working' },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const csvKg = generateWorkoutsCsv(workouts, 'kg');
+  const linesKg = csvKg.replace('\uFEFF', '').split('\r\n');
+  assert.ok(
+    linesKg[1].includes('working,100,5,0,0'),
+    `Uncompleted set in kg must export volume 0 and 1RM 0. Got: ${linesKg[1]}`
+  );
+
+  const csvLbs = generateWorkoutsCsv(workouts, 'lbs');
+  const linesLbs = csvLbs.replace('\uFEFF', '').split('\r\n');
+  assert.ok(
+    linesLbs[1].includes('working,220.46,5,0,0'),
+    `Uncompleted set in lbs must export volume 0 and 1RM 0. Got: ${linesLbs[1]}`
+  );
+});
+
+test('escapeCsvCell neutralizes formula injection on text cells and preserves numbers', () => {
+  // Numbers (typeof val === 'number') are not neutralized
+  assert.strictEqual(escapeCsvCell(100), '100');
+  assert.strictEqual(escapeCsvCell(-5), '-5');
+  assert.strictEqual(escapeCsvCell(0), '0');
+  assert.strictEqual(escapeCsvCell(-1), '-1');
+  assert.strictEqual(escapeCsvCell(61.235), '61.235');
+
+  // Text cells starting with =, +, -, @, TAB, CR get leading apostrophe even if numeric-looking
+  assert.strictEqual(escapeCsvCell('-1'), "'-1");
+  assert.strictEqual(escapeCsvCell('+1'), "'+1");
+  assert.strictEqual(escapeCsvCell('=1+1'), "'=1+1");
+  assert.strictEqual(escapeCsvCell('@x'), "'@x");
+  assert.strictEqual(escapeCsvCell('normal'), 'normal');
+  assert.strictEqual(escapeCsvCell('=SUM(A1:A10)'), "'=SUM(A1:A10)");
+  assert.strictEqual(escapeCsvCell('@mention'), "'@mention");
+  assert.strictEqual(escapeCsvCell('+5% volume gain'), "'+5% volume gain");
+  assert.strictEqual(escapeCsvCell('\tleadingTab'), "'\tleadingTab");
+  assert.strictEqual(escapeCsvCell('\rleadingCR'), "\"'\rleadingCR\"");
+
+  // Standard strings without formula chars remain normal
+  assert.strictEqual(escapeCsvCell('Bench Press'), 'Bench Press');
+  assert.strictEqual(escapeCsvCell('Push "A", Hypertrophy'), '"Push ""A"", Hypertrophy"');
+  assert.strictEqual(escapeCsvCell(null), '');
+  assert.strictEqual(escapeCsvCell(undefined), '');
+});
+
+test('CSV export with formula workout name starts with apostrophe', () => {
+  const workouts = [
+    {
+      id: 'w_formula_1',
+      status: 'completed',
+      completed_at: '2026-10-12T10:00:00Z',
+      name: '=SUM(A1)',
+      workout_exercises: [
+        {
+          exercise_id: 'ex_barbell_bench_press',
+          workout_sets: [
+            { weight: 100, reps: 5, completed: true, set_type: 'working' },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const csvKg = generateWorkoutsCsv(workouts, 'kg');
+  const linesKg = csvKg.replace('\uFEFF', '').split('\r\n');
+  const cells = linesKg[1].split(',');
+  assert.strictEqual(cells[1], "'=SUM(A1)", `Workout name starting with = must start with apostrophe. Got: ${cells[1]}`);
+});
+
+test('isCountableSet shared helper filters completed working sets accurately', () => {
+  // Countable working set
+  assert.strictEqual(isCountableSet({ weight: 100, reps: 5, completed: true, set_type: 'working' }), true);
+  // Countable drop and failure sets
+  assert.strictEqual(isCountableSet({ weight: 80, reps: 8, completed: true, set_type: 'drop' }), true);
+  assert.strictEqual(isCountableSet({ weight: 70, reps: 10, is_completed: true, set_type: 'failure' }), true);
+
+  // Warmup sets must be excluded
+  assert.strictEqual(isCountableSet({ weight: 50, reps: 10, completed: true, set_type: 'warmup' }), false);
+
+  // Incomplete sets must be excluded
+  assert.strictEqual(isCountableSet({ weight: 100, reps: 5, completed: false, set_type: 'working' }), false);
+  assert.strictEqual(isCountableSet({ weight: 100, reps: 5, is_completed: false, set_type: 'working' }), false);
+
+  // Non-positive weight or reps must be excluded
+  assert.strictEqual(isCountableSet({ weight: 0, reps: 10, completed: true, set_type: 'working' }), false);
+  assert.strictEqual(isCountableSet({ weight: -10, reps: 10, completed: true, set_type: 'working' }), false);
+  assert.strictEqual(isCountableSet({ weight: 100, reps: 0, completed: true, set_type: 'working' }), false);
+  assert.strictEqual(isCountableSet({ weight: 100, reps: -5, completed: true, set_type: 'working' }), false);
+
+  // Null / undefined sets
+  assert.strictEqual(isCountableSet(null), false);
+  assert.strictEqual(isCountableSet(undefined), false);
+});
+
+// ============================================================================
+// PHASE 7 TEST SUITE: STATUS CODES, PRESET IDS & PLURALIZATION
+// ============================================================================
+test('range-trend and cross-exercise engines return status codes without English text', () => {
+  const periodA = { startDate: '2026-10-01', endDate: '2026-10-15' };
+  const periodB = { startDate: '2026-09-01', endDate: '2026-09-15' };
+
+  // 1. Neither period has workouts: returns insufficientDataBoth
+  const resBothEmpty = calculateRangeTrendComparison([], periodA, periodB, { type: 'total_volume' });
+  assert.strictEqual(resBothEmpty.status.code, 'insufficientDataBoth');
+  assert.strictEqual((resBothEmpty.status as any).message, undefined);
+
+  // 2. Only period A has data: returns insufficientDataComparison
+  const workoutsA = [{
+    id: 'w_a',
+    status: 'completed',
+    completed_at: '2026-10-05T10:00:00Z',
+    workout_exercises: [{
+      exercise_id: 'ex_barbell_bench_press',
+      workout_sets: [{ weight: 100, reps: 5, completed: true, set_type: 'working' }]
+    }]
+  }];
+  const resComparisonEmpty = calculateRangeTrendComparison(workoutsA, periodA, periodB, { type: 'total_volume' });
+  assert.strictEqual(resComparisonEmpty.status.code, 'insufficientDataComparison');
+  assert.strictEqual((resComparisonEmpty.status as any).message, undefined);
+
+  // 3. Only period B has data: returns insufficientDataSelected
+  const workoutsB = [{
+    id: 'w_b',
+    status: 'completed',
+    completed_at: '2026-09-05T10:00:00Z',
+    workout_exercises: [{
+      exercise_id: 'ex_barbell_bench_press',
+      workout_sets: [{ weight: 100, reps: 5, completed: true, set_type: 'working' }]
+    }]
+  }];
+  const resSelectedEmpty = calculateRangeTrendComparison(workoutsB, periodA, periodB, { type: 'total_volume' });
+  assert.strictEqual(resSelectedEmpty.status.code, 'insufficientDataSelected');
+  assert.strictEqual((resSelectedEmpty.status as any).message, undefined);
+
+  // 4. Both have data: returns success
+  const resSuccess = calculateRangeTrendComparison([...workoutsA, ...workoutsB], periodA, periodB, { type: 'total_volume' });
+  assert.strictEqual(resSuccess.status.code, 'success');
+  assert.strictEqual((resSuccess.status as any).message, undefined);
+
+  // Cross-exercise:
+  // 5. Neither exercise has history: returns noHistoryBoth
+  const crossEmpty = calculateCrossExerciseComparison([], 'ex_barbell_bench_press', 'ex_barbell_deadlift', 'all');
+  assert.strictEqual(crossEmpty.status.code, 'noHistoryBoth');
+  assert.strictEqual((crossEmpty.status as any).message, undefined);
+
+  // 6. One exercise has history: returns noHistorySingle
+  const crossSingle = calculateCrossExerciseComparison(workoutsA, 'ex_barbell_bench_press', 'ex_barbell_deadlift', 'all');
+  assert.strictEqual(crossSingle.status.code, 'noHistorySingle');
+  assert.strictEqual(crossSingle.status.params?.exerciseName, 'ex_barbell_deadlift');
+  assert.strictEqual((crossSingle.status as any).message, undefined);
+
+  // 7. Both have history: returns success
+  const crossBothWorkouts = [
+    ...workoutsA,
+    {
+      id: 'w_d',
+      status: 'completed',
+      completed_at: '2026-10-06T10:00:00Z',
+      workout_exercises: [{
+        exercise_id: 'ex_barbell_deadlift',
+        workout_sets: [{ weight: 150, reps: 5, completed: true, set_type: 'working' }]
+      }]
+    }
+  ];
+  const crossSuccess = calculateCrossExerciseComparison(crossBothWorkouts, 'ex_barbell_bench_press', 'ex_barbell_deadlift', 'all');
+  assert.strictEqual(crossSuccess.status.code, 'success');
+  assert.strictEqual((crossSuccess.status as any).message, undefined);
+});
+
+test('getPresetComparisonPeriods returns preset ids without English text', () => {
+  const refDate = new Date('2026-10-15T12:00:00Z');
+
+  // Month preset
+  const monthPreset = getPresetComparisonPeriods('this_month_vs_last_month', refDate);
+  assert.strictEqual(monthPreset.periodA.presetId, 'thisMonth');
+  assert.strictEqual(monthPreset.periodB.presetId, 'lastMonth');
+  assert.strictEqual(monthPreset.periodA.label, undefined);
+  assert.strictEqual(monthPreset.periodB.label, undefined);
+
+  // 30 Days preset
+  const days30Preset = getPresetComparisonPeriods('last_30_days', refDate);
+  assert.strictEqual(days30Preset.periodA.presetId, 'last30');
+  assert.strictEqual(days30Preset.periodB.presetId, 'prior30');
+  assert.strictEqual(days30Preset.periodA.label, undefined);
+  assert.strictEqual(days30Preset.periodB.label, undefined);
+
+  // 7 Days preset
+  const days7Preset = getPresetComparisonPeriods('last_7_days', refDate);
+  assert.strictEqual(days7Preset.periodA.presetId, 'last7');
+  assert.strictEqual(days7Preset.periodB.presetId, 'prior7');
+  assert.strictEqual(days7Preset.periodA.label, undefined);
+  assert.strictEqual(days7Preset.periodB.label, undefined);
+});
+
+test('tn plural lookup selects _one for 1 and _other for 0 and 2', () => {
+  // 1 -> _one
+  assert.strictEqual(tn('calendar.unitDays', 1), '1 day');
+  assert.strictEqual(tn('calendar.unitWeeks', 1), '1 week');
+  assert.strictEqual(tn('workouts.savedRoutinesCount', 1), '1 saved routine');
+
+  // 0 -> _other
+  assert.strictEqual(tn('calendar.unitDays', 0), '0 days');
+  assert.strictEqual(tn('calendar.unitWeeks', 0), '0 weeks');
+  assert.strictEqual(tn('workouts.savedRoutinesCount', 0), '0 saved routines');
+
+  // 2 -> _other
+  assert.strictEqual(tn('calendar.unitDays', 2), '2 days');
+  assert.strictEqual(tn('calendar.unitWeeks', 2), '2 weeks');
+  assert.strictEqual(tn('workouts.savedRoutinesCount', 2), '2 saved routines');
+});
+
+
 

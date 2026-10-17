@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Clock, Dumbbell, Repeat, Check } from 'lucide-react';
-import { useTranslation } from '../../i18n';
+import { useTranslation, APP_LOCALE } from '../../i18n';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { fetchTemplates, EnrichedWorkoutTemplate } from '../../lib/workoutService';
@@ -15,15 +15,17 @@ interface ScheduleWorkoutModalProps {
   onSaved: () => void;
 }
 
-const DAYS_OF_WEEK = [
-  { day: 0, label: 'Sun', short: 'S' },
-  { day: 1, label: 'Mon', short: 'M' },
-  { day: 2, label: 'Tue', short: 'T' },
-  { day: 3, label: 'Wed', short: 'W' },
-  { day: 4, label: 'Thu', short: 'T' },
-  { day: 5, label: 'Fri', short: 'F' },
-  { day: 6, label: 'Sat', short: 'S' },
-];
+function formatWeekdayShort(dayIndex: number): string {
+  // 2021-01-03 was a Sunday (day 0)
+  const d = new Date(Date.UTC(2021, 0, 3 + dayIndex, 12, 0, 0));
+  return new Intl.DateTimeFormat(APP_LOCALE, { weekday: 'short', timeZone: 'UTC' }).format(d);
+}
+
+const DAYS_OF_WEEK = [0, 1, 2, 3, 4, 5, 6].map(day => ({
+  day,
+  label: formatWeekdayShort(day),
+}));
+
 
 export const ScheduleWorkoutModal: React.FC<ScheduleWorkoutModalProps> = ({
   isOpen,
@@ -31,7 +33,7 @@ export const ScheduleWorkoutModal: React.FC<ScheduleWorkoutModalProps> = ({
   initialDate,
   onSaved,
 }) => {
-  const { t } = useTranslation();
+  const { t, tn } = useTranslation();
   const { accentColor } = useTheme();
   const { token } = useAuth();
 
@@ -92,8 +94,8 @@ export const ScheduleWorkoutModal: React.FC<ScheduleWorkoutModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || isSubmitting) return;
-
-    const finalName = name.trim() || (templateId ? templates.find(t => t.id === templateId)?.name : 'Scheduled Workout') || 'Scheduled Workout';
+    const defaultName = t('calendar.defaultWorkoutName');
+    const finalName = name.trim() || (templateId ? templates.find(tpl => tpl.id === templateId)?.name : defaultName) || defaultName;
 
     const payload: CreateScheduledPayload = {
       name: finalName,
@@ -279,12 +281,12 @@ export const ScheduleWorkoutModal: React.FC<ScheduleWorkoutModalProps> = ({
                 {/* Recurrence Interval Stepper (Step 7 requirement: single & multi digit typing) */}
                 {(recurrenceType === 'daily' || recurrenceType === 'custom' || recurrenceType === 'weekly') && (
                   <NumericStepper
-                    label={`${t('calendar.intervalLabel')} (${recurrenceType === 'daily' ? 'Days' : 'Weeks'})`}
+                    label={`${t('calendar.intervalLabel')} (${recurrenceType === 'daily' ? t('calendar.days') : t('calendar.weeks')})`}
                     value={recurrenceInterval}
                     onChange={setRecurrenceInterval}
                     min={1}
                     max={52}
-                    unit={recurrenceType === 'daily' ? 'day(s)' : 'week(s)'}
+                    unit={recurrenceType === 'daily' ? tn('calendar.unitDays', recurrenceInterval) : tn('calendar.unitWeeks', recurrenceInterval)}
                   />
                 )}
 

@@ -187,7 +187,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
                 <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center gap-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-amber-500 font-athletic flex items-center gap-1">
                     <Sparkles className="w-3 h-3" />
-                    <span>Records:</span>
+                    <span>{t('workouts.recordsLabel')}</span>
                   </span>
                   {workoutPRs.map((pr, idx) => (
                     <span 

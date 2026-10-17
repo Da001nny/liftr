@@ -60,14 +60,15 @@ export function getSetTypeLabel(setType: string | null | undefined): string {
 }
 
 /**
- * Maps set type to badge letter/text ('W' | 'Set' | 'D' | 'F').
+ * Maps set type to badge letter/text ('W' | 'Set' | 'Drop' | 'Fail').
  */
 export function getSetTypeBadge(setType: string | null | undefined): string {
   if (!setType) return '';
   const key = `setBadges.${setType.toLowerCase()}` as TranslationKeyPath;
   const translated = t(key);
-  return translated !== key ? translated : setType === 'warmup' ? 'W' : setType === 'drop' ? 'D' : setType === 'failure' ? 'F' : 'Set';
+  return translated !== key ? translated : '';
 }
+
 
 /**
  * Maps region ID ('chest' | 'back' | 'shoulders' | etc.) to localized display name.

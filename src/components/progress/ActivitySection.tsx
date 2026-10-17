@@ -130,7 +130,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
         <div className="space-y-1">
           <span className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
             <Footprints className="w-3.5 h-3.5 text-blue-500" />
-            <span>{selectedDate === todayStr ? t('progress.todayStepsLabel') : `Steps for ${selectedDate}`}</span>
+            <span>{selectedDate === todayStr ? t('progress.todayStepsLabel') : t('progress.stepsForDate', { date: selectedDate })}</span>
           </span>
           <div className="flex items-baseline gap-2">
             <span className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
@@ -142,8 +142,8 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
           </div>
           <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block">
             <strong className="text-neutral-700 dark:text-neutral-300 font-mono">{formatDistance(estimatedDistanceKm, distanceUnit)}</strong> · {isGoalReached 
-              ? 'Goal achieved! Exceptional daily energy output.' 
-              : `${Math.max(0, goal - steps).toLocaleString()} steps remaining to hit target.`}
+              ? t('progress.goalAchieved') 
+              : t('progress.stepsRemaining', { count: Math.max(0, goal - steps).toLocaleString() })}
           </span>
         </div>
 
