@@ -170,7 +170,7 @@ export const ScheduleWorkoutModal: React.FC<ScheduleWorkoutModalProps> = ({
               <option value="">{t('calendar.customWorkoutOption')}</option>
               {templates.map(tpl => (
                 <option key={tpl.id} value={tpl.id}>
-                  {tpl.name} ({tpl.exercises.length} exercises)
+                  {t('calendar.templateWithExercises', { name: tpl.name, count: tpl.exercises.length })}
                 </option>
               ))}
             </select>
@@ -233,7 +233,7 @@ export const ScheduleWorkoutModal: React.FC<ScheduleWorkoutModalProps> = ({
                     {t('calendar.recurringToggle')}
                   </span>
                   <span className="text-[11px] text-neutral-500 dark:text-neutral-400 font-medium">
-                    Automatically generate upcoming occurrences across weeks
+                    {t('calendar.autoGenerateOccurrencesDesc')}
                   </span>
                 </div>
               </div>

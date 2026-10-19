@@ -6,7 +6,8 @@ import {
   calculateTotalSessionVolume, 
   detectPersonalRecords,
   calculateCalendarConsistency,
-  PersonalRecordState
+  PersonalRecordState,
+  isCountableSet
 } from '../src/lib/calculations';
 
 // ============================================================================
@@ -177,4 +178,22 @@ test('Phase 3 - 27. Rep PR Rule: 8 reps at 100 kg after 8 reps at 120 kg is a st
   const result = detectPersonalRecords({ weight: 100, reps: 8 }, state);
   assert.strictEqual(result.isRepPR, false, '8 reps at 100kg should tie the 8 reps at 120kg and be rejected by strict > rule');
 });
+
+test('Phase 3 - 28. Editing completed workout recomputes total_volume with isCountableSet', () => {
+  const sets = [
+    { set_type: 'warmup', weight: 60, reps: 10, completed: true },
+    { set_type: 'working', weight: 100, reps: 5, completed: false },
+    { set_type: 'working', weight: 100, reps: 8, completed: true },
+    { set_type: 'drop', weight: 80, reps: 10, completed: true },
+    { set_type: 'failure', weight: 90, reps: 6, completed: true },
+  ];
+  let totalVolume = 0;
+  for (const s of sets) {
+    if (isCountableSet(s as any)) {
+      totalVolume += calculateSingleSetVolume(s.weight, s.reps);
+    }
+  }
+  assert.strictEqual(totalVolume, 2140, 'Total volume should sum only countable completed sets (800 + 800 + 540 = 2140)');
+});
+
 

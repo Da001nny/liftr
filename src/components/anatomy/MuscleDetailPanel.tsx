@@ -45,7 +45,7 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
   onClose,
   onSelectExercise,
 }) => {
-  const { t } = useTranslation();
+  const { t, tn } = useTranslation();
   const { accentColor } = useTheme();
   const { token } = useAuth();
 
@@ -107,10 +107,10 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
                   className="px-2.5 py-0.5 rounded-full text-[11px] font-athletic uppercase tracking-wider font-bold text-white shadow-sm"
                   style={{ backgroundColor: accentColor }}
                 >
-                  {t(regionKey)} Region
+                  {t('body.regionTitle', { region: t(regionKey) })}
                 </span>
                 <span className="text-xs text-neutral-500 dark:text-neutral-400 font-mono font-medium">
-                  {regionMuscles.length} Sub-muscles
+                  {tn('body.subMusclesCount', regionMuscles.length, { count: regionMuscles.length })}
                 </span>
               </div>
 
@@ -135,10 +135,10 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
           <div className="mt-5 pt-4 border-t border-neutral-200 dark:border-neutral-800">
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-xs font-bold font-athletic uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
-                Select Sub-Region / Muscle
+                {t('body.selectSubRegionMuscle')}
               </span>
               <span className="text-[11px] font-mono text-neutral-400">
-                Click to inspect biomechanics
+                {t('body.clickToInspectBiomechanics')}
               </span>
             </div>
 
@@ -180,7 +180,7 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
                           className="px-2 py-0.5 rounded text-[10px] font-athletic font-bold uppercase tracking-wider text-white"
                           style={{ backgroundColor: accentColor }}
                         >
-                          Active
+                          {t('common.active')}
                         </span>
                       ) : (
                         <ArrowRight className="w-4 h-4 text-neutral-400" />
@@ -207,7 +207,7 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
             {muscle.subregion}
           </span>
           <span className="font-mono text-[10px] text-neutral-500 dark:text-neutral-400 font-bold uppercase">
-            ID: {muscle.id}
+            {t('body.muscleIdFormat', { id: muscle.id })}
           </span>
         </div>
 
@@ -238,10 +238,10 @@ export const MuscleDetailPanel: React.FC<MuscleDetailPanelProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-bold font-athletic uppercase tracking-wider text-neutral-800 dark:text-neutral-200">
               <Video className="w-4 h-4 text-amber-500" />
-              <span>{activeVideoExercise.name} — Technique Video</span>
+              <span>{t('body.techniqueVideoTitle', { name: activeVideoExercise.name })}</span>
             </div>
             <span className="text-[11px] font-mono text-neutral-500">
-              Inline Player
+              {t('body.inlinePlayer')}
             </span>
           </div>
 

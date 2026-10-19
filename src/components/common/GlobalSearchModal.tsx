@@ -122,7 +122,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         <div className="flex-1 overflow-y-auto divide-y divide-neutral-100 dark:divide-neutral-800/80 p-2">
           {loading ? (
             <div className="py-12 text-center text-xs text-neutral-400 font-mono">
-              Searching taxonomy & workout history...
+              {t('globalSearch.searchingStatus')}
             </div>
           ) : results.length > 0 ? (
             results.map((item) => (
@@ -146,7 +146,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     </div>
                     <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate mt-0.5 font-medium">
                       {item.type === 'workout' && item.payload?.totalVolume !== undefined
-                        ? `${item.payload.date || item.subtitle} · ${formatWeight(item.payload.totalVolume, weightUnit)} total volume`
+                        ? t('globalSearch.workoutVolumeSummary', { date: item.payload.date || item.subtitle, volume: formatWeight(item.payload.totalVolume, weightUnit) })
                         : item.subtitle}
                     </p>
                   </div>
@@ -157,7 +157,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             ))
           ) : query.trim() ? (
             <div className="py-12 text-center text-xs text-neutral-500 font-medium">
-              No matching exercises, muscles, regions, or workouts found for "{query}".
+              {t('globalSearch.noResultsFoundForQuery', { query })}
             </div>
           ) : (
             <div className="py-10 text-center text-xs text-neutral-400 font-medium space-y-2">
@@ -181,7 +181,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             onClick={onClose}
             className="hover:text-neutral-900 dark:hover:text-white cursor-pointer font-medium"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

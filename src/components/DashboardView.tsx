@@ -160,7 +160,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                   {t('dashboard.consistencyLabel')}
                 </span>
                 <span className="text-[11px] text-neutral-500 dark:text-neutral-400 block font-medium">
-                  Default: 100%
+                  {t('dashboard.defaultConsistency')}
                 </span>
               </div>
             </div>
@@ -200,7 +200,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
             {formatWeight(totalVolume, weightUnit)}
           </div>
           <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block font-medium">
-            Across all completed sets
+            {t('dashboard.acrossCompletedSets')}
           </span>
         </div>
 
@@ -234,7 +234,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
             {consistencyPercent}%
           </div>
           <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block font-medium">
-            Completed / Scheduled ratio
+            {t('dashboard.completedScheduledRatio')}
           </span>
         </div>
 
@@ -251,7 +251,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
             {recentPRs.length}
           </div>
           <span className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-1 block font-medium">
-            Strict &gt; tie rule
+            {t('dashboard.strictTieRule')}
           </span>
         </div>
       </div>
@@ -273,7 +273,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                 onClick={() => onNavigateTab('workouts')}
                 className="text-xs font-bold text-blue-600 dark:text-blue-400 font-athletic uppercase tracking-wider hover:underline"
               >
-                View History
+                {t('dashboard.viewHistory')}
               </button>
             )}
           </div>
@@ -291,7 +291,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                 </div>
 
                 <div className="flex items-center gap-4 text-xs font-mono text-neutral-600 dark:text-neutral-300 font-bold pt-1">
-                  <span className="text-emerald-500">{formatWeight(recentWorkout.total_volume, weightUnit)} vol</span>
+                  <span className="text-emerald-500">{t('dashboard.workoutVolumeShort', { volume: formatWeight(recentWorkout.total_volume, weightUnit) })}</span>
                   <span>·</span>
                   <span>{formatDuration(recentWorkout.duration_seconds)}</span>
                 </div>
@@ -364,16 +364,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                 <Trophy className="w-5 h-5 text-neutral-700 dark:text-neutral-300 premium-icon-embedded" />
               </div>
               <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 font-athletic uppercase">
-                No PRs Recorded Yet
+                {t('dashboard.noPrsTitle')}
               </h3>
               <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 max-w-xs mx-auto leading-relaxed font-medium">
-                Log completed working sets to automatically detect heaviest weight, 1RM, volume, and rep PRs.
+                {t('dashboard.noPrsDesc')}
               </p>
             </div>
           )}
 
           <div className="pt-2 text-[11px] text-neutral-500 font-athletic uppercase font-bold tracking-wider">
-            All 4 PR categories strictly enforced
+            {t('dashboard.prCategoriesEnforced')}
           </div>
         </div>
 

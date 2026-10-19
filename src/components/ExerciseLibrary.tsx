@@ -206,7 +206,7 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ onSelectExerci
         {hasActiveFilters && (
           <div className="mt-4 pt-3 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
             <span className="text-xs text-neutral-600 dark:text-neutral-400 font-medium">
-              Filters active
+              {t('exerciseLibrary.filtersActive')}
             </span>
             <button
               onClick={handleResetFilters}

@@ -123,7 +123,7 @@ export const RestTimerBar: React.FC<RestTimerBarProps> = ({
               className="px-2 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-xs font-bold text-neutral-700 dark:text-neutral-300 font-athletic transition-colors cursor-pointer"
               title={t('workoutLogger.minus15Sec')}
             >
-              -15s
+              {t('workoutLogger.restTimerSub15')}
             </button>
 
             <button
@@ -132,7 +132,7 @@ export const RestTimerBar: React.FC<RestTimerBarProps> = ({
               className="px-2 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-xs font-bold text-neutral-700 dark:text-neutral-300 font-athletic transition-colors cursor-pointer"
               title={t('workoutLogger.plus30Sec')}
             >
-              +30s
+              {t('workoutLogger.restTimerAdd30')}
             </button>
 
             <button

@@ -133,7 +133,7 @@ export const ExerciseProgressSection: React.FC = () => {
               {t('progress.exerciseChartsSectionTitle')}
             </h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-              Epley 1RM trajectory, heaviest load, max reps, and session volume
+              {t('progress.exerciseProgressSectionDesc')}
             </p>
           </div>
         </div>

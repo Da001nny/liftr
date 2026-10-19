@@ -185,7 +185,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
                 : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
-            Estimated 1RM
+            {t('progress.metricEstimated1RM')}
           </button>
           <button
             type="button"
@@ -196,7 +196,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
                 : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-white'
             }`}
           >
-            Session Volume
+            {t('progress.metricVolume')}
           </button>
         </div>
       </div>
@@ -208,7 +208,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colorA }} />
             <span className="text-[11px] font-bold font-athletic uppercase tracking-wider text-blue-600 dark:text-blue-400">
-              Exercise A (Primary Series)
+              {t('progress.exerciseAPrimarySeries')}
             </span>
           </div>
           <select
@@ -229,7 +229,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colorB }} />
             <span className="text-[11px] font-bold font-athletic uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              Exercise B (Comparison Series)
+              {t('progress.exerciseBComparisonSeries')}
             </span>
           </div>
           <select
@@ -250,7 +250,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
       <div className="py-4 grid grid-cols-2 sm:grid-cols-4 gap-3 border-b border-neutral-200 dark:border-neutral-800/80">
         <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/20">
           <span className="text-[10px] font-bold font-athletic uppercase text-blue-600 dark:text-blue-400 block truncate">
-            {comparison.exerciseA.name} Best 1RM
+            {t('progress.exerciseBest1RM', { name: comparison.exerciseA.name })}
           </span>
           <span className="text-xl font-black font-display text-neutral-900 dark:text-white mt-0.5 block">
             {comparison.exerciseA.best1RM > 0 ? formatWeight(comparison.exerciseA.best1RM, weightUnit) : '—'}
@@ -259,7 +259,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
 
         <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/20">
           <span className="text-[10px] font-bold font-athletic uppercase text-blue-600 dark:text-blue-400 block truncate">
-            {comparison.exerciseA.name} Sessions
+            {t('progress.exerciseSessions', { name: comparison.exerciseA.name })}
           </span>
           <span className="text-xl font-black font-display text-neutral-900 dark:text-white mt-0.5 block">
             {comparison.exerciseA.points.length}
@@ -268,7 +268,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
 
         <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
           <span className="text-[10px] font-bold font-athletic uppercase text-emerald-600 dark:text-emerald-400 block truncate">
-            {comparison.exerciseB.name} Best 1RM
+            {t('progress.exerciseBest1RM', { name: comparison.exerciseB.name })}
           </span>
           <span className="text-xl font-black font-display text-neutral-900 dark:text-white mt-0.5 block">
             {comparison.exerciseB.best1RM > 0 ? formatWeight(comparison.exerciseB.best1RM, weightUnit) : '—'}
@@ -277,7 +277,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
 
         <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
           <span className="text-[10px] font-bold font-athletic uppercase text-emerald-600 dark:text-emerald-400 block truncate">
-            {comparison.exerciseB.name} Sessions
+            {t('progress.exerciseSessions', { name: comparison.exerciseB.name })}
           </span>
           <span className="text-xl font-black font-display text-neutral-900 dark:text-white mt-0.5 block">
             {comparison.exerciseB.points.length}

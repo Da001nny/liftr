@@ -190,13 +190,13 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
-              <span>Scheduled Workouts ({scheduledWorkouts.length})</span>
+              <span>{t('calendar.scheduledWorkoutsCount', { count: scheduledWorkouts.length })}</span>
             </span>
           </div>
 
           {scheduledWorkouts.length === 0 ? (
             <p className="text-xs text-neutral-500 dark:text-neutral-400 italic py-2">
-              No sessions scheduled for this date.
+              {t('calendar.noSessionsScheduledOnDate')}
             </p>
           ) : (
             <div className="space-y-2">
@@ -216,7 +216,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                         </span>
                         {sw.series_id && (
                           <span className="px-1.5 py-0.5 rounded text-[9px] font-bold font-athletic uppercase tracking-wider bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                            Recurring
+                            {t('calendar.recurringSeries')}
                           </span>
                         )}
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-athletic uppercase tracking-wider ${
@@ -278,7 +278,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
           <div className="space-y-3 pt-3 border-t border-neutral-200 dark:border-neutral-800">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-500 font-athletic flex items-center gap-1.5">
               <Check className="w-3.5 h-3.5" />
-              <span>Completed Workouts ({completedWorkouts.length})</span>
+              <span>{t('calendar.completedWorkoutsCount', { count: completedWorkouts.length })}</span>
             </span>
             <div className="space-y-2">
               {completedWorkouts.map((w: any) => (

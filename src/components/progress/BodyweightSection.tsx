@@ -132,7 +132,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
               {t('progress.bodyweightSectionTitle')}
             </h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-              Current weight, 7-day average smoothing, 30-day trajectory & chart
+              {t('progress.bodyweightSectionDesc')}
             </p>
           </div>
         </div>
@@ -234,7 +234,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
               </>
             ) : (
               <span className="text-xs sm:text-sm font-medium text-neutral-400 dark:text-neutral-500">
-                Not enough data yet
+                {t('progress.notEnoughDataYet')}
               </span>
             )}
           </div>

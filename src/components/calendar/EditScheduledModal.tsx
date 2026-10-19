@@ -99,7 +99,7 @@ export const EditScheduledModal: React.FC<EditScheduledModalProps> = ({
               </h3>
               {isRecurring && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold font-athletic uppercase tracking-wider bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                  Recurring Series
+                  {t('calendar.recurringSeries')}
                 </span>
               )}
             </div>
@@ -122,10 +122,10 @@ export const EditScheduledModal: React.FC<EditScheduledModalProps> = ({
           <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-4">
             <div>
               <span className="font-bold text-emerald-950 dark:text-emerald-300 text-xs block">
-                Ready to train?
+                {t('calendar.readyToTrainTitle')}
               </span>
               <span className="text-[11px] text-emerald-800 dark:text-emerald-400/90 font-medium">
-                Launch this session into the active workout takeover tracker.
+                {t('calendar.readyToTrainDesc')}
               </span>
             </div>
             <button
@@ -191,7 +191,7 @@ export const EditScheduledModal: React.FC<EditScheduledModalProps> = ({
           {/* Status Selection */}
           <div className="space-y-1.5">
             <label className="font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 font-athletic">
-              Session Status
+              {t('calendar.sessionStatusTitle')}
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[

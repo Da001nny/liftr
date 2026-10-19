@@ -24,7 +24,7 @@ interface WorkoutHistoryViewProps {
 }
 
 export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefreshTrigger }) => {
-  const { t } = useTranslation();
+  const { t, tn } = useTranslation();
   const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
@@ -79,7 +79,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
       <div className="py-16 text-center text-neutral-500 space-y-2">
         <Dumbbell className="w-8 h-8 animate-spin mx-auto text-neutral-400" />
         <p className="text-xs font-medium font-athletic uppercase tracking-wider">
-          Loading workout history...
+          {t('workouts.loadingHistory')}
         </p>
       </div>
     );
@@ -99,7 +99,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
             {t('workouts.noHistory')}
           </h3>
           <p className="text-xs text-neutral-500 max-w-sm mx-auto">
-            Completed workouts and personal records automatically log here with duration and total volume metrics.
+            {t('workouts.noHistoryDesc')}
           </p>
         </div>
       </div>
@@ -114,7 +114,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
             {t('workouts.historyTitle')}
           </h2>
           <span className="text-xs text-neutral-500 font-medium font-athletic uppercase tracking-wider">
-            {workouts.length} completed sessions
+            {tn('workouts.completedSessionsCount', workouts.length)}
           </span>
         </div>
       </div>
@@ -139,7 +139,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
                     {workoutPRs.length > 0 && (
                       <span className="flex items-center gap-1 text-[10px] font-black font-athletic uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                         <Trophy className="w-3 h-3" />
-                        <span>{workoutPRs.length} PR{workoutPRs.length > 1 ? 's' : ''}</span>
+                        <span>{tn('workouts.prsCount', workoutPRs.length)}</span>
                       </span>
                     )}
                   </div>
@@ -154,7 +154,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
                   <div className="flex items-center gap-4 font-stat">
                     <div>
                       <span className="text-[10px] text-neutral-500 uppercase font-bold font-athletic block">
-                        Volume
+                        {t('workouts.volumeLabel')}
                       </span>
                       <span className="text-sm sm:text-base font-black text-neutral-900 dark:text-emerald-400">
                         {formatWeight(workout.total_volume, weightUnit)}
@@ -163,7 +163,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
 
                     <div>
                       <span className="text-[10px] text-neutral-500 uppercase font-bold font-athletic block">
-                        Duration
+                        {t('workouts.durationLabel')}
                       </span>
                       <span className="text-sm sm:text-base font-black text-neutral-900 dark:text-white">
                         {formatDuration(workout.duration_seconds)}

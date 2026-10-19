@@ -250,7 +250,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
                     ))}
                     {tpl.exercises.length > 4 && (
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-neutral-200 dark:bg-neutral-800 text-neutral-500">
-                        +{tpl.exercises.length - 4} more
+                        {t('workouts.moreExercises', { count: tpl.exercises.length - 4 })}
                       </span>
                     )}
                   </div>
@@ -258,7 +258,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
 
                 <div className="flex items-center justify-between pt-3 border-t border-neutral-200 dark:border-neutral-800">
                   <span className="text-[11px] text-neutral-500 font-athletic uppercase font-bold tracking-wider">
-                    {tpl.exercises.length} Exercises
+                    {tn('workouts.exercisesCount', tpl.exercises.length)}
                   </span>
 
                   <button

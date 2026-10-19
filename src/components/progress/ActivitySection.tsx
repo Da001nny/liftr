@@ -95,7 +95,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
               {t('progress.activitySectionTitle')}
             </h2>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-              Architected for future wearable integrations with manual daily tracking
+              {t('progress.activitySectionDesc')}
             </p>
           </div>
         </div>
@@ -137,7 +137,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
               {loading ? '...' : steps.toLocaleString()}
             </span>
             <span className="text-xs font-mono text-neutral-400 dark:text-neutral-500">
-              steps
+              {t('progress.stepsUnit')}
             </span>
           </div>
           <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block">
@@ -158,11 +158,11 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
               {goal.toLocaleString()}
             </span>
             <span className="text-xs font-mono text-neutral-400 dark:text-neutral-500">
-              daily target
+              {t('progress.dailyTargetUnit')}
             </span>
           </div>
           <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block">
-            Source: <span className="font-mono uppercase font-bold text-[10px] text-neutral-700 dark:text-neutral-300">{stepData?.source || 'manual'}</span>
+            {t('progress.sourceFormat', { source: (stepData?.source || 'manual').toUpperCase() })}
           </span>
         </div>
 
@@ -279,7 +279,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2.5 rounded-xl text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 font-bold font-athletic uppercase text-xs cursor-pointer"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"

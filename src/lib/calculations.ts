@@ -538,8 +538,6 @@ export function calculateMuscleExposureAnalytics(
       const contribs = CONTRIBUTIONS_BY_EXERCISE.get(we.exercise_id) || [];
       if (contribs.length === 0) continue;
 
-      // Replaces inline set loop with authoritative calculateWorkoutTotals logic.
-      // Counts only completed, non-warmup sets with weight > 0 and reps > 0.
       const sets = we.workout_sets || [];
       const { totalVolume: exVolume, completedWorkingSets: exSets } = calculateWorkoutTotals(sets);
       if (exSets === 0 || exVolume === 0) continue;

@@ -97,7 +97,7 @@ export const ProgressView: React.FC = () => {
             <span>{t('progress.prRulesBanner')}</span>
           </h3>
           <span className="text-[11px] font-mono text-neutral-500 dark:text-neutral-400 font-semibold hidden sm:inline-block">
-            Strict tie !== PR
+            {t('progress.strictTieRule')}
           </span>
         </div>
 
@@ -115,14 +115,14 @@ export const ProgressView: React.FC = () => {
                 <span className="font-mono text-[11px] font-bold text-neutral-400">01</span>
               </div>
               <span className="text-base font-black text-neutral-900 dark:text-white block mb-1 font-display uppercase tracking-wide">
-                1. Heaviest Weight
+                {t('progress.heaviestWeightTitle')}
               </span>
               <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
-                Maximum absolute load successfully moved for at least 1 rep. Strict tie does not trigger PR.
+                {t('progress.heaviestWeightDesc')}
               </p>
             </div>
             <div className="mt-3 pt-3 border-t border-neutral-200/80 dark:border-neutral-800/80 text-[10px] font-mono text-neutral-400 font-semibold">
-              max(weight) WHERE reps ≥ 1
+              {t('progress.heaviestWeightFormula')}
             </div>
           </div>
 
@@ -139,14 +139,14 @@ export const ProgressView: React.FC = () => {
                 <span className="font-mono text-[11px] font-bold text-neutral-400">02</span>
               </div>
               <span className="text-base font-black text-neutral-900 dark:text-white block mb-1 font-display uppercase tracking-wide">
-                2. Best Estimated 1RM
+                {t('progress.estimated1RMTitle')}
               </span>
               <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
-                Epley formula: weight × (1 + reps/30). When reps === 1, returns weight exactly.
+                {t('progress.estimated1RMDesc')}
               </p>
             </div>
             <div className="mt-3 pt-3 border-t border-neutral-200/80 dark:border-neutral-800/80 text-[10px] font-mono text-neutral-400 font-semibold">
-              weight * (1 + reps / 30)
+              {t('progress.estimated1RMFormula')}
             </div>
           </div>
 
@@ -163,14 +163,14 @@ export const ProgressView: React.FC = () => {
                 <span className="font-mono text-[11px] font-bold text-neutral-400">03</span>
               </div>
               <span className="text-base font-black text-neutral-900 dark:text-white block mb-1 font-display uppercase tracking-wide">
-                3. Single-Set Volume
+                {t('progress.singleSetVolumeTitle')}
               </span>
               <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
-                Maximal mechanical work output in one discrete set: weight × reps (not session volume).
+                {t('progress.singleSetVolumeDesc')}
               </p>
             </div>
             <div className="mt-3 pt-3 border-t border-neutral-200/80 dark:border-neutral-800/80 text-[10px] font-mono text-neutral-400 font-semibold">
-              max(weight * reps)
+              {t('progress.singleSetVolumeFormula')}
             </div>
           </div>
 
@@ -187,14 +187,14 @@ export const ProgressView: React.FC = () => {
                 <span className="font-mono text-[11px] font-bold text-neutral-400">04</span>
               </div>
               <span className="text-base font-black text-neutral-900 dark:text-white block mb-1 font-display uppercase tracking-wide">
-                4. Rep PR at Weight
+                {t('progress.repPrAtWeightTitle')}
               </span>
               <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed">
-                Most reps ever performed at a given discrete weight milestone. Tracked per load.
+                {t('progress.repPrAtWeightDesc')}
               </p>
             </div>
             <div className="mt-3 pt-3 border-t border-neutral-200/80 dark:border-neutral-800/80 text-[10px] font-mono text-neutral-400 font-semibold">
-              max(reps) AT weight
+              {t('progress.repPrAtWeightFormula')}
             </div>
           </div>
         </div>

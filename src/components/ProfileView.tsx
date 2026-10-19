@@ -88,7 +88,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onClose }) => {
             {t('profile.supabaseNoticeTitle')}
           </span>
           <p className="text-blue-900/80 dark:text-blue-300/80 font-medium">
-            {t('profile.supabaseNoticeDesc')} Every preference persists directly to Supabase Postgres with RLS scoped to <code className="bg-blue-500/20 px-1 py-0.5 rounded font-mono text-[11px] font-bold">{user?.id || 'auth.uid()'}</code>.
+            {t('profile.supabaseNoticeDescScoped', { userId: user?.id || 'auth.uid()' })}
           </p>
           <a
             href="https://supabase.com/dashboard/project/cetpdeuuymspiygxnmdg/editor"
@@ -118,13 +118,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onClose }) => {
           </div>
           {isSavingProfile && (
             <span className="text-[11px] font-mono text-neutral-600 dark:text-neutral-400 font-bold animate-pulse">
-              Syncing to Supabase...
+              {t('profile.syncingToSupabase')}
             </span>
           )}
         </div>
 
         <p className="text-xs text-neutral-600 dark:text-neutral-400 font-medium relative z-10">
-          Switch between neutral dark fintech titanium mode and airy minimal light mode.
+          {t('profile.themeSwitcherDesc')}
         </p>
 
         {/* Theme Mode Toggle: Dark / Light / System */}

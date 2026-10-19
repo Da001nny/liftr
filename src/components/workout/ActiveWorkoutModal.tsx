@@ -55,6 +55,7 @@ import {
   resolveCompletedSetWeight,
   SetPendingInputState
 } from '../../lib/setEditing';
+import { getSetTypeBadge } from '../../lib/labels';
 
 // Local controlled weight input that keeps raw text while user types, converting on blur/save
 // or directly when the set completion checkmark is tapped.
@@ -170,7 +171,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
   onSessionClosed,
   onWorkoutCompleted,
 }) => {
-  const { t } = useTranslation();
+  const { t, tn } = useTranslation();
   const { accentColor, weightUnit } = useTheme();
   const { token } = useAuth();
 
@@ -514,7 +515,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                 {formatWeight(liveStats.totalVolume, weightUnit)}
               </span>
               <span className="text-[10px] text-neutral-500 font-athletic uppercase tracking-wider">
-                {liveStats.completedSetsCount} sets done
+                {t('workoutLogger.setsDone', { count: liveStats.completedSetsCount })}
               </span>
             </div>
 
@@ -670,10 +671,10 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
               </span>
               <span>·</span>
               <span className="font-mono text-neutral-300">
-                {formatWeight(liveStats.totalVolume, weightUnit)} vol
+                {t('workoutLogger.workoutVolumeShort', { volume: formatWeight(liveStats.totalVolume, weightUnit) })}
               </span>
               <span>·</span>
-              <span>{liveStats.completedSetsCount} sets</span>
+              <span>{tn('workoutLogger.completedSets', liveStats.completedSetsCount, { count: liveStats.completedSetsCount })}</span>
             </div>
           </div>
         </div>
@@ -818,7 +819,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                               }`}
                               title={t('workoutLogger.toggleSetType')}
                             >
-                              {set.set_type === 'warmup' ? 'W' : set.set_type === 'drop' ? 'D' : set.set_type === 'failure' ? 'F' : set.set_number}
+                              {(set.set_type && set.set_type !== 'working' && getSetTypeBadge(set.set_type)) || set.set_number}
                             </button>
                           </td>
 
@@ -839,7 +840,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                             />
                             {prevSet && prevSet.weight > 0 && prevSet.reps > 0 && (
                               <span className="text-[10px] text-neutral-400 font-mono block mt-1 whitespace-nowrap">
-                                Prev: {formatWeight(prevSet.weight, weightUnit)} × {prevSet.reps}
+                                {t('workoutLogger.previousSetFormat', { weight: formatWeight(prevSet.weight, weightUnit), reps: prevSet.reps })}
                               </span>
                             )}
                           </td>

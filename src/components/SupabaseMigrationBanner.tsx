@@ -163,7 +163,7 @@ export const SupabaseMigrationBanner: React.FC = () => {
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-2xl w-full p-5 shadow-2xl flex flex-col max-h-[85vh]">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                  Supabase SQL Migration (public.profiles)
+                  {t('supabaseSetup.migrationModalTitle')}
                 </h3>
                 <button
                   onClick={() => setShowSqlModal(false)}

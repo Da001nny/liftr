@@ -116,7 +116,7 @@ export const ExerciseDetailModal: React.FC<ExerciseDetailModalProps> = ({ exerci
                 <span>{t('exerciseLibrary.estimatedInvolvement')}</span>
               </div>
               <span className="text-[11px] font-mono text-neutral-400">
-                100% Agonist Distribution
+                {t('exerciseLibrary.agonistDistribution')}
               </span>
             </div>
 

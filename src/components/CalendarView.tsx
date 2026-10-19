@@ -392,7 +392,7 @@ export const CalendarView: React.FC = () => {
                   {stats.consistencyPercent}%
                 </span>
                 <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-                  ({stats.completedScheduled} of {stats.totalScheduled} scheduled sessions completed)
+                  {t('calendar.completedScheduledRatio', { completed: stats.completedScheduled, total: stats.totalScheduled })}
                 </span>
               </div>
               <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed font-medium">
@@ -764,7 +764,11 @@ export const CalendarView: React.FC = () => {
                 {formatLocalTimestamp(`${dayViewData.dateStr}T12:00:00Z`, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mt-0.5">
-                {dayViewData.scheduledWorkouts.length} scheduled · {dayViewData.completedWorkouts.length} completed · {dayViewData.notes.length} notes
+                {t('calendar.dayStatsSummary', {
+                  scheduled: dayViewData.scheduledWorkouts.length,
+                  completed: dayViewData.completedWorkouts.length,
+                  notes: dayViewData.notes.length,
+                })}
               </p>
             </div>
 
@@ -793,7 +797,7 @@ export const CalendarView: React.FC = () => {
                   {t('calendar.noWorkoutsOnDate')}
                 </h4>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Tap Schedule Workout to plan an upcoming session.
+                  {t('calendar.tapScheduleToPlan')}
                 </p>
               </div>
             ) : (
@@ -810,7 +814,7 @@ export const CalendarView: React.FC = () => {
                         </span>
                         {sw.series_id && (
                           <span className="px-2 py-0.5 rounded text-[9px] font-bold font-athletic uppercase tracking-wider bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                            Recurring Series
+                            {t('calendar.recurringSeries')}
                           </span>
                         )}
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-athletic uppercase tracking-wider ${

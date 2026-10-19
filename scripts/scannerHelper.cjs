@@ -10,6 +10,7 @@ const ALLOWED = new Set([
   'N/A', // Universal abbreviation for not available / not applicable
   'UTC', // Universal Coordinated Time timezone code
   'ESC', // Escape keyboard shortcut symbol
+  '⌘K', // Universal keyboard shortcut symbol for Command+K
   '&quot;', // HTML entity for double quote
   '&#', // HTML entity numeric prefix
   '·', // Typographic interpunct dot separator
@@ -51,10 +52,7 @@ function shouldSkipFile(fullPath) {
   if (norm.includes('tests/') || norm.endsWith('.test.ts') || norm.endsWith('.spec.ts')) return true; // Test suites
   if (norm.includes('scripts/')) return true; // Script utilities
 
-  // AnatomicalModel.tsx: Interactive 3D/SVG mesh model not rendered anywhere in the application (replaced by generic Coming Soon block).
-  if (norm.endsWith('/src/components/anatomy/AnatomicalModel.tsx') || norm.endsWith('src/components/anatomy/AnatomicalModel.tsx')) return true;
-
-  // themePresets.ts: Technical constants for theme palette selections, not rendered anywhere in the application UI.
+  // themePresets.ts: Technical constants for theme palette selections, imported and re-exported by ThemeContext.
   if (norm.endsWith('/src/constants/themePresets.ts') || norm.endsWith('src/constants/themePresets.ts')) return true;
 
   return false;
@@ -103,6 +101,9 @@ function scanFile(filePath) {
   const lines = content.split('\n');
   const hits = [];
   let inClassNameTemplate = false;
+  let inJsxElement = false;
+  let inOpenTag = false;
+  let jsxExprDepth = 0;
 
   lines.forEach((line, idx) => {
     const lineNum = idx + 1;
@@ -126,27 +127,84 @@ function scanFile(filePath) {
       return;
     }
 
-    // 2b. If scanning server.ts: exempt console.* and log strings, and backend API response error/message fields (not fixed yet per prompt instructions)
+    // 2b. If scanning server.ts: exempt console.* and log strings, and backend API response error/message fields
     if (filePath.endsWith('server.ts')) {
-      // Exempt console.* and log strings
       if (line.includes('console.') || line.includes('logger.') || line.includes('[Server]') || line.includes('[DB]') || line.includes('[Migration]') || line.includes('log(')) {
         return;
       }
-      // Backend res.json error/message fields and query strings (not fixed yet per prompt 5)
       return;
     }
 
-    // 3. Raw JSX text: >Some Text< (.tsx only)
+    // 3. JSX text nodes with {...} expressions stripped (.tsx only)
     if (filePath.endsWith('.tsx')) {
-      const jsxRegex = />([^<>{}\r\n]+)</g;
+      function checkJsxTextCandidate(rawCandidate) {
+        if (!rawCandidate) return;
+        // Strip {...} expressions completely
+        let stripped = rawCandidate;
+        let prev;
+        do {
+          prev = stripped;
+          stripped = stripped.replace(/\{[^{}]*\}/g, '');
+        } while (stripped !== prev);
+
+        if (stripped.includes('{') || stripped.includes('}')) return;
+
+        const text = stripped.trim();
+        if (!text) return;
+        if (ALLOWED.has(text)) return;
+        if (/^[\d\s.,:;+/%–—×()#\-_&|'"`]+$/.test(text)) return;
+        if (/^(Promise|void|boolean|string|number|any|null|undefined)$/.test(text)) return;
+        if (!/[a-zA-Z]/.test(text)) return;
+        if (/^(const|let|var|import|export|function|return|if|else|switch|case|break)\b/.test(text)) return;
+        if (/[;=]/.test(text) && !text.includes(' ') && !text.includes('(')) return;
+        if (text.startsWith('<')) return;
+        if (text.startsWith('?') || text.startsWith(':')) return;
+
+        hits.push({ line: lineNum, type: 'jsx-text', text });
+      }
+
+      // Check 3a: Inline > ... < on this line
+      const jsxRegex = />([^<\r\n]+)</g;
       let jm;
       while ((jm = jsxRegex.exec(line)) !== null) {
-        const text = jm[1].trim();
-        if (!text) continue;
-        if (ALLOWED.has(text)) continue;
-        if (/^[\d\s.,:;+/%–—×()#\-_&|'"`]+$/.test(text)) continue;
-        if (/^(Promise|void|boolean|string|number|any|null|undefined)$/.test(text)) continue;
-        hits.push({ line: lineNum, type: 'jsx-text', text });
+        checkJsxTextCandidate(jm[1]);
+      }
+
+      // Check 3b: Multi-line JSX text between tags
+      let netBraces = 0;
+      for (let c of line) {
+        if (c === '{') netBraces++;
+        else if (c === '}') netBraces--;
+      }
+
+      if (jsxExprDepth > 0) {
+        jsxExprDepth = Math.max(0, jsxExprDepth + netBraces);
+      } else if (trim.startsWith('{') && netBraces > 0) {
+        jsxExprDepth = netBraces;
+      } else if (inJsxElement) {
+        if (trim.includes('<')) {
+          const before = trim.slice(0, trim.indexOf('<'));
+          checkJsxTextCandidate(before);
+          inJsxElement = false;
+        } else {
+          checkJsxTextCandidate(trim);
+        }
+      }
+
+      // Check if line opens or closes a JSX element
+      if (/<[a-zA-Z][a-zA-Z0-9_.:-]*/.test(trim) && !trim.includes('>') && !trim.includes('/>')) {
+        inOpenTag = true;
+      } else if (inOpenTag && (trim === '>' || trim.endsWith('>')) && !trim.endsWith('/>') && !trim.endsWith('=>')) {
+        inOpenTag = false;
+        inJsxElement = true;
+        jsxExprDepth = 0;
+      } else if (/<[a-zA-Z][a-zA-Z0-9_.:-]*[^>]*>$/.test(trim) && !trim.endsWith('/>') && !trim.endsWith('=>')) {
+        inJsxElement = true;
+        jsxExprDepth = 0;
+      } else if (trim.endsWith('/>') || trim.endsWith('</') || /<\/[a-zA-Z][a-zA-Z0-9_.:-]*>$/.test(trim)) {
+        inJsxElement = false;
+        inOpenTag = false;
+        jsxExprDepth = 0;
       }
     }
 

@@ -1193,6 +1193,34 @@ async function startServer() {
             });
           }
         }
+
+        // Recompute total_volume with isCountableSet if workout is completed
+        let totalSessionVolume = 0;
+        for (const ex of newBuiltExercises) {
+          for (const s of (ex.sets || [])) {
+            if (isCountableSet(s)) {
+              totalSessionVolume += calculateSingleSetVolume(Number(s.weight), Number(s.reps));
+            }
+          }
+        }
+
+        if (workout.status === 'completed') {
+          const { data: updatedWorkout } = await client
+            .from('workouts')
+            .update({ total_volume: totalSessionVolume, updated_at: new Date().toISOString() })
+            .eq('id', workoutId)
+            .eq('user_id', user.id)
+            .select()
+            .single();
+
+          if (updatedWorkout) {
+            workout.total_volume = updatedWorkout.total_volume;
+          } else {
+            workout.total_volume = totalSessionVolume;
+          }
+          await reconcileUserPRs(client, user.id);
+        }
+
         return res.json(apiResponse({ ...workout, exercises: newBuiltExercises }, 1, 1, 1));
       }
 
