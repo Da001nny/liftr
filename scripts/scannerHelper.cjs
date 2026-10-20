@@ -313,6 +313,17 @@ function scanFile(filePath) {
         }
       }
     }
+
+    // 9. String arguments to set*Error / set*Message / set*Status calls
+    const setterRegex = /\b(set[A-Za-z]*(?:Error|Message|Status))\s*\(\s*["'`]([^"'`\r\n]+)["'`]/g;
+    let stm;
+    while ((stm = setterRegex.exec(line)) !== null) {
+      const fnName = stm[1];
+      const val = stm[2].trim();
+      if (!val || ALLOWED.has(val) || isCssOrSvgOrCode(val)) continue;
+      if (/^[\d\s.,:;+/%–—×()#\-_]+$/.test(val)) continue;
+      hits.push({ line: lineNum, type: `setter:${fnName}`, text: val });
+    }
   });
 
   return hits;

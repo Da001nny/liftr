@@ -207,23 +207,28 @@ export const ExerciseProgressSection: React.FC = () => {
       </div>
 
       {/* Main Stats Callout */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-5">
-        <div className="p-4 rounded-2xl bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic">
-            {t('progress.currentLatestValue')}
-          </span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
-              {latestPoint 
-                ? (metric === 'maxReps' ? latestPoint[metric] : formatWeightValue(latestPoint[metric], weightUnit)) 
-                : '—'}
-            </span>
-            <span className="text-xs font-mono text-neutral-400">{metricUnit}</span>
-          </div>
-          <span className="text-[11px] text-neutral-400 block truncate">
-            {latestPoint ? `${latestPoint.date} · ${latestPoint.workoutName}` : t('progress.noSessionsRecorded')}
-          </span>
-        </div>
+      {(() => {
+        const latestSubtext = latestPoint 
+          ? `${latestPoint.date} · ${latestPoint.workoutName || t('workouts.untitled')}` 
+          : t('progress.noSessionsRecorded');
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-5">
+            <div className="p-4 rounded-2xl bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic">
+                {t('progress.currentLatestValue')}
+              </span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-black font-mono tracking-tight text-neutral-900 dark:text-white">
+                  {latestPoint 
+                    ? (metric === 'maxReps' ? latestPoint[metric] : formatWeightValue(latestPoint[metric], weightUnit)) 
+                    : '—'}
+                </span>
+                <span className="text-xs font-mono text-neutral-400">{metricUnit}</span>
+              </div>
+              <span className="text-[11px] text-neutral-400 block truncate">
+                {latestSubtext}
+              </span>
+            </div>
 
         <div className="p-4 rounded-2xl bg-neutral-100/90 dark:bg-neutral-900/90 border border-neutral-200 dark:border-neutral-800 space-y-1">
           <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 font-athletic flex items-center gap-1">
@@ -255,6 +260,8 @@ export const ExerciseProgressSection: React.FC = () => {
           </span>
         </div>
       </div>
+    );
+  })()}
 
       {/* Strength Curve SVG Chart */}
       <div className="p-5 rounded-2xl bg-neutral-50 dark:bg-neutral-950/60 border border-neutral-200 dark:border-neutral-800/80 space-y-3">
@@ -330,7 +337,7 @@ export const ExerciseProgressSection: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-neutral-500 text-[11px] font-semibold">{pt.date}</span>
                   <span className="font-bold text-neutral-900 dark:text-white truncate max-w-[160px] sm:max-w-none">
-                    {pt.workoutName}
+                    {pt.workoutName || t('workouts.untitled')}
                   </span>
                 </div>
 

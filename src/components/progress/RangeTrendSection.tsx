@@ -71,6 +71,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
 
   const isPositive = trendResult.percentageChange !== null && trendResult.percentageChange >= 0;
   const isNegative = trendResult.percentageChange !== null && trendResult.percentageChange < 0;
+  const displayTarget = trendResult.targetName || t('workouts.volumeLabel');
 
   const getTrendStatusText = (): string => {
     switch (trendResult.status.code) {
@@ -296,7 +297,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
             </div>
             <div>
               <span className="text-xs text-neutral-500 dark:text-neutral-400 font-athletic uppercase font-bold block">
-                {t('progress.targetVolumeHeading', { target: trendResult.targetName })}
+                {t('progress.targetVolumeHeading', { target: displayTarget })}
               </span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-3xl font-black font-display tracking-tight text-neutral-900 dark:text-white">
@@ -326,7 +327,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
             </div>
             <div>
               <span className="text-xs text-neutral-500 dark:text-neutral-400 font-athletic uppercase font-bold block">
-                {t('progress.targetVolumeHeading', { target: trendResult.targetName })}
+                {t('progress.targetVolumeHeading', { target: displayTarget })}
               </span>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-3xl font-black font-display tracking-tight text-neutral-900 dark:text-white">
@@ -363,7 +364,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
               </div>
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider block font-athletic">
-                  {t('progress.comparativeDeltaHeading', { target: trendResult.targetName })}
+                  {t('progress.comparativeDeltaHeading', { target: displayTarget })}
                 </span>
                 <p className="text-xs font-medium opacity-90 mt-0.5">
                   {isPositive

@@ -764,11 +764,11 @@ export const CalendarView: React.FC = () => {
                 {formatLocalTimestamp(`${dayViewData.dateStr}T12:00:00Z`, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mt-0.5">
-                {t('calendar.dayStatsSummary', {
-                  scheduled: dayViewData.scheduledWorkouts.length,
-                  completed: dayViewData.completedWorkouts.length,
-                  notes: dayViewData.notes.length,
-                })}
+                {[
+                  tn('calendar.scheduledCount', dayViewData.scheduledWorkouts.length),
+                  tn('calendar.completedCount', dayViewData.completedWorkouts.length),
+                  tn('calendar.notesCount', dayViewData.notes.length),
+                ].join(' · ')}
               </p>
             </div>
 

@@ -69,3 +69,10 @@ export const STEPS_CSV_HEADERS = [
 ] as const;
 
 export const STEPS_CSV_HEADER_PREVIEW = STEPS_CSV_HEADERS.join(', ');
+
+/**
+ * Authoritative default values for CSV export schema fields.
+ * These are fixed machine-readable export constants (RFC 4180), not translated UI strings.
+ */
+export const CSV_DEFAULT_WORKOUT_NAME = 'Workout';
+export const CSV_DEFAULT_ENTRY_SOURCE = 'manual';

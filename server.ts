@@ -20,7 +20,7 @@ import {
 } from './src/data/exerciseCatalog.ts';
 import {
   calculateEstimated1RM,
-  calculateSingleSetVolume,
+  calculateWorkoutTotals,
   calculateTotalSessionVolume,
   detectPersonalRecords,
   calculateCalendarConsistency,
@@ -1194,18 +1194,12 @@ async function startServer() {
           }
         }
 
-        // Recompute total_volume with isCountableSet if workout is completed
-        let totalSessionVolume = 0;
-        for (const ex of newBuiltExercises) {
-          for (const s of (ex.sets || [])) {
-            if (isCountableSet(s)) {
-              totalSessionVolume += calculateSingleSetVolume(Number(s.weight), Number(s.reps));
-            }
-          }
-        }
+        // Recompute total_volume with calculateWorkoutTotals if workout is completed
+        const allSets = newBuiltExercises.flatMap(ex => ex.sets || []);
+        const totalSessionVolume = calculateWorkoutTotals(allSets).totalVolume;
 
         if (workout.status === 'completed') {
-          const { data: updatedWorkout } = await client
+          const { data: updatedWorkout, error: updateVolumeError } = await client
             .from('workouts')
             .update({ total_volume: totalSessionVolume, updated_at: new Date().toISOString() })
             .eq('id', workoutId)
@@ -1213,11 +1207,11 @@ async function startServer() {
             .select()
             .single();
 
-          if (updatedWorkout) {
-            workout.total_volume = updatedWorkout.total_volume;
-          } else {
-            workout.total_volume = totalSessionVolume;
+          if (updateVolumeError || !updatedWorkout) {
+            return res.status(500).json(apiError(`Failed to update workout total volume: ${updateVolumeError?.message || 'Database update error'}`));
           }
+
+          workout.total_volume = updatedWorkout.total_volume;
           await reconcileUserPRs(client, user.id);
         }
 
@@ -1287,14 +1281,8 @@ async function startServer() {
 
       let totalSessionVolume = 0;
       if (fullWorkout && fullWorkout.workout_exercises) {
-        for (const we of fullWorkout.workout_exercises) {
-          for (const s of (we.workout_sets || [])) {
-            // Authoritative: sum(weight * reps) across completed non-warmup sets only
-            if (isCountableSet(s)) {
-              totalSessionVolume += calculateSingleSetVolume(Number(s.weight), Number(s.reps));
-            }
-          }
-        }
+        const allSets = fullWorkout.workout_exercises.flatMap((we: any) => we.workout_sets || []);
+        totalSessionVolume = calculateWorkoutTotals(allSets).totalVolume;
       }
 
       // 3. Mark workout as completed
@@ -2806,13 +2794,16 @@ async function startServer() {
         .limit(50);
 
       if (userWorkouts) {
+        // Default event title when workout name is omitted. The server has no user locale yet.
+        const ICAL_DEFAULT_EVENT_TITLE = 'Workout Session';
+
         for (const w of userWorkouts) {
           const wName = (w.name || '').toLowerCase();
           const wDate = (w.completed_at || w.started_at || '').slice(0, 10);
           if (wName.includes(query) || wDate.includes(query)) {
             results.push({
               id: `workout_${w.id}`,
-              title: w.name || 'Workout Session',
+              title: w.name || ICAL_DEFAULT_EVENT_TITLE,
               subtitle: wDate,
               type: 'workout',
               badge: 'Workout',

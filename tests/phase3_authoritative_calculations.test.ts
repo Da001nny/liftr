@@ -4,6 +4,7 @@ import {
   calculateEstimated1RM, 
   calculateSingleSetVolume, 
   calculateTotalSessionVolume, 
+  calculateWorkoutTotals,
   detectPersonalRecords,
   calculateCalendarConsistency,
   PersonalRecordState,
@@ -187,12 +188,7 @@ test('Phase 3 - 28. Editing completed workout recomputes total_volume with isCou
     { set_type: 'drop', weight: 80, reps: 10, completed: true },
     { set_type: 'failure', weight: 90, reps: 6, completed: true },
   ];
-  let totalVolume = 0;
-  for (const s of sets) {
-    if (isCountableSet(s as any)) {
-      totalVolume += calculateSingleSetVolume(s.weight, s.reps);
-    }
-  }
+  const { totalVolume } = calculateWorkoutTotals(sets as any);
   assert.strictEqual(totalVolume, 2140, 'Total volume should sum only countable completed sets (800 + 800 + 540 = 2140)');
 });
 

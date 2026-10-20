@@ -28,7 +28,6 @@ import {
 } from '../../types/database';
 import { 
   calculateEstimated1RM, 
-  calculateSingleSetVolume, 
   calculateTotalSessionVolume,
   isCountableSet
 } from '../../lib/calculations';
@@ -515,7 +514,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                 {formatWeight(liveStats.totalVolume, weightUnit)}
               </span>
               <span className="text-[10px] text-neutral-500 font-athletic uppercase tracking-wider">
-                {t('workoutLogger.setsDone', { count: liveStats.completedSetsCount })}
+                {tn('workoutLogger.setsDone', liveStats.completedSetsCount)}
               </span>
             </div>
 

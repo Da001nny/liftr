@@ -24,7 +24,9 @@ import { WeightUnit, kgToLbs } from './units';
 import { 
   getWorkoutsCsvHeaders, 
   getBodyweightCsvHeaders, 
-  STEPS_CSV_HEADERS 
+  STEPS_CSV_HEADERS,
+  CSV_DEFAULT_WORKOUT_NAME,
+  CSV_DEFAULT_ENTRY_SOURCE
 } from '../constants/csvHeaders';
 
 export interface ExerciseSet {
@@ -70,18 +72,6 @@ export function calculateEstimated1RM(weight: number, reps: number, unrounded = 
 }
 
 /**
- * Single-Set Volume calculation
- * Formula: weight * reps for ONE set (not session total)
- * 
- * BEST VOLUME INTERPRETATION: Represents best single-set volume (weight * reps), not session total volume.
- * Documented per specification: Volume PR evaluates maximal output achieved in a single discrete set.
- */
-export function calculateSingleSetVolume(weight: number, reps: number): number {
-  if (weight <= 0 || reps <= 0) return 0;
-  return Math.round(weight * reps * 100) / 100;
-}
-
-/**
  * Shared helper to determine if a set is countable for working volume, 1RM, and PR calculations.
  * Counts ONLY completed, non-warmup sets with weight > 0 and reps > 0.
  * Incomplete sets, warmup sets, or sets with non-positive weight/reps return false.
@@ -104,26 +94,43 @@ export function isCountableSet(set: {
 }
 
 /**
- * Single set volume calculation: weight * reps.
+ * Authoritative single set volume calculation.
  * Counts ONLY completed, non-warmup sets with weight > 0 and reps > 0 via isCountableSet.
  * Incomplete sets, warmup sets, or sets with non-positive weight/reps return 0.
- * 
- * NOTE: Drop ('drop') and failure ('failure') sets count as working sets.
- * Only warmup ('warmup') sets are excluded from working volume and metrics.
+ *
+ * Accepts either:
+ *   - A set object: { weight, reps, completed?, is_completed?, set_type? }, unrounded?: boolean
+ *   - Direct weight and reps numbers: (weight, reps, unrounded?: boolean)
  */
-export function calculateSetVolume(set: {
-  weight?: number | null;
-  reps?: number | null;
-  completed?: boolean | null;
-  is_completed?: boolean | null;
-  set_type?: string | null;
-} | null | undefined, unrounded = false): number {
-  if (!isCountableSet(set)) return 0;
-  const weight = Number(set!.weight) || 0;
-  const reps = Number(set!.reps) || 0;
-  if (unrounded) return weight * reps;
-  return calculateSingleSetVolume(weight, reps);
+export function calculateSetVolume(
+  setOrWeight: {
+    weight?: number | null;
+    reps?: number | null;
+    completed?: boolean | null;
+    is_completed?: boolean | null;
+    set_type?: string | null;
+  } | number | null | undefined,
+  repsOrUnrounded?: number | boolean,
+  unrounded = false
+): number {
+  if (typeof setOrWeight === 'number') {
+    const weight = setOrWeight;
+    const reps = typeof repsOrUnrounded === 'number' ? repsOrUnrounded : 0;
+    const isUnrounded = typeof repsOrUnrounded === 'boolean' ? repsOrUnrounded : unrounded;
+    if (weight <= 0 || reps <= 0) return 0;
+    if (isUnrounded) return weight * reps;
+    return Math.round(weight * reps * 100) / 100;
+  }
+
+  if (!isCountableSet(setOrWeight)) return 0;
+  const weight = Number(setOrWeight!.weight) || 0;
+  const reps = Number(setOrWeight!.reps) || 0;
+  const isUnrounded = typeof repsOrUnrounded === 'boolean' ? repsOrUnrounded : unrounded;
+  if (isUnrounded) return weight * reps;
+  return Math.round(weight * reps * 100) / 100;
 }
+
+export const calculateSingleSetVolume = calculateSetVolume;
 
 /**
  * Authoritative workout totals calculator across a collection of sets.
@@ -232,7 +239,7 @@ export function detectPersonalRecords(
   }
 
   const est1RM = calculateEstimated1RM(weight, reps);
-  const setVolume = calculateSingleSetVolume(weight, reps);
+  const setVolume = calculateSetVolume(weight, reps);
 
   // Strict > for all categories: compare canonical values rounded to 4 decimals
   // to eliminate floating-point noise so a tie is never treated as a PR.
@@ -464,7 +471,7 @@ export function calculateExerciseProgress(
       points.push({
         date: wDate,
         workoutId: w.id,
-        workoutName: w.name || 'Workout',
+        workoutName: w.name || null,
         heaviestWeight,
         maxReps,
         totalVolume: Math.round(totalVolume * 10) / 10,
@@ -709,7 +716,7 @@ export interface TrendComparisonResult {
   hasEnoughData: boolean;
   status: RangeTrendStatus;
   filterType: 'total_volume' | 'exercise' | 'region';
-  targetName: string;
+  targetName: string | null;
 }
 
 /**
@@ -809,7 +816,7 @@ export function calculateRangeTrendComparison(
   const metricsB = evalPeriod(periodB);
 
   // Target name resolution
-  let targetName = 'Total Volume';
+  let targetName: string | null = null;
   if (filter.type === 'exercise') {
     const ex = EXERCISES.find(e => e.id === filter.exerciseId);
     targetName = ex ? ex.name : filter.exerciseId;
@@ -1079,7 +1086,7 @@ export function generateWorkoutsCsv(workouts: any[], weightUnit: WeightUnit): st
 
   for (const w of sorted) {
     const date = (w.completed_at || w.started_at || w.created_at || '').slice(0, 10);
-    const workoutName = w.name || 'Workout';
+    const workoutName = w.name || CSV_DEFAULT_WORKOUT_NAME;
 
     for (const we of w.workout_exercises || []) {
       const exerciseObj = EXERCISES.find(e => e.id === we.exercise_id);
@@ -1149,7 +1156,7 @@ export function generateBodyweightCsv(entries: BodyweightEntryRow[], weightUnit:
       escapeCsvCell(displayWeight),
       escapeCsvCell(displayUnit),
       escapeCsvCell(e.notes || ''),
-      escapeCsvCell(e.source || 'manual'),
+      escapeCsvCell(e.source || CSV_DEFAULT_ENTRY_SOURCE),
     ].join(','));
   }
 
@@ -1168,7 +1175,7 @@ export function generateStepsCsv(entries: any[]): string {
   for (const s of sorted) {
     const stepCount = s.step_count !== undefined ? s.step_count : (s.steps !== undefined ? s.steps : 0);
     const goal = s.goal !== undefined ? s.goal : 10000;
-    const source = s.source || 'manual';
+    const source = s.source || CSV_DEFAULT_ENTRY_SOURCE;
     rows.push([
       escapeCsvCell(s.date),
       escapeCsvCell(stepCount),
