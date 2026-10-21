@@ -28,20 +28,3 @@ export const DEFAULT_PROFILE: Omit<UserProfile, 'id' | 'created_at' | 'updated_a
   distance_unit: 'km',
 };
 
-/**
- * Checks if the public.profiles table exists in Supabase.
- * Returns false if PGRST205 (table not found) occurs.
- */
-export async function checkSupabaseProfilesTable(): Promise<{ exists: boolean; error?: string }> {
-  try {
-    const { error } = await supabase.from('profiles').select('id').limit(1);
-    if (error) {
-      if (error.code === 'PGRST205' || error.message.includes('profiles')) {
-        return { exists: false, error: error.message };
-      }
-    }
-    return { exists: true };
-  } catch (err: any) {
-    return { exists: false, error: err?.message || 'Connection error' };
-  }
-}

@@ -54,7 +54,7 @@ import {
   resolveCompletedSetWeight,
   SetPendingInputState
 } from '../../lib/setEditing';
-import { getSetTypeBadge } from '../../lib/labels';
+import { getSetTypeBadge, getExerciseName } from '../../lib/labels';
 
 // Local controlled weight input that keeps raw text while user types, converting on blur/save
 // or directly when the set completion checkmark is tapped.
@@ -610,7 +610,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
                 {completionResult.newPRs.map((pr, idx) => (
                   <div key={idx} className="pt-1.5 first:pt-0 flex items-center justify-between text-xs">
                     <span className="font-semibold text-neutral-300 font-display">
-                      {pr.exercise_id.replace(/_/g, ' ')}
+                      {getExerciseName(pr.exercise_id)}
                     </span>
                     <span className="font-mono font-bold text-amber-300">
                       {formatPRDisplay(pr, weightUnit)}
@@ -736,7 +736,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
               <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
                 <div className="flex items-center gap-2">
                   <h3 className="text-base sm:text-lg font-bold font-display uppercase tracking-wide text-neutral-100">
-                    {ex.exerciseName || ex.exercise_id}
+                    {ex.exerciseName || getExerciseName(ex.exercise_id)}
                   </h3>
                   {ex.exerciseTargetRegion && (
                     <span className="text-[10px] font-bold font-athletic uppercase tracking-wider px-2 py-0.5 rounded-md bg-neutral-800 text-neutral-400">

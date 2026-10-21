@@ -77,6 +77,63 @@ function enrichExercise(ex: Exercise): EnrichedExercise {
   };
 }
 
+/**
+ * Authoritative exercise catalog filtering function.
+ * Filters exercises by region, muscle, equipment, difficulty, movementType, and search query.
+ * Reusable across services, components, and tests.
+ */
+export function filterExercises(
+  exercises: Exercise[],
+  filters: {
+    search?: string;
+    region?: string;
+    muscle?: string;
+    equipment?: string;
+    difficulty?: string;
+    movementType?: string;
+  }
+): Exercise[] {
+  let workingSet = filters.region && filters.region !== 'all' 
+    ? filterExercisesByRegion(filters.region)
+    : exercises;
+
+  if (filters.muscle && filters.muscle !== 'all') {
+    workingSet = workingSet.filter(ex => {
+      const contribs = CONTRIBUTIONS_BY_EXERCISE.get(ex.id) || [];
+      return contribs.some(c => c.muscleId === filters.muscle);
+    });
+  }
+
+  if (filters.equipment && filters.equipment !== 'all') {
+    workingSet = workingSet.filter(ex => ex.equipment === filters.equipment);
+  }
+
+  if (filters.difficulty && filters.difficulty !== 'all') {
+    workingSet = workingSet.filter(ex => ex.difficulty === filters.difficulty);
+  }
+
+  if (filters.movementType && filters.movementType !== 'all') {
+    workingSet = workingSet.filter(ex => ex.movementType === filters.movementType);
+  }
+
+  if (filters.search) {
+    const q = filters.search.toLowerCase().trim();
+    workingSet = workingSet.filter(ex => {
+      if (ex.name.toLowerCase().includes(q)) return true;
+      if (ex.description.toLowerCase().includes(q)) return true;
+      if (ex.equipment.toLowerCase().includes(q)) return true;
+      if (ex.targetRegionId.toLowerCase().includes(q)) return true;
+      const contribs = CONTRIBUTIONS_BY_EXERCISE.get(ex.id) || [];
+      return contribs.some(c => {
+        const m = MUSCLE_MAP.get(c.muscleId);
+        return m && (m.name.toLowerCase().includes(q) || m.commonName.toLowerCase().includes(q));
+      });
+    });
+  }
+
+  return workingSet;
+}
+
 export async function fetchExercises(
   params: ExerciseFilterParams,
   token?: string | null
@@ -114,43 +171,7 @@ export async function fetchExercises(
   }
 
   // Graceful local fallback adhering to exact Step 3 primary-region rule
-  let workingSet = params.region && params.region !== 'all' 
-    ? filterExercisesByRegion(params.region)
-    : EXERCISES;
-
-  if (params.muscle && params.muscle !== 'all') {
-    workingSet = workingSet.filter(ex => {
-      const contribs = CONTRIBUTIONS_BY_EXERCISE.get(ex.id) || [];
-      return contribs.some(c => c.muscleId === params.muscle);
-    });
-  }
-
-  if (params.equipment && params.equipment !== 'all') {
-    workingSet = workingSet.filter(ex => ex.equipment === params.equipment);
-  }
-
-  if (params.difficulty && params.difficulty !== 'all') {
-    workingSet = workingSet.filter(ex => ex.difficulty === params.difficulty);
-  }
-
-  if (params.movementType && params.movementType !== 'all') {
-    workingSet = workingSet.filter(ex => ex.movementType === params.movementType);
-  }
-
-  if (params.search) {
-    const q = params.search.toLowerCase().trim();
-    workingSet = workingSet.filter(ex => {
-      if (ex.name.toLowerCase().includes(q)) return true;
-      if (ex.description.toLowerCase().includes(q)) return true;
-      if (ex.equipment.toLowerCase().includes(q)) return true;
-      if (ex.targetRegionId.toLowerCase().includes(q)) return true;
-      const contribs = CONTRIBUTIONS_BY_EXERCISE.get(ex.id) || [];
-      return contribs.some(c => {
-        const m = MUSCLE_MAP.get(c.muscleId);
-        return m && (m.name.toLowerCase().includes(q) || m.commonName.toLowerCase().includes(q));
-      });
-    });
-  }
+  const workingSet = filterExercises(EXERCISES, params);
 
   const page = params.page || 1;
   const limit = params.limit || 12;

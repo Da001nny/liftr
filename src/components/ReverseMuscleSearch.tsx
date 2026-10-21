@@ -14,7 +14,7 @@ import { Muscle, MuscleRegion } from '../data/exerciseCatalog';
 import { 
   getRegionLabel, 
   getMuscleCommonName, 
-  getContributionRoleLabel, 
+  getMuscleRoleLabel, 
   getEquipmentLabel, 
   getDifficultyLabel 
 } from '../lib/labels';
@@ -187,7 +187,7 @@ export const ReverseMuscleSearch: React.FC<ReverseMuscleSearchProps> = ({ onSele
               ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30'
               : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30';
 
-            const roleLabel = getContributionRoleLabel(contribution.role);
+            const roleLabel = getMuscleRoleLabel(contribution.role);
 
             return (
               <div

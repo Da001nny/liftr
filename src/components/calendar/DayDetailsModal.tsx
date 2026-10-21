@@ -33,7 +33,7 @@ import {
 } from '../../lib/calendarService';
 import { formatLocalTimestamp } from '../../lib/calculations';
 import { formatWeight, formatPRDisplay } from '../../lib/units';
-import { getPRCategoryLabel, getNoteCategoryLabel, getScheduledStatusLabel } from '../../lib/labels';
+import { getPrCategoryLabel, getNoteCategoryLabel, getScheduledStatusLabel, getExerciseName } from '../../lib/labels';
 
 interface DayDetailsModalProps {
   isOpen: boolean;
@@ -301,7 +301,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                           key={we.id}
                           className="px-2 py-0.5 rounded-md text-[10px] font-bold font-athletic uppercase tracking-wider bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300"
                         >
-                          {we.exercise_id?.replace(/^ex_/, '').replace(/_/g, ' ')}
+                          {getExerciseName(we.exercise_id)}
                         </span>
                       ))}
                     </div>
@@ -327,10 +327,10 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                 >
                   <div>
                     <span className="text-xs font-bold text-yellow-950 dark:text-yellow-200 block uppercase font-display">
-                      {pr.exercise_id?.replace(/^ex_/, '').replace(/_/g, ' ')}
+                      {getExerciseName(pr.exercise_id)}
                     </span>
                     <span className="text-[10px] text-yellow-800 dark:text-yellow-400/80 font-athletic uppercase tracking-wider">
-                      {getPRCategoryLabel(pr.category)}
+                      {getPrCategoryLabel(pr.category)}
                     </span>
                   </div>
                   <span className="text-sm font-mono font-black text-yellow-900 dark:text-yellow-100">

@@ -3,8 +3,9 @@
  * 
  * Non-negotiable rule: Database-driven values (exercise difficulty, equipment,
  * movement type, PR categories, set types, region and muscle names, data sources,
- * and scheduled statuses) MUST go through this label-mapping layer. The stored database
- * value never changes; only the displayed label is looked up in the translation dictionary.
+ * scheduled statuses, and note categories) MUST go through this label-mapping layer.
+ * The stored database value never changes; only the displayed label is looked up
+ * in the translation dictionary.
  * 
  * Each enum mapping table is strictly typed with Record<UnionType, TranslationKeyPath>
  * so adding or altering an enum value without updating translations will fail tsc at build time.
@@ -17,7 +18,8 @@ import {
   DifficultyLevel, 
   EquipmentType, 
   MovementType, 
-  ContributionRole 
+  ContributionRole,
+  EXERCISES
 } from '../data/exerciseCatalog';
 
 export type PRCategory = 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
@@ -25,6 +27,7 @@ export type SetType = 'warmup' | 'working' | 'drop' | 'failure';
 export type RegionId = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'glutes' | 'core' | 'inner_thigh';
 export type DataSource = 'manual' | 'apple_health' | 'google_fit' | 'fitbit' | 'garmin';
 export type ScheduledStatus = 'scheduled' | 'completed' | 'missed' | 'cancelled';
+export type NoteCategory = 'general' | 'nutrition' | 'recovery';
 
 export type MuscleId =
   | 'm_chest_clavicular'
@@ -210,6 +213,12 @@ const SCHEDULED_STATUS_MAP: Record<ScheduledStatus, TranslationKeyPath> = {
   cancelled: 'scheduledStatuses.cancelled',
 };
 
+const NOTE_CATEGORY_MAP: Record<NoteCategory, TranslationKeyPath> = {
+  general: 'calendarNotes.general',
+  nutrition: 'calendarNotes.nutrition',
+  recovery: 'calendarNotes.recovery',
+};
+
 /**
  * Maps exercise difficulty level ('beginner' | 'intermediate' | 'advanced') to localized label.
  */
@@ -265,8 +274,6 @@ export function getPrCategoryLabel(category: string | null | undefined): string 
   const translated = t(key);
   return translated !== key ? translated : category;
 }
-
-export const getPRCategoryLabel = getPrCategoryLabel;
 
 /**
  * Maps set type ('warmup' | 'working' | 'drop' | 'failure') to localized label.
@@ -348,8 +355,6 @@ export function getMuscleRoleLabel(role: string | null | undefined): string {
   return translated !== key ? translated : role;
 }
 
-export const getContributionRoleLabel = getMuscleRoleLabel;
-
 /**
  * Maps data source identifier ('manual' | 'apple_health' | 'google_fit' | etc.) to localized label.
  */
@@ -383,9 +388,13 @@ export function getScheduledStatusLabel(status: string | null | undefined): stri
  */
 export function getNoteCategoryLabel(category: string | null | undefined): string {
   if (!category) return '';
-  const key = `calendarNotes.${category.toLowerCase()}` as TranslationKeyPath;
+  const key = NOTE_CATEGORY_MAP[category.toLowerCase() as NoteCategory];
+  if (!key) {
+    console.warn(`[getNoteCategoryLabel] Unknown note category: "${category}"`);
+    return category;
+  }
   const translated = t(key);
-  return translated !== key ? translated : category.charAt(0).toUpperCase() + category.slice(1);
+  return translated !== key ? translated : category;
 }
 
 /**
@@ -398,4 +407,16 @@ export function getExposureLevelLabel(level: string | null | undefined): string 
   if (lower === 'moderate') return t('progress.exposureModerate');
   if (lower === 'low') return t('progress.exposureLow');
   return level;
+}
+
+/**
+ * Looks up the exercise ID in authoritative EXERCISES catalog.
+ * Falls back to localized t('exercises.unknownExercise'), NEVER the raw ID.
+ */
+export function getExerciseName(exerciseId: string | null | undefined): string {
+  if (!exerciseId) return t('exercises.unknownExercise');
+  const normalized = exerciseId.trim();
+  const found = EXERCISES.find(e => e.id === normalized || e.id === `ex_${normalized}` || e.id.replace(/^ex_/, '') === normalized);
+  if (found) return found.name;
+  return t('exercises.unknownExercise');
 }

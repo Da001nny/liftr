@@ -268,7 +268,7 @@ export const MuscleExposureSection: React.FC = () => {
                         {m.muscleName}
                       </span>
                     </div>
-                    <span className="text-[11px] text-neutral-500 capitalize block truncate">
+                    <span className="text-[11px] text-neutral-500 block truncate">
                       {m.commonName} · {m.regionId}
                     </span>
                   </div>

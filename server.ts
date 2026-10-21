@@ -22,6 +22,7 @@ import {
   calculateEstimated1RM,
   calculateWorkoutTotals,
   calculateTotalSessionVolume,
+  calculateHistoricalPRs,
   detectPersonalRecords,
   calculateCalendarConsistency,
   calculateBodyweightStats,
@@ -761,77 +762,8 @@ async function startServer() {
       }> = [];
 
       for (const [exId, candidateSets] of exerciseSetsMap.entries()) {
-        let heaviestWeight = 0;
-        let bestEstimated1RM = 0;
-        let bestSingleSetVolume = 0;
-        const repPRsByWeight: Record<number, number> = {};
-
-        for (const cand of candidateSets) {
-          const res = detectPersonalRecords(
-            { weight: cand.weight, reps: cand.reps },
-            { heaviestWeight, bestEstimated1RM, bestSingleSetVolume, repPRsByWeight }
-          );
-
-          if (res.isHeaviestWeightPR && res.newHeaviestWeight !== undefined) {
-            heaviestWeight = res.newHeaviestWeight;
-            prsToInsert.push({
-              user_id: userId,
-              exercise_id: exId,
-              workout_id: cand.workoutId,
-              workout_set_id: cand.setId,
-              category: 'heaviest_weight',
-              value: res.newHeaviestWeight,
-              weight: res.newHeaviestWeight,
-              reps: cand.reps,
-              achieved_at: cand.achievedAt,
-            });
-          }
-
-          if (res.isEstimated1RMPR && res.newEstimated1RM !== undefined) {
-            bestEstimated1RM = res.newEstimated1RM;
-            prsToInsert.push({
-              user_id: userId,
-              exercise_id: exId,
-              workout_id: cand.workoutId,
-              workout_set_id: cand.setId,
-              category: 'best_estimated_1rm',
-              value: res.newEstimated1RM,
-              weight: cand.weight,
-              reps: cand.reps,
-              achieved_at: cand.achievedAt,
-            });
-          }
-
-          if (res.isSingleSetVolumePR && res.newSingleSetVolume !== undefined) {
-            bestSingleSetVolume = res.newSingleSetVolume;
-            prsToInsert.push({
-              user_id: userId,
-              exercise_id: exId,
-              workout_id: cand.workoutId,
-              workout_set_id: cand.setId,
-              category: 'best_single_set_volume',
-              value: res.newSingleSetVolume,
-              weight: cand.weight,
-              reps: cand.reps,
-              achieved_at: cand.achievedAt,
-            });
-          }
-
-          if (res.isRepPR && res.newRepPR) {
-            repPRsByWeight[res.newRepPR.weight] = res.newRepPR.reps;
-            prsToInsert.push({
-              user_id: userId,
-              exercise_id: exId,
-              workout_id: cand.workoutId,
-              workout_set_id: cand.setId,
-              category: 'rep_pr',
-              value: res.newRepPR.weight,
-              weight: res.newRepPR.weight,
-              reps: res.newRepPR.reps,
-              achieved_at: cand.achievedAt,
-            });
-          }
-        }
+        const exercisePRs = calculateHistoricalPRs(candidateSets, exId, userId);
+        prsToInsert.push(...exercisePRs);
       }
 
       if (prsToInsert.length > 0) {

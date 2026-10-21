@@ -18,6 +18,7 @@ import { fetchWorkouts, deleteWorkoutSession, fetchPersonalRecords } from '../..
 import { formatLocalTimestamp } from '../../lib/calculations';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { formatWeight, formatPRDisplay } from '../../lib/units';
+import { getExerciseName } from '../../lib/labels';
 
 interface WorkoutHistoryViewProps {
   onRefreshTrigger?: number;
@@ -194,7 +195,7 @@ export const WorkoutHistoryView: React.FC<WorkoutHistoryViewProps> = ({ onRefres
                       key={idx} 
                       className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
                     >
-                      {pr.exercise_id.replace(/_/g, ' ')}: {formatPRDisplay(pr, weightUnit)}
+                      {getExerciseName(pr.exercise_id)}: {formatPRDisplay(pr, weightUnit)}
                     </span>
                   ))}
                 </div>

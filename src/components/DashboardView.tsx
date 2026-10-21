@@ -18,7 +18,7 @@ import { calculateCalendarConsistency, formatLocalTimestamp } from '../lib/calcu
 import { fetchDashboardSummary, DashboardSummaryData } from '../lib/workoutService';
 import { useWorkout } from '../context/WorkoutContext';
 import { formatWeight, formatWeightValue, formatPRDisplay } from '../lib/units';
-import { getPRCategoryLabel } from '../lib/labels';
+import { getPrCategoryLabel, getExerciseName } from '../lib/labels';
 
 interface DashboardViewProps {
   onNavigateTab: (tab: TabId) => void;
@@ -345,11 +345,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigateTab }) =
                   className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-neutral-800/80 border border-neutral-200 dark:border-neutral-700 text-xs"
                 >
                   <div>
-                    <span className="font-bold block capitalize font-display">
-                      {pr.exercise_id.replace(/_/g, ' ')}
+                    <span className="font-bold block font-display">
+                      {getExerciseName(pr.exercise_id)}
                     </span>
                     <span className="text-[10px] text-neutral-500 uppercase font-athletic font-bold">
-                      {getPRCategoryLabel(pr.category)}
+                      {getPrCategoryLabel(pr.category)}
                     </span>
                   </div>
                   <span className="font-mono font-black text-amber-500 text-sm">

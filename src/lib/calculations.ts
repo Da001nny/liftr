@@ -213,6 +213,111 @@ export function calculateCompletedWorkingRepsCount(sets: Array<{
   return calculateWorkoutTotals(sets).completedWorkingReps;
 }
 
+export interface HistoricalPRCandidateSet {
+  workoutId: string;
+  setId: string;
+  weight: number;
+  reps: number;
+  achievedAt: string;
+}
+
+export interface GeneratedPRRecord {
+  user_id: string;
+  exercise_id: string;
+  workout_id: string;
+  workout_set_id: string;
+  category: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
+  value: number;
+  weight: number | null;
+  reps: number | null;
+  achieved_at: string;
+}
+
+/**
+ * Authoritative historical PR computation across a chronological list of completed working sets for an exercise.
+ * Shared between backend (server.ts) and unit tests to ensure single PR engine implementation.
+ */
+export function calculateHistoricalPRs(
+  candidateSets: HistoricalPRCandidateSet[],
+  exerciseId: string,
+  userId: string
+): GeneratedPRRecord[] {
+  let heaviestWeight = 0;
+  let bestEstimated1RM = 0;
+  let bestSingleSetVolume = 0;
+  const repPRsByWeight: Record<number, number> = {};
+  const prs: GeneratedPRRecord[] = [];
+
+  for (const cand of candidateSets) {
+    const res = detectPersonalRecords(
+      { weight: cand.weight, reps: cand.reps },
+      { heaviestWeight, bestEstimated1RM, bestSingleSetVolume, repPRsByWeight }
+    );
+
+    if (res.isHeaviestWeightPR && res.newHeaviestWeight !== undefined) {
+      heaviestWeight = res.newHeaviestWeight;
+      prs.push({
+        user_id: userId,
+        exercise_id: exerciseId,
+        workout_id: cand.workoutId,
+        workout_set_id: cand.setId,
+        category: 'heaviest_weight',
+        value: res.newHeaviestWeight,
+        weight: res.newHeaviestWeight,
+        reps: cand.reps,
+        achieved_at: cand.achievedAt,
+      });
+    }
+
+    if (res.isEstimated1RMPR && res.newEstimated1RM !== undefined) {
+      bestEstimated1RM = res.newEstimated1RM;
+      prs.push({
+        user_id: userId,
+        exercise_id: exerciseId,
+        workout_id: cand.workoutId,
+        workout_set_id: cand.setId,
+        category: 'best_estimated_1rm',
+        value: res.newEstimated1RM,
+        weight: cand.weight,
+        reps: cand.reps,
+        achieved_at: cand.achievedAt,
+      });
+    }
+
+    if (res.isSingleSetVolumePR && res.newSingleSetVolume !== undefined) {
+      bestSingleSetVolume = res.newSingleSetVolume;
+      prs.push({
+        user_id: userId,
+        exercise_id: exerciseId,
+        workout_id: cand.workoutId,
+        workout_set_id: cand.setId,
+        category: 'best_single_set_volume',
+        value: res.newSingleSetVolume,
+        weight: cand.weight,
+        reps: cand.reps,
+        achieved_at: cand.achievedAt,
+      });
+    }
+
+    if (res.isRepPR && res.newRepPR) {
+      repPRsByWeight[res.newRepPR.weight] = res.newRepPR.reps;
+      prs.push({
+        user_id: userId,
+        exercise_id: exerciseId,
+        workout_id: cand.workoutId,
+        workout_set_id: cand.setId,
+        category: 'rep_pr',
+        value: res.newRepPR.weight,
+        weight: res.newRepPR.weight,
+        reps: res.newRepPR.reps,
+        achieved_at: cand.achievedAt,
+      });
+    }
+  }
+
+  return prs;
+}
+
 /**
  * PR Detection across all four categories:
  * 1. Heaviest weight
@@ -221,13 +326,26 @@ export function calculateCompletedWorkingRepsCount(sets: Array<{
  * 4. Rep PR at a given weight
  * 
  * Strict '>' rule: An exact tie is NEVER a new PR.
+ * Evaluates candidate sets using isCountableSet and unrounded volume compared at 4 decimals.
  */
 export function detectPersonalRecords(
-  candidate: PersonalRecordCandidate,
+  candidate: PersonalRecordCandidate | {
+    weight?: number | null;
+    reps?: number | null;
+    completed?: boolean | null;
+    is_completed?: boolean | null;
+    set_type?: string | null;
+  },
   currentRecords: PersonalRecordState
 ): DetectedPRs {
-  const { weight, reps } = candidate;
-  if (weight <= 0 || reps <= 0) {
+  const candidateSet = {
+    weight: candidate.weight,
+    reps: candidate.reps,
+    completed: (candidate as any).completed ?? (candidate as any).is_completed ?? true,
+    set_type: (candidate as any).set_type ?? 'working',
+  };
+
+  if (!isCountableSet(candidateSet)) {
     return {
       isHeaviestWeightPR: false,
       isEstimated1RMPR: false,
@@ -236,8 +354,11 @@ export function detectPersonalRecords(
     };
   }
 
+  const weight = Number(candidate.weight) || 0;
+  const reps = Number(candidate.reps) || 0;
+
   const est1RM = calculateEstimated1RM(weight, reps);
-  const setVolume = calculateSetVolume(weight, reps);
+  const unroundedVolume = calculateSetVolume(candidateSet, true);
 
   // Strict > for all categories: compare canonical values rounded to 4 decimals
   // to eliminate floating-point noise so a tie is never treated as a PR.
@@ -249,7 +370,7 @@ export function detectPersonalRecords(
   const currEst1RM = Math.round((currentRecords.bestEstimated1RM ?? 0) * 10000) / 10000;
   const isEstimated1RMPR = candEst1RM > currEst1RM;
 
-  const candVol = Math.round(setVolume * 10000) / 10000;
+  const candVol = Math.round(unroundedVolume * 10000) / 10000;
   const currVol = Math.round((currentRecords.bestSingleSetVolume ?? 0) * 10000) / 10000;
   const isSingleSetVolumePR = candVol > currVol;
 
@@ -275,7 +396,7 @@ export function detectPersonalRecords(
     isRepPR,
     newHeaviestWeight: isHeaviestWeightPR ? weight : undefined,
     newEstimated1RM: isEstimated1RMPR ? est1RM : undefined,
-    newSingleSetVolume: isSingleSetVolumePR ? setVolume : undefined,
+    newSingleSetVolume: isSingleSetVolumePR ? unroundedVolume : undefined,
     newRepPR: isRepPR ? { weight, reps } : undefined,
   };
 }

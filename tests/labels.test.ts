@@ -6,6 +6,8 @@ import {
   MUSCLES, 
   MUSCLE_REGIONS 
 } from '../src/data/exerciseCatalog';
+import { filterExercises } from '../src/lib/exerciseService';
+import { calculateHistoricalPRs } from '../src/lib/calculations';
 import { 
   getDifficultyLabel, 
   getEquipmentLabel, 
@@ -17,7 +19,9 @@ import {
   getMuscleCommonName, 
   getMuscleRoleLabel, 
   getDataSourceLabel, 
-  getScheduledStatusLabel 
+  getScheduledStatusLabel,
+  getNoteCategoryLabel,
+  getExerciseName
 } from '../src/lib/labels';
 
 test('Label Mapping: all distinct equipment values in catalog resolve to non-empty localized strings', () => {
@@ -93,8 +97,8 @@ test('Label Mapping: selecting equipment "barbell" still filters by the raw valu
   const label = getEquipmentLabel(rawSelection);
   assert.strictEqual(label, 'Barbell');
 
-  // Filter query operates strictly against raw database column value
-  const filtered = EXERCISES.filter(ex => ex.equipment === rawSelection);
+  // Filter query operates strictly against raw database column value via shared filterExercises
+  const filtered = filterExercises(EXERCISES, { equipment: rawSelection });
   assert.ok(filtered.length > 0, 'Filtered exercises list should have barbell exercises');
   for (const ex of filtered) {
     assert.strictEqual(ex.equipment, 'barbell', 'Every matched exercise has raw equipment value "barbell"');
@@ -125,6 +129,12 @@ test('Label Mapping: PR categories, set types, data sources, and scheduled statu
     const label = getScheduledStatusLabel(status);
     assert.ok(label && !label.startsWith('scheduledStatuses.'));
   }
+
+  const noteCategories = ['general', 'nutrition', 'recovery'] as const;
+  for (const cat of noteCategories) {
+    const label = getNoteCategoryLabel(cat);
+    assert.ok(label && !label.startsWith('calendarNotes.'));
+  }
 });
 
 test('Plural translations: tn resolves setsDone and notesCount singular variants properly', () => {
@@ -132,4 +142,26 @@ test('Plural translations: tn resolves setsDone and notesCount singular variants
   assert.strictEqual(tn('calendar.notesCount', 1), '1 note');
   assert.strictEqual(tn('workoutLogger.setsDone', 2), '2 sets done');
   assert.strictEqual(tn('calendar.notesCount', 3), '3 notes');
+});
+
+test('Exercise names: getExerciseName looks up catalog ID and falls back to localized unknownExercise', () => {
+  assert.strictEqual(getExerciseName('ex_barbell_bench_press'), 'Barbell Bench Press');
+  assert.strictEqual(getExerciseName('barbell_bench_press'), 'Barbell Bench Press');
+  assert.strictEqual(getExerciseName('nonexistent_exercise_123'), 'Unknown Exercise');
+  assert.strictEqual(getExerciseName(null), 'Unknown Exercise');
+});
+
+test('PR Reconciliation: calculateHistoricalPRs evaluates chronological real-shaped sets correctly', () => {
+  const candidateSets = [
+    { workoutId: 'w1', setId: 's1', weight: 100, reps: 5, achievedAt: '2026-01-01T10:00:00Z' },
+    { workoutId: 'w2', setId: 's2', weight: 100, reps: 5, achievedAt: '2026-01-02T10:00:00Z' }, // tie - no PR
+    { workoutId: 'w3', setId: 's3', weight: 105, reps: 5, achievedAt: '2026-01-03T10:00:00Z' }, // new heaviest & 1RM & volume
+    { workoutId: 'w4', setId: 's4', weight: 100, reps: 8, achievedAt: '2026-01-04T10:00:00Z' }, // rep PR & volume PR
+  ];
+  const prs = calculateHistoricalPRs(candidateSets, 'ex_barbell_bench_press', 'usr_test');
+  assert.ok(prs.length > 0, 'Should generate PR records');
+  assert.ok(prs.some(p => p.category === 'heaviest_weight' && p.value === 105));
+  assert.ok(prs.some(p => p.category === 'rep_pr' && p.reps === 8));
+  // Exact tie on w2 generated 0 PRs for w2
+  assert.strictEqual(prs.filter(p => p.workout_id === 'w2').length, 0);
 });

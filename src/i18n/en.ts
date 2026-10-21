@@ -370,6 +370,9 @@ export const en = {
     nutrition: 'Nutrition / Hydration',
     recovery: 'Recovery / Sleep',
   },
+  exercises: {
+    unknownExercise: 'Unknown Exercise',
+  },
   dataSources: {
     manual: 'Manual',
     apple_health: 'Apple Health',

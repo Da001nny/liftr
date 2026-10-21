@@ -255,7 +255,7 @@ export const ExerciseProgressSection: React.FC = () => {
           <div className="text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate">
             {selectedExercise?.name}
           </div>
-          <span className="text-xs text-neutral-500 capitalize block">
+          <span className="text-xs text-neutral-500 block">
             {getRegionLabel(selectedExercise?.targetRegionId)} · {getMovementTypeLabel(selectedExercise?.movementType)} · {getEquipmentLabel(selectedExercise?.equipment)}
           </span>
         </div>
