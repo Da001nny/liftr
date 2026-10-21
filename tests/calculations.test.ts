@@ -927,5 +927,12 @@ test('tn plural lookup selects _one for 1 and _other for 0 and 2', () => {
   assert.strictEqual(tn('workouts.savedRoutinesCount', 2), '2 saved routines');
 });
 
+test('tn plural lookup correctly formats setsDone and notesCount', () => {
+  assert.strictEqual(tn('workoutLogger.setsDone', 1), '1 set done');
+  assert.strictEqual(tn('calendar.notesCount', 1), '1 note');
+  assert.strictEqual(tn('workoutLogger.setsDone', 2), '2 sets done');
+  assert.strictEqual(tn('calendar.notesCount', 2), '2 notes');
+});
+
 
 

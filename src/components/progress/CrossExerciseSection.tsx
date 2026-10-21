@@ -17,6 +17,7 @@ import {
   CrossExerciseComparison
 } from '../../lib/calculations';
 import { formatWeight, formatWeightValue } from '../../lib/units';
+import { getEquipmentLabel } from '../../lib/labels';
 
 interface CrossExerciseSectionProps {
   workouts: any[];
@@ -218,7 +219,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
           >
             {EXERCISES.map(ex => (
               <option key={ex.id} value={ex.id}>
-                {ex.name} ({ex.equipment})
+                {ex.name} ({getEquipmentLabel(ex.equipment)})
               </option>
             ))}
           </select>
@@ -239,7 +240,7 @@ export const CrossExerciseSection: React.FC<CrossExerciseSectionProps> = ({ work
           >
             {EXERCISES.map(ex => (
               <option key={ex.id} value={ex.id}>
-                {ex.name} ({ex.equipment})
+                {ex.name} ({getEquipmentLabel(ex.equipment)})
               </option>
             ))}
           </select>

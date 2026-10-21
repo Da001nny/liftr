@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { StepEntryRow } from '../../types/database';
 import { fetchStepEntry, saveStepEntry } from '../../lib/progressService';
 import { formatDistance } from '../../lib/units';
+import { getDataSourceLabel } from '../../lib/labels';
 
 interface ActivitySectionProps {
   onRefresh?: () => void;
@@ -162,7 +163,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
             </span>
           </div>
           <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium block">
-            {t('progress.sourceFormat', { source: (stepData?.source || 'manual').toUpperCase() })}
+            {t('progress.sourceFormat', { source: getDataSourceLabel(stepData?.source || 'manual') })}
           </span>
         </div>
 

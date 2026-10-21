@@ -130,8 +130,6 @@ export function calculateSetVolume(
   return Math.round(weight * reps * 100) / 100;
 }
 
-export const calculateSingleSetVolume = calculateSetVolume;
-
 /**
  * Authoritative workout totals calculator across a collection of sets.
  * Evaluates:

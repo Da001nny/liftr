@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { 
   calculateEstimated1RM, 
-  calculateSingleSetVolume, 
+  calculateSetVolume, 
   calculateTotalSessionVolume, 
   calculateWorkoutTotals,
   detectPersonalRecords,
@@ -40,11 +40,11 @@ test('Phase 3 - 6. Epley 1RM: 0 reps returns 0', () => {
 });
 
 test('Phase 3 - 7. Volume: Single set volume 80kg x 8 = 640kg', () => {
-  assert.strictEqual(calculateSingleSetVolume(80, 8), 640);
+  assert.strictEqual(calculateSetVolume(80, 8), 640);
 });
 
 test('Phase 3 - 8. Volume: Single set decimal volume 100.5kg x 4 = 402kg', () => {
-  assert.strictEqual(calculateSingleSetVolume(100.5, 4), 402);
+  assert.strictEqual(calculateSetVolume(100.5, 4), 402);
 });
 
 test('Phase 3 - 9. Volume: Total session volume sums completed working sets only (1000 + 800 = 1800kg)', () => {
@@ -180,7 +180,7 @@ test('Phase 3 - 27. Rep PR Rule: 8 reps at 100 kg after 8 reps at 120 kg is a st
   assert.strictEqual(result.isRepPR, false, '8 reps at 100kg should tie the 8 reps at 120kg and be rejected by strict > rule');
 });
 
-test('Phase 3 - 28. Editing completed workout recomputes total_volume with isCountableSet', () => {
+test('Phase 3 - 28. calculateWorkoutTotals sums only countable completed working sets', () => {
   const sets = [
     { set_type: 'warmup', weight: 60, reps: 10, completed: true },
     { set_type: 'working', weight: 100, reps: 5, completed: false },

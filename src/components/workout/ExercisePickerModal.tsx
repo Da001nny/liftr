@@ -3,6 +3,7 @@ import { Search, X, Dumbbell, Plus } from 'lucide-react';
 import { EXERCISES, REGION_MAP, Exercise } from '../../data/exerciseCatalog';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../context/ThemeContext';
+import { getEquipmentLabel, getDifficultyLabel, getRegionLabel } from '../../lib/labels';
 
 interface ExercisePickerModalProps {
   isOpen: boolean;
@@ -145,11 +146,11 @@ export const ExercisePickerModal: React.FC<ExercisePickerModalProps> = ({
                       {ex.name}
                     </h4>
                     <div className="flex items-center gap-2 text-[11px] text-neutral-500 dark:text-neutral-400 font-athletic uppercase tracking-wider font-semibold">
-                      <span>{region?.name || ex.targetRegionId}</span>
+                      <span>{getRegionLabel(ex.targetRegionId, region?.name)}</span>
                       <span>·</span>
-                      <span>{ex.equipment}</span>
+                      <span>{getEquipmentLabel(ex.equipment)}</span>
                       <span>·</span>
-                      <span className="capitalize">{ex.difficulty}</span>
+                      <span>{getDifficultyLabel(ex.difficulty)}</span>
                     </div>
                   </div>
 

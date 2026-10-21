@@ -370,6 +370,19 @@ export const en = {
     nutrition: 'Nutrition / Hydration',
     recovery: 'Recovery / Sleep',
   },
+  dataSources: {
+    manual: 'Manual',
+    apple_health: 'Apple Health',
+    google_fit: 'Google Fit',
+    fitbit: 'Fitbit',
+    garmin: 'Garmin',
+  },
+  scheduledStatuses: {
+    scheduled: 'Scheduled',
+    completed: 'Completed',
+    missed: 'Missed',
+    cancelled: 'Cancelled',
+  },
   muscles: {
     m_chest_clavicular: { name: 'Clavicular Head (Upper Chest)', commonName: 'Upper Chest' },
     m_chest_sternal: { name: 'Sternal Head (Mid Chest)', commonName: 'Mid Chest' },

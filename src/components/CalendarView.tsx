@@ -38,6 +38,7 @@ import {
 } from '../types/database';
 import { MUSCLES, EXERCISES, CONTRIBUTIONS_BY_EXERCISE } from '../data/exerciseCatalog';
 import { formatLocalTimestamp } from '../lib/calculations';
+import { getScheduledStatusLabel } from '../lib/labels';
 import { formatMonthYear, formatFullDate } from '../lib/date';
 import { getMuscleLabel, getMuscleCommonName } from '../lib/labels';
 import { formatWeight } from '../lib/units';
@@ -716,7 +717,7 @@ export const CalendarView: React.FC = () => {
                           ? 'bg-emerald-500/20 text-emerald-400'
                           : (sw.status === 'missed' ? 'bg-rose-500/20 text-rose-400' : 'bg-blue-500/20 text-blue-400')
                       }`}>
-                        {sw.status}
+                        {getScheduledStatusLabel(sw.status)}
                       </span>
                     </div>
                   ))}
@@ -822,7 +823,7 @@ export const CalendarView: React.FC = () => {
                             ? 'bg-emerald-500/20 text-emerald-400'
                             : (sw.status === 'missed' ? 'bg-rose-500/20 text-rose-400' : 'bg-blue-500/20 text-blue-400')
                         }`}>
-                          {sw.status}
+                          {getScheduledStatusLabel(sw.status)}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-neutral-500 font-medium">

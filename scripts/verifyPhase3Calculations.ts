@@ -1,6 +1,6 @@
 import { 
   calculateEstimated1RM, 
-  calculateSingleSetVolume, 
+  calculateSetVolume, 
   calculateTotalSessionVolume, 
   detectPersonalRecords,
   calculateCalendarConsistency,
@@ -42,8 +42,8 @@ assert(calculateEstimated1RM(100, 0) === 0, '0 reps returns 0');
 
 // 2. Volume Calculations
 console.log('\n--- 2. Single-Set and Session Volume ---');
-assert(calculateSingleSetVolume(80, 8) === 640, 'Single set volume 80kg x 8 = 640kg');
-assert(calculateSingleSetVolume(100.5, 4) === 402, 'Single set decimal volume 100.5kg x 4 = 402kg');
+assert(calculateSetVolume(80, 8) === 640, 'Single set volume 80kg x 8 = 640kg');
+assert(calculateSetVolume(100.5, 4) === 402, 'Single set decimal volume 100.5kg x 4 = 402kg');
 
 const sampleSets = [
   { weight: 60, reps: 10, completed: true, set_type: 'warmup' as const }, // Warmup: excluded

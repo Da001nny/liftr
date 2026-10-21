@@ -22,6 +22,7 @@ import {
   TrendPeriodPresetId
 } from '../../lib/calculations';
 import { formatWeight, formatWeightValue } from '../../lib/units';
+import { getEquipmentLabel, getRegionLabel } from '../../lib/labels';
 
 interface RangeTrendSectionProps {
   workouts: any[];
@@ -254,7 +255,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
             >
               {EXERCISES.map(ex => (
                 <option key={ex.id} value={ex.id}>
-                  {ex.name} ({ex.equipment})
+                  {ex.name} ({getEquipmentLabel(ex.equipment)})
                 </option>
               ))}
             </select>
@@ -270,7 +271,7 @@ export const RangeTrendSection: React.FC<RangeTrendSectionProps> = ({ workouts }
             >
               {MUSCLE_REGIONS.map(reg => (
                 <option key={reg.id} value={reg.id}>
-                  {reg.name} {t('progress.regionSuffix')}
+                  {getRegionLabel(reg.id, reg.name)} {t('progress.regionSuffix')}
                 </option>
               ))}
             </select>

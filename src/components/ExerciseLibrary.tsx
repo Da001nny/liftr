@@ -9,7 +9,7 @@ import {
   EnrichedExercise 
 } from '../lib/exerciseService';
 import { MuscleRegion } from '../data/exerciseCatalog';
-import { getRegionLabel, getEquipmentLabel, getDifficultyLabel } from '../lib/labels';
+import { getRegionLabel, getEquipmentLabel, getDifficultyLabel, getMovementTypeLabel } from '../lib/labels';
 
 interface ExerciseLibraryProps {
   onSelectExercise: (exercise: EnrichedExercise) => void;
@@ -139,10 +139,9 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ onSelectExerci
               className="w-full px-2.5 py-2 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               <option value="all">{t('exerciseLibrary.allRegions')}</option>
-              {regions.map(r => {
-                const regKey = `regions.${r.id}` as any;
-                return <option key={r.id} value={r.id}>{t(regKey)}</option>;
-              })}
+              {regions.map(r => (
+                <option key={r.id} value={r.id}>{getRegionLabel(r.id, r.name)}</option>
+              ))}
             </select>
           </div>
 
@@ -157,14 +156,9 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ onSelectExerci
               className="w-full px-2.5 py-2 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               <option value="all">{t('exerciseLibrary.allEquipment')}</option>
-              <option value="barbell">{t('equipment.barbell')}</option>
-              <option value="dumbbell">{t('equipment.dumbbell')}</option>
-              <option value="cable">{t('equipment.cable')}</option>
-              <option value="machine">{t('equipment.machine')}</option>
-              <option value="bodyweight">{t('equipment.bodyweight')}</option>
-              <option value="kettlebell">{t('equipment.kettlebell')}</option>
-              <option value="smith_machine">{t('equipment.smith_machine')}</option>
-              <option value="band">{t('equipment.band')}</option>
+              {(['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'kettlebell', 'smith_machine', 'band'] as const).map(eq => (
+                <option key={eq} value={eq}>{getEquipmentLabel(eq)}</option>
+              ))}
             </select>
           </div>
 
@@ -179,9 +173,9 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ onSelectExerci
               className="w-full px-2.5 py-2 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               <option value="all">{t('exerciseLibrary.allDifficulties')}</option>
-              <option value="beginner">{t('difficulty.beginner')}</option>
-              <option value="intermediate">{t('difficulty.intermediate')}</option>
-              <option value="advanced">{t('difficulty.advanced')}</option>
+              {(['beginner', 'intermediate', 'advanced'] as const).map(diff => (
+                <option key={diff} value={diff}>{getDifficultyLabel(diff)}</option>
+              ))}
             </select>
           </div>
 
@@ -196,8 +190,9 @@ export const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({ onSelectExerci
               className="w-full px-2.5 py-2 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
               <option value="all">{t('exerciseLibrary.allMovements')}</option>
-              <option value="compound">{t('movementType.compound')}</option>
-              <option value="isolation">{t('movementType.isolation')}</option>
+              {(['compound', 'isolation'] as const).map(m => (
+                <option key={m} value={m}>{getMovementTypeLabel(m)}</option>
+              ))}
             </select>
           </div>
         </div>

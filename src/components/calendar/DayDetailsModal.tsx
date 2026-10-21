@@ -33,7 +33,7 @@ import {
 } from '../../lib/calendarService';
 import { formatLocalTimestamp } from '../../lib/calculations';
 import { formatWeight, formatPRDisplay } from '../../lib/units';
-import { getPRCategoryLabel, getNoteCategoryLabel } from '../../lib/labels';
+import { getPRCategoryLabel, getNoteCategoryLabel, getScheduledStatusLabel } from '../../lib/labels';
 
 interface DayDetailsModalProps {
   isOpen: boolean;
@@ -226,7 +226,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
                               ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                               : 'bg-blue-500/20 text-blue-400 border border-blue-500/30')
                         }`}>
-                          {sw.status}
+                          {getScheduledStatusLabel(sw.status)}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400 font-medium">

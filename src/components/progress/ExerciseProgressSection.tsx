@@ -147,7 +147,7 @@ export const ExerciseProgressSection: React.FC = () => {
           >
             {filteredExercises.map(ex => (
               <option key={ex.id} value={ex.id}>
-                {ex.name} ({ex.equipment})
+                {ex.name} ({getEquipmentLabel(ex.equipment)})
               </option>
             ))}
           </select>
