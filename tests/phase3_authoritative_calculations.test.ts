@@ -40,11 +40,11 @@ test('Phase 3 - 6. Epley 1RM: 0 reps returns 0', () => {
 });
 
 test('Phase 3 - 7. Volume: Single set volume 80kg x 8 = 640kg', () => {
-  assert.strictEqual(calculateSetVolume(80, 8), 640);
+  assert.strictEqual(calculateSetVolume({ weight: 80, reps: 8, completed: true, set_type: 'working' }), 640);
 });
 
 test('Phase 3 - 8. Volume: Single set decimal volume 100.5kg x 4 = 402kg', () => {
-  assert.strictEqual(calculateSetVolume(100.5, 4), 402);
+  assert.strictEqual(calculateSetVolume({ weight: 100.5, reps: 4, completed: true, set_type: 'working' }), 402);
 });
 
 test('Phase 3 - 9. Volume: Total session volume sums completed working sets only (1000 + 800 = 1800kg)', () => {

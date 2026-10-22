@@ -23,7 +23,6 @@ import {
   calculateWorkoutTotals,
   calculateTotalSessionVolume,
   calculateHistoricalPRs,
-  detectPersonalRecords,
   calculateCalendarConsistency,
   calculateBodyweightStats,
   calculateExerciseProgress,
@@ -137,7 +136,9 @@ async function requireAuth(req: Request, res: Response, next: NextFunction) {
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const portArgIndex = process.argv.indexOf('--port');
+  const cliPort = portArgIndex !== -1 && process.argv[portArgIndex + 1] ? parseInt(process.argv[portArgIndex + 1], 10) : null;
+  const PORT = cliPort || (process.env.NODE_ENV === 'production' && process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 
   app.use(express.json());
   app.use('/screenshots', express.static(path.join(__dirname, 'public/screenshots')));
@@ -2774,7 +2775,11 @@ async function startServer() {
   // Mount Vite middleware in development
   const vite = await createViteServer({
     root: __dirname,
-    server: { middlewareMode: true },
+    server: { 
+      middlewareMode: true,
+      hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,
+      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
     appType: 'spa',
   });
 

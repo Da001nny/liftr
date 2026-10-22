@@ -115,7 +115,7 @@ test('135 lbs entered twice is a tie (not a PR), and 135 lbs then 61.235 kg is a
   assert.strictEqual(parsedKg1, 61.235);
 
   const est1RM = calculateEstimated1RM(parsedKg1, 5);
-  const setVol = calculateSetVolume(parsedKg1, 5);
+  const setVol = calculateSetVolume({ weight: parsedKg1, reps: 5, completed: true, set_type: 'working' });
 
   const recordsAfterSet1 = {
     heaviestWeight: parsedKg1,

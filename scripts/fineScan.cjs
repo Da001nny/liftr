@@ -18,3 +18,7 @@ results.forEach(({ file, items }) => {
     console.log(`  Line ${it.line}: ${it.type} -> ${it.text}`);
   });
 });
+
+if (total > 0) {
+  process.exit(1);
+}

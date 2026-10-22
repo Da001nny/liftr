@@ -98,35 +98,22 @@ export function isCountableSet(set: {
  * Counts ONLY completed, non-warmup sets with weight > 0 and reps > 0 via isCountableSet.
  * Incomplete sets, warmup sets, or sets with non-positive weight/reps return 0.
  *
- * Accepts either:
- *   - A set object: { weight, reps, completed?, is_completed?, set_type? }, unrounded?: boolean
- *   - Direct weight and reps numbers: (weight, reps, unrounded?: boolean)
+ * Accepts a set object: { weight, reps, completed?, is_completed?, set_type? }, unrounded?: boolean
  */
 export function calculateSetVolume(
-  setOrWeight: {
+  set: {
     weight?: number | null;
     reps?: number | null;
     completed?: boolean | null;
     is_completed?: boolean | null;
     set_type?: string | null;
-  } | number | null | undefined,
-  repsOrUnrounded?: number | boolean,
+  } | null | undefined,
   unrounded = false
 ): number {
-  if (typeof setOrWeight === 'number') {
-    const weight = setOrWeight;
-    const reps = typeof repsOrUnrounded === 'number' ? repsOrUnrounded : 0;
-    const isUnrounded = typeof repsOrUnrounded === 'boolean' ? repsOrUnrounded : unrounded;
-    if (weight <= 0 || reps <= 0) return 0;
-    if (isUnrounded) return weight * reps;
-    return Math.round(weight * reps * 100) / 100;
-  }
-
-  if (!isCountableSet(setOrWeight)) return 0;
-  const weight = Number(setOrWeight!.weight) || 0;
-  const reps = Number(setOrWeight!.reps) || 0;
-  const isUnrounded = typeof repsOrUnrounded === 'boolean' ? repsOrUnrounded : unrounded;
-  if (isUnrounded) return weight * reps;
+  if (!isCountableSet(set)) return 0;
+  const weight = Number(set!.weight) || 0;
+  const reps = Number(set!.reps) || 0;
+  if (unrounded) return weight * reps;
   return Math.round(weight * reps * 100) / 100;
 }
 

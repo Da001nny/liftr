@@ -14,6 +14,9 @@ async function main() {
     }
   });
   console.log(`\nTotal items: ${count}`);
+  if (count > 0) {
+    process.exit(1);
+  }
 }
 
 main().catch(err => console.error(err));
