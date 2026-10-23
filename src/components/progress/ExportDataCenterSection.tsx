@@ -19,6 +19,7 @@ import {
   generateBodyweightCsv, 
   generateStepsCsv 
 } from '../../lib/calculations';
+import { getUserTimeZone, todayLocalDateKey } from '../../lib/dates';
 import { 
   fetchAllCompletedWorkouts, 
   fetchBodyweightEntries, 
@@ -49,9 +50,10 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
     setDownloading('workouts');
     try {
       // Use loaded workouts or fetch freshest
+      const userTz = getUserTimeZone();
       const list = workouts.length > 0 ? workouts : await fetchAllCompletedWorkouts(token);
-      const csv = generateWorkoutsCsv(list, weightUnit);
-      const filename = `liftr_workout_history_${new Date().toISOString().slice(0, 10)}.csv`;
+      const csv = generateWorkoutsCsv(list, weightUnit, userTz);
+      const filename = `liftr_workout_history_${todayLocalDateKey(userTz)}.csv`;
       triggerBrowserDownload(filename, csv);
       setDownloadSuccess('workouts');
       setTimeout(() => setDownloadSuccess(null), 3000);

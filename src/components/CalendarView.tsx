@@ -39,7 +39,7 @@ import {
 import { MUSCLES, EXERCISES, CONTRIBUTIONS_BY_EXERCISE } from '../data/exerciseCatalog';
 import { formatLocalTimestamp } from '../lib/calculations';
 import { getScheduledStatusLabel } from '../lib/labels';
-import { formatMonthYear, formatFullDate } from '../lib/date';
+import { formatMonthYear, formatFullDate, toLocalDateKey } from '../lib/date';
 import { getMuscleLabel, getMuscleCommonName } from '../lib/labels';
 import { formatWeight } from '../lib/units';
 import { ScheduleWorkoutModal } from './calendar/ScheduleWorkoutModal';
@@ -155,7 +155,7 @@ export const CalendarView: React.FC = () => {
 
     // 2. Completed Workouts
     monthData.completedWorkouts.forEach(w => {
-      const dateKey = w.completed_at ? w.completed_at.slice(0, 10) : w.started_at.slice(0, 10);
+      const dateKey = toLocalDateKey(w.completed_at || w.started_at);
       if (!map.has(dateKey)) {
         map.set(dateKey, { scheduled: [], completed: [], restDay: null, notes: [], prs: [], trainedMuscles: new Set(), performedExercises: new Set() });
       }

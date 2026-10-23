@@ -43,6 +43,11 @@ import {
   getDayOfWeekUtc,
   generateOccurrencesForSeries,
 } from './src/lib/calendarService.ts';
+import {
+  isValidTimeZone,
+  toLocalDateKey,
+  todayLocalDateKey,
+} from './src/lib/dates.ts';
 
 dotenv.config();
 
@@ -2600,8 +2605,10 @@ async function startServer() {
         .order('completed_at', { ascending: true });
 
       const unit = (req.query.unit as string) === 'lbs' ? 'lbs' : 'kg';
-      const csvContent = generateWorkoutsCsv(workouts || [], unit);
-      const filename = `liftr_workout_history_${new Date().toISOString().slice(0, 10)}.csv`;
+      const rawTz = req.query.timeZone as string | undefined;
+      const timeZone = isValidTimeZone(rawTz) ? rawTz! : 'UTC';
+      const csvContent = generateWorkoutsCsv(workouts || [], unit, timeZone);
+      const filename = `liftr_workout_history_${todayLocalDateKey(timeZone)}.csv`;
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       return res.send(csvContent);

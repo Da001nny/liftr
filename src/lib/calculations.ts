@@ -28,6 +28,7 @@ import {
   CSV_DEFAULT_WORKOUT_NAME,
   CSV_DEFAULT_ENTRY_SOURCE
 } from '../constants/csvHeaders';
+import { toLocalDateKey } from './dates';
 
 export interface ExerciseSet {
   weight: number; // in canonical kg
@@ -1179,7 +1180,7 @@ export function escapeCsvCell(val: any): string {
  * Uses calculateSetVolume for volume and calculateEstimated1RM for 1RM.
  * WeightUnit is strictly required. Values are converted once and rounded once at the end.
  */
-export function generateWorkoutsCsv(workouts: any[], weightUnit: WeightUnit): string {
+export function generateWorkoutsCsv(workouts: any[], weightUnit: WeightUnit, timeZone?: string): string {
   const completed = (workouts || []).filter(w => w.status === 'completed');
   const sorted = [...completed].sort((a, b) => {
     const dateA = a.completed_at || a.started_at || a.created_at || '';
@@ -1191,7 +1192,8 @@ export function generateWorkoutsCsv(workouts: any[], weightUnit: WeightUnit): st
   const rows: string[] = [headers.join(',')];
 
   for (const w of sorted) {
-    const date = (w.completed_at || w.started_at || w.created_at || '').slice(0, 10);
+    const rawTimestamp = w.completed_at || w.started_at || w.created_at || '';
+    const date = rawTimestamp ? toLocalDateKey(rawTimestamp, timeZone) : '';
     const workoutName = w.name || CSV_DEFAULT_WORKOUT_NAME;
 
     for (const we of w.workout_exercises || []) {

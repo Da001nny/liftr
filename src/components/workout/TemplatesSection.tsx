@@ -21,6 +21,7 @@ import {
 import { CreateTemplateModal } from './CreateTemplateModal';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { ActiveWorkoutSession } from '../../types/database';
+import { todayLocalDateKey } from '../../lib/dates';
 
 interface TemplatesSectionProps {
   onStartWorkout: (session: ActiveWorkoutSession) => void;
@@ -56,8 +57,7 @@ export const TemplatesSection: React.FC<TemplatesSectionProps> = ({
   const handleStartBlank = async () => {
     if (!token || isStarting) return;
     setIsStarting(true);
-    const todayIso = new Date().toISOString().slice(0, 10);
-    const workoutName = `Workout ${todayIso}`;
+    const workoutName = `Workout ${todayLocalDateKey()}`;
     const session = await createWorkout(token, {
       name: workoutName,
     });
