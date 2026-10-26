@@ -7,6 +7,7 @@ import { StepEntryRow } from '../../types/database';
 import { fetchStepEntry, saveStepEntry } from '../../lib/progressService';
 import { formatDistance } from '../../lib/units';
 import { getDataSourceLabel } from '../../lib/labels';
+import { todayLocalDateKey } from '../../lib/dates';
 
 interface ActivitySectionProps {
   onRefresh?: () => void;
@@ -17,7 +18,7 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({ onRefresh }) =
   const { accentColor, distanceUnit } = useTheme();
   const { token } = useAuth();
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayLocalDateKey();
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [stepData, setStepData] = useState<StepEntryRow | null>(null);
   const [loading, setLoading] = useState<boolean>(true);

@@ -2,7 +2,7 @@
  * liftr: Authoritative Timezone-Aware Date Helper
  * 
  * Centralizes all date parsing, key generation, and display formatting.
- * Uses Intl.DateTimeFormat and APP_LOCALE with zero manual offset math.
+ * Uses Intl.DateTimeFormat with zero manual offset math.
  */
 
 import { APP_LOCALE } from '../i18n';
@@ -32,7 +32,18 @@ export function isValidTimeZone(tz?: string | null): boolean {
 }
 
 /**
- * Resolves a safe, validated IANA time zone.
+ * Resolves a valid IANA time zone string, or falls back strictly to 'UTC'.
+ * Validates untrusted input (e.g. from query parameters or request bodies).
+ */
+export function resolveTimeZoneOrUtc(raw: unknown): string {
+  if (typeof raw === 'string' && isValidTimeZone(raw)) {
+    return raw;
+  }
+  return 'UTC';
+}
+
+/**
+ * Resolves a safe, validated IANA time zone, defaulting to the runtime user time zone or 'UTC'.
  */
 function resolveSafeTimeZone(timeZone?: string | null): string {
   if (timeZone && isValidTimeZone(timeZone)) {
@@ -44,7 +55,8 @@ function resolveSafeTimeZone(timeZone?: string | null): string {
 
 /**
  * Converts an ISO timestamp or Date to 'YYYY-MM-DD' calendar date in the target time zone.
- * Zero manual offset math: delegates strictly to Intl.DateTimeFormat with APP_LOCALE.
+ * Zero manual offset math: delegates strictly to Intl.DateTimeFormat with a fixed locale
+ * ('en-US'), calendar 'gregory', and numberingSystem 'latn' so keys never depend on APP_LOCALE.
  */
 export function toLocalDateKey(isoTimestamp?: string | Date | null, timeZone?: string | null): string {
   if (!isoTimestamp) return '';
@@ -52,8 +64,10 @@ export function toLocalDateKey(isoTimestamp?: string | Date | null, timeZone?: s
   if (isNaN(d.getTime())) return '';
 
   const tz = resolveSafeTimeZone(timeZone);
-  const formatter = new Intl.DateTimeFormat(APP_LOCALE, {
+  const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
+    calendar: 'gregory',
+    numberingSystem: 'latn',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -73,14 +87,37 @@ export function toLocalDateKey(isoTimestamp?: string | Date | null, timeZone?: s
 
 /**
  * Returns today's 'YYYY-MM-DD' calendar date in the target time zone.
+ * Accepts an optional Date instance (defaults to new Date()).
  */
-export function todayLocalDateKey(timeZone?: string | null): string {
-  return toLocalDateKey(new Date(), timeZone);
+export function todayLocalDateKey(timeZone?: string | null, date: Date = new Date()): string {
+  return toLocalDateKey(date, timeZone);
+}
+
+const EXPLICIT_FIELD_KEYS: (keyof Intl.DateTimeFormatOptions)[] = [
+  'weekday',
+  'era',
+  'year',
+  'month',
+  'day',
+  'hour',
+  'minute',
+  'second',
+  'dateStyle',
+  'timeStyle',
+  'dayPeriod',
+  'fractionalSecondDigits',
+  'timeZoneName',
+];
+
+function hasAnyExplicitField(options?: Intl.DateTimeFormatOptions): boolean {
+  if (!options) return false;
+  return EXPLICIT_FIELD_KEYS.some(k => options[k] !== undefined);
 }
 
 /**
  * Formats an ISO string or 'YYYY-MM-DD' dateKey for display in the target time zone.
- * E.g., 'Oct 17, 2026'.
+ * When input is a 'YYYY-MM-DD' dateKey, uses timeZone 'UTC' to prevent day shifting across timezones.
+ * If options contains any explicit fields or styles, default year/month/day fields are not applied.
  */
 export function formatDisplayDate(
   isoOrDateKey?: string | Date | null,
@@ -88,27 +125,32 @@ export function formatDisplayDate(
   options?: Intl.DateTimeFormatOptions
 ): string {
   if (!isoOrDateKey) return '';
+  const isDateKey = typeof isoOrDateKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(isoOrDateKey);
   let d: Date;
-  if (typeof isoOrDateKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(isoOrDateKey)) {
+  if (isDateKey) {
     d = new Date(`${isoOrDateKey}T12:00:00Z`);
+  } else if (typeof isoOrDateKey === 'string') {
+    d = new Date(isoOrDateKey);
   } else {
-    d = typeof isoOrDateKey === 'string' ? new Date(isoOrDateKey) : isoOrDateKey;
+    d = isoOrDateKey;
   }
   if (isNaN(d.getTime())) return '';
 
-  const tz = resolveSafeTimeZone(timeZone);
+  const tz = isDateKey ? 'UTC' : resolveSafeTimeZone(timeZone);
+  const defaultFields: Intl.DateTimeFormatOptions = hasAnyExplicitField(options)
+    ? {}
+    : { year: 'numeric', month: 'short', day: 'numeric' };
+
   return new Intl.DateTimeFormat(APP_LOCALE, {
     timeZone: tz,
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
+    ...defaultFields,
     ...options,
   }).format(d);
 }
 
 /**
  * Formats an ISO timestamp for display including date and time in the target time zone.
- * E.g., 'Oct 17, 2026, 02:00 AM'.
+ * If options contains any explicit fields or styles, default fields are not applied.
  */
 export function formatDisplayDateTime(
   isoTimestamp?: string | Date | null,
@@ -120,13 +162,13 @@ export function formatDisplayDateTime(
   if (isNaN(d.getTime())) return '';
 
   const tz = resolveSafeTimeZone(timeZone);
+  const defaultFields: Intl.DateTimeFormatOptions = hasAnyExplicitField(options)
+    ? {}
+    : { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+
   return new Intl.DateTimeFormat(APP_LOCALE, {
     timeZone: tz,
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    ...defaultFields,
     ...options,
   }).format(d);
 }
@@ -144,6 +186,7 @@ export function formatLocalTimestamp(
 
 /**
  * Canonical UTC ISO string producer.
+ * Maintained for backward-compatibility with re-exports in src/lib/date.ts and src/lib/calculations.ts.
  */
 export function toUtcIsoString(date: Date = new Date()): string {
   return date.toISOString();

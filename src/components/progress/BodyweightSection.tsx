@@ -7,6 +7,7 @@ import { BodyweightEntryRow, BodyweightStats } from '../../types/database';
 import { fetchBodyweightEntries, saveBodyweightEntry, deleteBodyweightEntry } from '../../lib/progressService';
 import { calculateBodyweightStats } from '../../lib/calculations';
 import { formatWeight, formatWeightValue, parseWeightInput } from '../../lib/units';
+import { todayLocalDateKey } from '../../lib/dates';
 
 interface BodyweightSectionProps {
   onRefresh?: () => void;
@@ -22,7 +23,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [inputDate, setInputDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [inputDate, setInputDate] = useState<string>(todayLocalDateKey());
   const [inputWeight, setInputWeight] = useState<string>('');
   const [inputUnit, setInputUnit] = useState<'kg' | 'lbs'>(weightUnit);
   const [inputNotes, setInputNotes] = useState<string>('');
@@ -140,7 +141,7 @@ export const BodyweightSection: React.FC<BodyweightSectionProps> = ({ onRefresh 
         <button
           type="button"
           onClick={() => {
-            setInputDate(new Date().toISOString().slice(0, 10));
+            setInputDate(todayLocalDateKey());
             setInputWeight(stats.currentWeight ? String(stats.currentWeight) : '');
             setIsModalOpen(true);
           }}

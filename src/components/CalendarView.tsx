@@ -37,9 +37,8 @@ import {
   CalendarNoteRow 
 } from '../types/database';
 import { MUSCLES, EXERCISES, CONTRIBUTIONS_BY_EXERCISE } from '../data/exerciseCatalog';
-import { formatLocalTimestamp } from '../lib/calculations';
 import { getScheduledStatusLabel } from '../lib/labels';
-import { formatMonthYear, formatFullDate, toLocalDateKey } from '../lib/date';
+import { formatMonthYear, formatFullDate, toLocalDateKey, formatDisplayDate, todayLocalDateKey } from '../lib/date';
 import { getMuscleLabel, getMuscleCommonName } from '../lib/labels';
 import { formatWeight } from '../lib/units';
 import { ScheduleWorkoutModal } from './calendar/ScheduleWorkoutModal';
@@ -190,7 +189,7 @@ export const CalendarView: React.FC = () => {
 
     // 5. PRs
     monthData.personalRecords.forEach(pr => {
-      const dateKey = pr.achieved_at ? pr.achieved_at.slice(0, 10) : '';
+      const dateKey = toLocalDateKey(pr.achieved_at);
       if (dateKey) {
         if (!map.has(dateKey)) {
           map.set(dateKey, { scheduled: [], completed: [], restDay: null, notes: [], prs: [], trainedMuscles: new Set(), performedExercises: new Set() });
@@ -209,7 +208,7 @@ export const CalendarView: React.FC = () => {
     const startDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sun .. 6 = Sat
     const daysInMonth = new Date(year, month, 0).getDate();
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayLocalDateKey();
 
     // Days before month
     for (let i = startDayOfWeek - 1; i >= 0; i--) {
@@ -282,7 +281,7 @@ export const CalendarView: React.FC = () => {
     const startOfWeek = new Date(curr);
     startOfWeek.setDate(curr.getDate() - dayOfWeek);
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayLocalDateKey();
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(startOfWeek);
@@ -310,7 +309,7 @@ export const CalendarView: React.FC = () => {
   const dayViewData = useMemo(() => {
     const dateStr = currentDate.toISOString().slice(0, 10);
     const dayDetails = calendarMap.get(dateStr);
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = todayLocalDateKey();
     return {
       dateStr,
       dayNumber: currentDate.getDate(),
@@ -359,7 +358,7 @@ export const CalendarView: React.FC = () => {
           <button
             type="button"
             onClick={() => {
-              setScheduleInitialDate(new Date().toISOString().slice(0, 10));
+              setScheduleInitialDate(todayLocalDateKey());
               setIsScheduleOpen(true);
             }}
             className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-white rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center gap-1.5 cursor-pointer font-athletic"
@@ -685,7 +684,7 @@ export const CalendarView: React.FC = () => {
                 <div className="flex items-center justify-between pb-2 border-b border-neutral-200 dark:border-neutral-800">
                   <div className="text-left">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 font-athletic block">
-                      {formatLocalTimestamp(`${day.dateStr}T12:00:00Z`, { weekday: 'short' })}
+                      {formatDisplayDate(day.dateStr, null, { weekday: 'short' })}
                     </span>
                     <span className="text-xl font-black font-mono text-neutral-900 dark:text-white">
                       {day.dayNumber}
@@ -762,7 +761,7 @@ export const CalendarView: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-200 dark:border-neutral-800">
             <div>
               <h3 className="text-2xl font-black font-display uppercase tracking-wide text-neutral-900 dark:text-white">
-                {formatLocalTimestamp(`${dayViewData.dateStr}T12:00:00Z`, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                {formatDisplayDate(dayViewData.dateStr, null, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium mt-0.5">
                 {[

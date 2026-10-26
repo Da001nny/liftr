@@ -31,7 +31,7 @@ import {
   createCalendarNote, 
   deleteCalendarNote 
 } from '../../lib/calendarService';
-import { formatLocalTimestamp } from '../../lib/calculations';
+import { formatDisplayDate } from '../../lib/dates';
 import { formatWeight, formatPRDisplay } from '../../lib/units';
 import { getPrCategoryLabel, getNoteCategoryLabel, getScheduledStatusLabel, getExerciseName } from '../../lib/labels';
 
@@ -122,7 +122,7 @@ export const DayDetailsModal: React.FC<DayDetailsModalProps> = ({
             </div>
             <div>
               <h3 className="text-xl sm:text-2xl font-black font-display uppercase tracking-wide">
-                {formatLocalTimestamp(`${dateStr}T12:00:00Z`, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+                {formatDisplayDate(dateStr, null, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
               </h3>
               <div className="flex items-center gap-2 mt-0.5">
                 {dayData.isToday && (

@@ -44,8 +44,7 @@ import {
   generateOccurrencesForSeries,
 } from './src/lib/calendarService.ts';
 import {
-  isValidTimeZone,
-  toLocalDateKey,
+  resolveTimeZoneOrUtc,
   todayLocalDateKey,
 } from './src/lib/dates.ts';
 
@@ -2605,8 +2604,7 @@ async function startServer() {
         .order('completed_at', { ascending: true });
 
       const unit = (req.query.unit as string) === 'lbs' ? 'lbs' : 'kg';
-      const rawTz = req.query.timeZone as string | undefined;
-      const timeZone = isValidTimeZone(rawTz) ? rawTz! : 'UTC';
+      const timeZone = resolveTimeZoneOrUtc(req.query.timeZone);
       const csvContent = generateWorkoutsCsv(workouts || [], unit, timeZone);
       const filename = `liftr_workout_history_${todayLocalDateKey(timeZone)}.csv`;
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');

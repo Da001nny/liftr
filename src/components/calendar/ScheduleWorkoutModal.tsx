@@ -7,6 +7,7 @@ import { fetchTemplates, EnrichedWorkoutTemplate } from '../../lib/workoutServic
 import { createScheduledWorkout, CreateScheduledPayload } from '../../lib/calendarService';
 import { RecurrenceType } from '../../types/database';
 import { NumericStepper } from './NumericStepper';
+import { todayLocalDateKey } from '../../lib/dates';
 
 interface ScheduleWorkoutModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ export const ScheduleWorkoutModal: React.FC<ScheduleWorkoutModalProps> = ({
   const { accentColor } = useTheme();
   const { token } = useAuth();
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayLocalDateKey();
   const [name, setName] = useState('');
   const [templateId, setTemplateId] = useState<string>('');
   const [scheduledDate, setScheduledDate] = useState<string>(initialDate || todayStr);
