@@ -9,6 +9,7 @@ import {
   resolveTimeZoneOrUtc 
 } from '../src/lib/dates';
 import { generateWorkoutsCsv } from '../src/lib/calculations';
+import { applyMissedStatus } from '../src/lib/calendarService';
 
 test('Dates: 2026-10-16T21:30:00Z in Asia/Karachi -> 2026-10-17', () => {
   const result = toLocalDateKey('2026-10-16T21:30:00Z', 'Asia/Karachi');
@@ -147,5 +148,46 @@ test('Dates: todayLocalDateKey("Asia/Karachi") for a fixed Date matches toLocalD
   const fromLocalDateHelper = toLocalDateKey(fixedDate, 'Asia/Karachi');
   assert.strictEqual(fromTodayHelper, '2026-10-17');
   assert.strictEqual(fromTodayHelper, fromLocalDateHelper, 'Both helpers return identical local date key for fixed Date');
+});
+
+test('Dates: todayLocalDateKey in America/New_York and applyMissedStatus logic on boundary dates', () => {
+  const d = new Date('2026-10-17T00:30:00Z');
+  const nyKey = todayLocalDateKey('America/New_York', d);
+  assert.strictEqual(nyKey, '2026-10-16', '00:30 UTC on Oct 17 is 20:30 EDT on Oct 16 in New York');
+
+  const item20261016 = { id: 'sw_1', scheduled_date: '2026-10-16', status: 'scheduled' };
+
+  // Stays 'scheduled' with NY local todayKey '2026-10-16'
+  const resultWithNy = applyMissedStatus([item20261016], nyKey);
+  assert.strictEqual(resultWithNy[0].status, 'scheduled', 'Scheduled on 2026-10-16 stays scheduled on 2026-10-16');
+
+  // Becomes 'missed' with UTC key '2026-10-17'
+  const resultWithUtc = applyMissedStatus([item20261016], '2026-10-17');
+  assert.strictEqual(resultWithUtc[0].status, 'missed', 'Scheduled on 2026-10-16 becomes missed when day reaches 2026-10-17');
+});
+
+test('Dates: an item scheduled 2026-10-15 becomes "missed" with todayKey "2026-10-16"', () => {
+  const item20261015 = { id: 'sw_2', scheduled_date: '2026-10-15', status: 'scheduled' };
+  const result = applyMissedStatus([item20261015], '2026-10-16');
+  assert.strictEqual(result[0].status, 'missed', 'Past scheduled item becomes missed');
+});
+
+test('Dates: applyMissedStatus never changes "completed" and "cancelled" items and does not mutate input', () => {
+  const input = [
+    { id: 'sw_c1', scheduled_date: '2026-10-14', status: 'completed' },
+    { id: 'sw_c2', scheduled_date: '2026-10-14', status: 'cancelled' },
+    { id: 'sw_s', scheduled_date: '2026-10-14', status: 'scheduled' },
+  ];
+  const inputCopy = JSON.parse(JSON.stringify(input));
+
+  const result = applyMissedStatus(input, '2026-10-16');
+
+  assert.strictEqual(result[0].status, 'completed', 'Completed item remains completed');
+  assert.strictEqual(result[1].status, 'cancelled', 'Cancelled item remains cancelled');
+  assert.strictEqual(result[2].status, 'missed', 'Scheduled item becomes missed');
+
+  // Verify non-mutation
+  assert.deepStrictEqual(input, inputCopy, 'Input array and objects must not be mutated');
+  assert.notStrictEqual(result, input, 'New array instance is returned');
 });
 

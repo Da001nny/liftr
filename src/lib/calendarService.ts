@@ -20,6 +20,7 @@ import {
   RecurrenceType,
   EditingScope
 } from '../types/database';
+import { getUserTimeZone } from './dates';
 
 // ============================================================================
 // 1. DATE & TIME UTILITIES (UTC-FIRST, DST-SAFE)
@@ -299,6 +300,23 @@ export interface CalendarMonthDataResponse {
 }
 
 /**
+ * Pure function: Marks past scheduled workouts as 'missed' if still in 'scheduled' status.
+ * Items with status !== 'scheduled' or scheduled_date >= todayKey remain unchanged.
+ * Does not mutate the input array or objects.
+ */
+export function applyMissedStatus<T extends { status: string; scheduled_date: string }>(
+  scheduled: T[],
+  todayKey: string
+): T[] {
+  return (scheduled || []).map(item => {
+    if (item.status === 'scheduled' && item.scheduled_date < todayKey) {
+      return { ...item, status: 'missed' };
+    }
+    return item;
+  });
+}
+
+/**
  * Fetches all calendar items for a given year and month (1-indexed: 1 = Jan, 12 = Dec).
  */
 export async function fetchCalendarMonth(
@@ -307,7 +325,7 @@ export async function fetchCalendarMonth(
   month: number
 ): Promise<CalendarMonthDataResponse> {
   try {
-    const res = await fetch(`/api/calendar/month?year=${year}&month=${month}`, {
+    const res = await fetch(`/api/calendar/month?year=${year}&month=${month}&timeZone=${encodeURIComponent(getUserTimeZone())}`, {
       headers: getAuthHeaders(token),
     });
     if (res.ok) {

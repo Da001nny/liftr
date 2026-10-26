@@ -42,6 +42,7 @@ import {
   addDaysUtc,
   getDayOfWeekUtc,
   generateOccurrencesForSeries,
+  applyMissedStatus,
 } from './src/lib/calendarService.ts';
 import {
   resolveTimeZoneOrUtc,
@@ -1599,13 +1600,9 @@ async function startServer() {
       }
 
       // Mark past scheduled workouts as missed if still 'scheduled'
-      const todayStr = new Date().toISOString().slice(0, 10);
-      scheduledWorkouts = scheduledWorkouts.map(sw => {
-        if (sw.status === 'scheduled' && sw.scheduled_date < todayStr) {
-          return { ...sw, status: 'missed' };
-        }
-        return sw;
-      });
+      const tz = resolveTimeZoneOrUtc(req.query.timeZone);
+      const todayStr = todayLocalDateKey(tz);
+      scheduledWorkouts = applyMissedStatus(scheduledWorkouts, todayStr);
 
       // 2. Completed Workouts
       const { data: workoutsData } = await client
