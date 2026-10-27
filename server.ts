@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
 import {
   MUSCLE_REGIONS,
   MUSCLES,
@@ -48,6 +47,7 @@ import {
   resolveTimeZoneOrUtc,
   todayLocalDateKey,
 } from './src/lib/dates.ts';
+import { resolvePort } from './src/lib/serverConfig.ts';
 
 dotenv.config();
 
@@ -141,9 +141,7 @@ async function requireAuth(req: Request, res: Response, next: NextFunction) {
 
 async function startServer() {
   const app = express();
-  const portArgIndex = process.argv.indexOf('--port');
-  const cliPort = portArgIndex !== -1 && process.argv[portArgIndex + 1] ? parseInt(process.argv[portArgIndex + 1], 10) : null;
-  const PORT = cliPort || (process.env.NODE_ENV === 'production' && process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
+  const PORT = resolvePort(process.argv, process.env);
 
   app.use(express.json());
   app.use('/screenshots', express.static(path.join(__dirname, 'public/screenshots')));
@@ -2774,18 +2772,30 @@ async function startServer() {
     }
   });
 
-  // Mount Vite middleware in development
-  const vite = await createViteServer({
-    root: __dirname,
-    server: { 
-      middlewareMode: true,
-      hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
-    },
-    appType: 'spa',
-  });
+  if (process.env.NODE_ENV === 'production') {
+    const distPath = path.join(__dirname, 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req: Request, res: Response, next: NextFunction) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  } else {
+    // Mount Vite middleware in development
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      root: __dirname,
+      server: { 
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,
+        watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      },
+      appType: 'spa',
+    });
 
-  app.use(vite.middlewares);
+    app.use(vite.middlewares);
+  }
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`liftr server running at http://0.0.0.0:${PORT}`);
