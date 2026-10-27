@@ -25,8 +25,10 @@ export const ProgressView: React.FC = () => {
 
   useEffect(() => {
     if (!token) return;
-    fetchAllCompletedWorkouts(token).then(data => {
-      setAllWorkouts(data);
+    fetchAllCompletedWorkouts(token).then(result => {
+      if (result.data) {
+        setAllWorkouts(result.data);
+      }
     });
   }, [token, refreshKey]);
 

@@ -12,6 +12,7 @@ import { ProgressView } from './components/ProgressView';
 import { CalendarView } from './components/CalendarView';
 import { ProfileView } from './components/ProfileView';
 import { GlobalSearchModal } from './components/common/GlobalSearchModal';
+import { ToastHost } from './components/ToastHost';
 import { useTranslation } from './i18n';
 
 const MainApp: React.FC = () => {
@@ -122,6 +123,7 @@ export default function App() {
       <ThemeProvider>
         <WorkoutProvider>
           <MainApp />
+          <ToastHost />
         </WorkoutProvider>
       </ThemeProvider>
     </AuthProvider>

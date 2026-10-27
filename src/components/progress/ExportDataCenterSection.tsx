@@ -26,6 +26,7 @@ import {
   fetchAllStepEntries,
   triggerBrowserDownload 
 } from '../../lib/progressService';
+import { reportFailure } from '../../lib/failure';
 
 import {
   getWorkoutsCsvHeaderPreview,
@@ -35,6 +36,33 @@ import {
 
 interface ExportDataCenterSectionProps {
   workouts: any[];
+}
+
+export async function performWorkoutsExport(
+  token: string,
+  workouts: any[],
+  weightUnit: 'kg' | 'lbs',
+  options: {
+    fetchWorkouts: (token: string) => Promise<any>;
+    download: (filename: string, content: string) => void;
+    reportError: (action: any, input: any) => void;
+    timeZone?: string;
+  }
+): Promise<boolean> {
+  const userTz = options.timeZone || getUserTimeZone();
+  let list = workouts;
+  if (list.length === 0) {
+    const result = await options.fetchWorkouts(token);
+    if (result.data === null) {
+      options.reportError('exportData', { status: result.status, networkError: result.networkError });
+      return false;
+    }
+    list = result.data;
+  }
+  const csv = generateWorkoutsCsv(list, weightUnit, userTz);
+  const filename = `liftr_workout_history_${todayLocalDateKey(userTz)}.csv`;
+  options.download(filename, csv);
+  return true;
 }
 
 export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = ({ workouts }) => {
@@ -49,14 +77,15 @@ export const ExportDataCenterSection: React.FC<ExportDataCenterSectionProps> = (
     if (!token) return;
     setDownloading('workouts');
     try {
-      // Use loaded workouts or fetch freshest
-      const userTz = getUserTimeZone();
-      const list = workouts.length > 0 ? workouts : await fetchAllCompletedWorkouts(token);
-      const csv = generateWorkoutsCsv(list, weightUnit, userTz);
-      const filename = `liftr_workout_history_${todayLocalDateKey(userTz)}.csv`;
-      triggerBrowserDownload(filename, csv);
-      setDownloadSuccess('workouts');
-      setTimeout(() => setDownloadSuccess(null), 3000);
+      const success = await performWorkoutsExport(token, workouts, weightUnit, {
+        fetchWorkouts: fetchAllCompletedWorkouts,
+        download: triggerBrowserDownload,
+        reportError: reportFailure,
+      });
+      if (success) {
+        setDownloadSuccess('workouts');
+        setTimeout(() => setDownloadSuccess(null), 3000);
+      }
     } catch (err) {
       console.error('Workouts CSV export failed:', err);
     } finally {

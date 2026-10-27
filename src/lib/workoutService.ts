@@ -15,6 +15,7 @@ import {
   ActiveWorkoutExercise,
   ActiveWorkoutSet
 } from '../types/database';
+import { reportFailure } from './failure';
 
 export interface DashboardSummaryData {
   totalVolume: number;
@@ -177,8 +178,11 @@ export async function updateWorkoutSession(
       const json: ApiResponse<ActiveWorkoutSession> = await res.json();
       return json.data.items[0] || null;
     }
+    console.error('[workoutService] updateWorkoutSession failed: status', res.status);
+    reportFailure('autosaveWorkout', { status: res.status }, { dedupeMs: 60000 });
   } catch (err) {
     console.error('[workoutService] updateWorkoutSession failed:', err);
+    reportFailure('autosaveWorkout', { networkError: true }, { dedupeMs: 60000 });
   }
   return null;
 }
@@ -204,8 +208,11 @@ export async function completeWorkoutSession(
         return json.data.items[0];
       }
     }
+    console.error('[workoutService] completeWorkoutSession failed: status', res.status);
+    reportFailure('completeWorkout', { status: res.status });
   } catch (err) {
     console.error('[workoutService] completeWorkoutSession failed:', err);
+    reportFailure('completeWorkout', { networkError: true });
   }
   return null;
 }

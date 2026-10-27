@@ -917,6 +917,16 @@ export const en = {
     notFound: 'The requested resource was not found.',
     serverError: 'Internal server error occurred.',
     networkError: 'Unable to reach the server. Please check your internet connection.',
+    generic: 'An unexpected issue occurred. Please try again.',
+    dismiss: 'Dismiss notification',
+    actions: {
+      completeWorkout: 'The workout was not marked finished, but your entries are still on this screen. Please try again.',
+      createWorkout: 'Unable to start the new workout session. Please try again.',
+      autosaveWorkout: 'Unable to sync your latest workout changes to the server. Your entries remain in this active session; please check your connection.',
+      saveSteps: 'Unable to save your step count for this date. Please try again.',
+      saveBodyweight: 'Unable to save your bodyweight entry. Please try again.',
+      exportData: 'Unable to generate your export data. The download did not start; please try again.',
+    },
   },
 } as const;
 

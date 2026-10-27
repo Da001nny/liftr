@@ -17,6 +17,7 @@ import {
   calculateMuscleExposureAnalytics 
 } from './calculations';
 import { EXERCISES, MUSCLES, MUSCLE_REGIONS } from '../data/exerciseCatalog';
+import { reportFailure } from './failure';
 
 function getAuthHeaders(token?: string | null): Record<string, string> {
   const headers: Record<string, string> = {
@@ -124,8 +125,11 @@ export async function saveBodyweightEntry(token: string, payload: SaveBodyweight
       const json: ApiResponse<BodyweightEntryRow> = await res.json();
       return json.data.items[0] || null;
     }
+    console.error('[progressService] saveBodyweightEntry error: status', res.status);
+    reportFailure('saveBodyweight', { status: res.status });
   } catch (err) {
     console.error('[progressService] saveBodyweightEntry error:', err);
+    reportFailure('saveBodyweight', { networkError: true });
   }
   return null;
 }
@@ -267,19 +271,27 @@ export async function executeGlobalSearch(
 // 6. DETAILED ANALYTICS & EXPORT HELPERS (Phase 6)
 // ============================================================================
 
-export async function fetchAllCompletedWorkouts(token: string): Promise<any[]> {
+export interface FetchCompletedWorkoutsResult {
+  data: any[] | null;
+  status?: number;
+  networkError?: boolean;
+}
+
+export async function fetchAllCompletedWorkouts(token: string): Promise<FetchCompletedWorkoutsResult> {
   try {
     const res = await fetch('/api/progress/all-workouts', {
       headers: getAuthHeaders(token),
     });
     if (res.ok) {
       const json = await res.json();
-      return json.data.items || [];
+      return { data: json.data.items || [] };
     }
+    console.error('[progressService] fetchAllCompletedWorkouts error: status', res.status);
+    return { data: null, status: res.status };
   } catch (err) {
     console.error('[progressService] fetchAllCompletedWorkouts error:', err);
+    return { data: null, networkError: true };
   }
-  return [];
 }
 
 export function triggerBrowserDownload(filename: string, content: string, mimeType: string = 'text/csv;charset=utf-8;') {
