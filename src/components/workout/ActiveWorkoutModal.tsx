@@ -36,6 +36,7 @@ import {
   completeWorkoutSession, 
   deleteWorkoutSession 
 } from '../../lib/workoutService';
+import { decideFinishOutcome } from '../../lib/finishOutcome';
 import { ExercisePickerModal } from './ExercisePickerModal';
 import { RestTimerBar } from './RestTimerBar';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -432,7 +433,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
 
   // Finish Workout
   const handleFinishWorkout = async () => {
-    if (!token) return;
+    if (!token || isFinishing) return;
     setIsFinishing(true);
 
     const result = await completeWorkoutSession(token, session.id, {
@@ -443,13 +444,12 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
 
     setIsFinishing(false);
 
-    if (result) {
+    const outcome = decideFinishOutcome(result);
+    if (outcome === 'completed' && result) {
       setCompletionResult(result);
       if (onWorkoutCompleted) {
         onWorkoutCompleted(result.workout, result.newPRs);
       }
-    } else {
-      onSessionClosed();
     }
   };
 
@@ -707,7 +707,7 @@ export const ActiveWorkoutModal: React.FC<ActiveWorkoutModalProps> = ({
             className="px-4 py-2 rounded-xl text-xs font-bold font-athletic uppercase tracking-wider text-white shadow-md transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50"
             style={{ backgroundColor: accentColor }}
           >
-            {isFinishing ? 'Saving...' : t('workoutLogger.finishWorkout')}
+            {isFinishing ? t('common.saving') : t('workoutLogger.finishWorkout')}
           </button>
         </div>
       </div>

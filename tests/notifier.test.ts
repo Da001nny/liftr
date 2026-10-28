@@ -12,6 +12,7 @@ import {
 import { completeWorkoutSession } from '../src/lib/workoutService';
 import { fetchAllCompletedWorkouts } from '../src/lib/progressService';
 import { performWorkoutsExport } from '../src/components/progress/ExportDataCenterSection';
+import { decideFinishOutcome, resolveRepeatCompletion, selectPRsForWorkout } from '../src/lib/finishOutcome';
 import { t } from '../src/i18n';
 
 class MockClock implements Clock {
@@ -343,3 +344,148 @@ test('Batch 3B-3 6f: two different categories for the same key inside 4 s are bo
   assert.strictEqual(notifier.getToasts()[0].categoryKey, 'errors.serverError');
   assert.strictEqual(notifier.getToasts()[1].categoryKey, 'errors.networkError');
 });
+
+test('Batch 3B-4 7a: decideFinishOutcome evaluates outcomes accurately', () => {
+  assert.strictEqual(decideFinishOutcome(null), 'failed');
+  assert.strictEqual(decideFinishOutcome(undefined), 'failed');
+  assert.strictEqual(decideFinishOutcome({ workout: {}, newPRs: [] }), 'completed');
+  assert.strictEqual(decideFinishOutcome({ workout: { id: 'w1' } }), 'completed');
+});
+
+test('Batch 3B-4 7b: completeWorkoutSession returning 500 yields null and decideFinishOutcome(that) is failed with exactly 1 toast', async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    clear();
+    globalThis.fetch = async () => new Response(JSON.stringify({ error: 'Database fail' }), { status: 500 });
+    const result = await completeWorkoutSession('token_123', 'w_100', { durationSeconds: 60 });
+    assert.strictEqual(result, null);
+    assert.strictEqual(decideFinishOutcome(result), 'failed');
+
+    const toasts = getToasts();
+    assert.strictEqual(toasts.length, 1);
+    assert.strictEqual(toasts[0].key, 'errors.actions.completeWorkout');
+    assert.strictEqual(toasts[0].categoryKey, 'errors.serverError');
+  } finally {
+    globalThis.fetch = originalFetch;
+    clear();
+  }
+});
+
+test('Batch 3B-5 2a: resolveRepeatCompletion returns null and does not call reconcile when not completed or null/undefined', async () => {
+  let reconcileCalls = 0;
+  const mockReconcile = async () => {
+    reconcileCalls += 1;
+    return ['pr1'];
+  };
+
+  // In-progress workout
+  const resInProgress = await resolveRepeatCompletion({ id: 'w1', status: 'in_progress' }, mockReconcile);
+  assert.strictEqual(resInProgress, null);
+  assert.strictEqual(reconcileCalls, 0);
+
+  // Null workout
+  const resNull = await resolveRepeatCompletion(null, mockReconcile);
+  assert.strictEqual(resNull, null);
+  assert.strictEqual(reconcileCalls, 0);
+
+  // Undefined workout
+  const resUndefined = await resolveRepeatCompletion(undefined, mockReconcile);
+  assert.strictEqual(resUndefined, null);
+  assert.strictEqual(reconcileCalls, 0);
+});
+
+test('Batch 3B-5 2b: resolveRepeatCompletion preserves completed_at, calls reconcile once, and returns newPRs', async () => {
+  let reconcileCalls = 0;
+  const fakePRs = [{ id: 'pr_1', exercise_id: 'bench_press' }];
+  const mockReconcile = async () => {
+    reconcileCalls += 1;
+    return fakePRs;
+  };
+
+  const fixedCompletedAt = '2026-10-25T14:30:00.000Z';
+  const completedWorkout = {
+    id: 'w_completed_1',
+    status: 'completed',
+    completed_at: fixedCompletedAt,
+    total_volume: 5000,
+  };
+
+  const result = await resolveRepeatCompletion(completedWorkout, mockReconcile);
+  assert.ok(result !== null);
+  assert.strictEqual(reconcileCalls, 1, 'reconcile must be called exactly once');
+  assert.strictEqual(result.workout, completedWorkout, 'workout object must be unchanged');
+  assert.strictEqual(result.workout.completed_at, fixedCompletedAt, 'completed_at timestamp must not change');
+  assert.deepStrictEqual(result.newPRs, fakePRs, 'newPRs must equal reconcile result');
+});
+
+test('Batch 3B-5 2c: resolveRepeatCompletion propagates error when reconcile rejects', async () => {
+  const completedWorkout = { id: 'w2', status: 'completed' };
+  const mockReconcile = async () => {
+    throw new Error('Database connection failed during reconcile');
+  };
+
+  await assert.rejects(
+    async () => {
+      await resolveRepeatCompletion(completedWorkout, mockReconcile);
+    },
+    {
+      name: 'Error',
+      message: 'Database connection failed during reconcile',
+    }
+  );
+});
+
+test('Batch 3C-1 4a: mixed PRs from three workouts returns only requested workout rows in same order', () => {
+  const pr1 = { id: 'pr1', workout_id: 'w1', value: 100 };
+  const pr2 = { id: 'pr2', workout_id: 'w2', value: 105 };
+  const pr3 = { id: 'pr3', workout_id: 'w1', value: 120 };
+  const pr4 = { id: 'pr4', workout_id: 'w3', value: 110 };
+
+  const input = [pr1, pr2, pr3, pr4];
+  const selected = selectPRsForWorkout(input, 'w1');
+
+  assert.deepStrictEqual(selected, [pr1, pr3]);
+});
+
+test('Batch 3C-1 4b: empty input returns []', () => {
+  const selected = selectPRsForWorkout([], 'w1');
+  assert.deepStrictEqual(selected, []);
+});
+
+test('Batch 3C-1 4c: no match returns []', () => {
+  const input = [
+    { id: 'pr1', workout_id: 'w2' },
+    { id: 'pr2', workout_id: 'w3' },
+  ];
+  const selected = selectPRsForWorkout(input, 'w1');
+  assert.deepStrictEqual(selected, []);
+});
+
+test('Batch 3C-1 4d: rows with null/undefined workout_id are never selected', () => {
+  const input = [
+    { id: 'pr1', workout_id: null },
+    { id: 'pr2', workout_id: undefined },
+    { id: 'pr3' },
+    { id: 'pr4', workout_id: 'w1' },
+  ];
+  const selected = selectPRsForWorkout(input, 'w1');
+  assert.deepStrictEqual(selected, [{ id: 'pr4', workout_id: 'w1' }]);
+
+  const selectedNull = selectPRsForWorkout(input, 'null');
+  assert.deepStrictEqual(selectedNull, []);
+});
+
+test('Batch 3C-1 4e: input array is not mutated', () => {
+  const input = [
+    Object.freeze({ id: 'pr1', workout_id: 'w1' }),
+    Object.freeze({ id: 'pr2', workout_id: 'w2' }),
+  ];
+  const copy = [...input];
+
+  const selected = selectPRsForWorkout(input, 'w1');
+  assert.strictEqual(selected.length, 1);
+  assert.notStrictEqual(selected, input);
+  assert.deepStrictEqual(input, copy);
+});
+
+

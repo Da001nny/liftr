@@ -48,6 +48,7 @@ import {
   todayLocalDateKey,
 } from './src/lib/dates.ts';
 import { resolvePort } from './src/lib/serverConfig.ts';
+import { resolveRepeatCompletion, selectPRsForWorkout } from './src/lib/finishOutcome.ts';
 
 dotenv.config();
 
@@ -1168,6 +1169,25 @@ async function startServer() {
     const { durationSeconds, notes, exercises } = req.body;
 
     try {
+      // 0. Check if already completed (idempotent repeat call)
+      const { data: existingWorkout } = await client
+        .from('workouts')
+        .select('*')
+        .eq('id', workoutId)
+        .eq('user_id', user.id)
+        .single();
+
+      const repeatResult = await resolveRepeatCompletion(
+        existingWorkout,
+        async () => {
+          const allPRs = await reconcileUserPRs(client, user.id);
+          return selectPRsForWorkout(allPRs, workoutId);
+        }
+      );
+      if (repeatResult) {
+        return res.json(apiResponse(repeatResult, 1, 1, 1));
+      }
+
       // 1. Sync exercises/sets if provided
       if (exercises && Array.isArray(exercises)) {
         await client.from('workout_exercises').delete().eq('workout_id', workoutId);
@@ -1243,7 +1263,8 @@ async function startServer() {
       }
 
       // 4. Atomically recalculate PRs for the user
-      const newPRs = await reconcileUserPRs(client, user.id);
+      const allPRs = await reconcileUserPRs(client, user.id);
+      const newPRs = selectPRsForWorkout(allPRs, workoutId);
 
       return res.json(apiResponse({ workout: completedWorkout, newPRs }, 1, 1, 1));
     } catch (err: any) {

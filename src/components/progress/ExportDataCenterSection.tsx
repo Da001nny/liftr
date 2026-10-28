@@ -24,9 +24,10 @@ import {
   fetchAllCompletedWorkouts, 
   fetchBodyweightEntries, 
   fetchAllStepEntries,
-  triggerBrowserDownload 
+  triggerBrowserDownload,
+  FetchCompletedWorkoutsResult
 } from '../../lib/progressService';
-import { reportFailure } from '../../lib/failure';
+import { reportFailure, SupportedActionKey, FailureInput } from '../../lib/failure';
 
 import {
   getWorkoutsCsvHeaderPreview,
@@ -43,9 +44,9 @@ export async function performWorkoutsExport(
   workouts: any[],
   weightUnit: 'kg' | 'lbs',
   options: {
-    fetchWorkouts: (token: string) => Promise<any>;
+    fetchWorkouts: (token: string) => Promise<FetchCompletedWorkoutsResult>;
     download: (filename: string, content: string) => void;
-    reportError: (action: any, input: any) => void;
+    reportError: (action: SupportedActionKey, input: FailureInput) => void;
     timeZone?: string;
   }
 ): Promise<boolean> {
