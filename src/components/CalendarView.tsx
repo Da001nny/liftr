@@ -213,7 +213,7 @@ export const CalendarView: React.FC = () => {
     // Days before month
     for (let i = startDayOfWeek - 1; i >= 0; i--) {
       const d = new Date(year, month - 1, -i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = toLocalDateKey(d);
       const dayDetails = calendarMap.get(dateStr);
       days.push({
         dateStr,
@@ -253,7 +253,7 @@ export const CalendarView: React.FC = () => {
     const remaining = (7 - (days.length % 7)) % 7;
     for (let i = 1; i <= remaining; i++) {
       const d = new Date(year, month, i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = toLocalDateKey(d);
       const dayDetails = calendarMap.get(dateStr);
       days.push({
         dateStr,
@@ -286,7 +286,7 @@ export const CalendarView: React.FC = () => {
     for (let i = 0; i < 7; i++) {
       const d = new Date(startOfWeek);
       d.setDate(startOfWeek.getDate() + i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = toLocalDateKey(d);
       const dayDetails = calendarMap.get(dateStr);
       days.push({
         dateStr,
@@ -307,7 +307,7 @@ export const CalendarView: React.FC = () => {
 
   // Day View Data
   const dayViewData = useMemo(() => {
-    const dateStr = currentDate.toISOString().slice(0, 10);
+    const dateStr = toLocalDateKey(currentDate);
     const dayDetails = calendarMap.get(dateStr);
     const todayStr = todayLocalDateKey();
     return {
@@ -564,14 +564,14 @@ export const CalendarView: React.FC = () => {
 
           {/* Grid Cells */}
           <div className="grid grid-cols-7 divide-x divide-y divide-neutral-200 dark:divide-neutral-800/80">
-            {monthGridDays.map((day) => {
+            {monthGridDays.map((day, cellIdx) => {
               const isFilteredMuscle = selectedMuscleFilter && day.trainedMuscles.includes(selectedMuscleFilter);
               const isFilteredExercise = selectedExerciseFilter && day.performedExercises.includes(selectedExerciseFilter);
               const isHighlighted = isFilteredMuscle || isFilteredExercise;
 
               return (
                 <div
-                  key={day.dateStr}
+                  key={`${day.dateStr}_${cellIdx}`}
                   onClick={() => setSelectedDayDetails(day)}
                   className={`min-h-[105px] sm:min-h-[120px] p-2 flex flex-col justify-between transition-all cursor-pointer relative group ${
                     day.isCurrentMonth
@@ -670,9 +670,9 @@ export const CalendarView: React.FC = () => {
       {/* 2. WEEK VIEW */}
       {viewMode === 'week' && (
         <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
-          {weekViewDays.map(day => (
+          {weekViewDays.map((day, idx) => (
             <div
-              key={day.dateStr}
+              key={`${day.dateStr}_${idx}`}
               onClick={() => setSelectedDayDetails(day)}
               className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between min-h-[220px] ${
                 day.isToday

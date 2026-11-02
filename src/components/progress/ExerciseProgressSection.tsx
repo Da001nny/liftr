@@ -332,8 +332,8 @@ export const ExerciseProgressSection: React.FC = () => {
           </div>
 
           <div className="divide-y divide-neutral-200 dark:divide-neutral-800 max-h-52 overflow-y-auto">
-            {points.slice().reverse().map((pt) => (
-              <div key={pt.workoutId} className="py-2.5 flex items-center justify-between text-xs">
+            {points.slice().reverse().map((pt, idx) => (
+              <div key={`${pt.workoutId || 'pt'}_${idx}`} className="py-2.5 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-neutral-500 text-[11px] font-semibold">{pt.date}</span>
                   <span className="font-bold text-neutral-900 dark:text-white truncate max-w-[160px] sm:max-w-none">
