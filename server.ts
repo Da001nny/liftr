@@ -49,6 +49,14 @@ import {
 } from './src/lib/dates.ts';
 import { resolvePort } from './src/lib/serverConfig.ts';
 import { resolveRepeatCompletion, selectPRsForWorkout } from './src/lib/finishOutcome.ts';
+import { reconcileUserPRs } from './src/lib/prReconcile.ts';
+import { buildSaveWorkoutArgs } from './src/lib/workoutSaveArgs.ts';
+import { deleteWorkoutAndReconcile } from './src/lib/workoutDeleteHelper.ts';
+import {
+  unwrapSaveResult,
+  buildCompleteResponse,
+  buildUpdateResponse,
+} from './src/lib/saveResult.ts';
 
 dotenv.config();
 
@@ -679,114 +687,7 @@ async function startServer() {
   // PHASE 3: WORKOUT LOGGING, TEMPLATES, PRS, AND PROGRESSION
   // =========================================================================
 
-  /**
-   * Authoritative PR Reconciler:
-   * Replays completed workout history in chronological order.
-   * Enforces strict '>' rule for all 4 PR categories.
-   * Atomically replaces personal_records for affected exercise(s).
-   * Guarantees zero phantom PRs on workout edit or deletion.
-   */
-  async function reconcileUserPRs(client: any, userId: string, targetExerciseId?: string) {
-    try {
-      const { data: workouts, error: wError } = await client
-        .from('workouts')
-        .select(`
-          id,
-          started_at,
-          completed_at,
-          workout_exercises (
-            id,
-            exercise_id,
-            workout_sets (
-              id,
-              set_number,
-              set_type,
-              weight,
-              reps,
-              completed,
-              completed_at
-            )
-          )
-        `)
-        .eq('user_id', userId)
-        .eq('status', 'completed')
-        .order('completed_at', { ascending: true, nullsFirst: false });
 
-      if (wError || !workouts) {
-        console.error('[reconcileUserPRs] Error fetching completed workouts:', wError);
-        return [];
-      }
-
-      // Group candidate sets by exerciseId across chronological workouts
-      const exerciseSetsMap = new Map<string, Array<{
-        workoutId: string;
-        setId: string;
-        weight: number;
-        reps: number;
-        achievedAt: string;
-      }>>();
-
-      for (const w of workouts) {
-        const achievedAt = w.completed_at || w.started_at || new Date().toISOString();
-        for (const we of (w.workout_exercises || [])) {
-          if (targetExerciseId && we.exercise_id !== targetExerciseId) continue;
-          if (!exerciseSetsMap.has(we.exercise_id)) {
-            exerciseSetsMap.set(we.exercise_id, []);
-          }
-          for (const s of (we.workout_sets || [])) {
-            if (isCountableSet(s)) {
-              exerciseSetsMap.get(we.exercise_id)!.push({
-                workoutId: w.id,
-                setId: s.id,
-                weight: Number(s.weight),
-                reps: Number(s.reps),
-                achievedAt: s.completed_at || achievedAt,
-              });
-            }
-          }
-        }
-      }
-
-      // Delete existing PRs for the target scope
-      let deleteOp = client.from('personal_records').delete().eq('user_id', userId);
-      if (targetExerciseId) {
-        deleteOp = deleteOp.eq('exercise_id', targetExerciseId);
-      }
-      await deleteOp;
-
-      const prsToInsert: Array<{
-        user_id: string;
-        exercise_id: string;
-        workout_id: string;
-        workout_set_id: string;
-        category: 'heaviest_weight' | 'best_estimated_1rm' | 'best_single_set_volume' | 'rep_pr';
-        value: number;
-        weight: number | null;
-        reps: number | null;
-        achieved_at: string;
-      }> = [];
-
-      for (const [exId, candidateSets] of exerciseSetsMap.entries()) {
-        const exercisePRs = calculateHistoricalPRs(candidateSets, exId, userId);
-        prsToInsert.push(...exercisePRs);
-      }
-
-      if (prsToInsert.length > 0) {
-        const { data: inserted, error: insertError } = await client
-          .from('personal_records')
-          .insert(prsToInsert)
-          .select();
-        if (insertError) {
-          console.error('[reconcileUserPRs] Insert error:', insertError);
-        }
-        return inserted || [];
-      }
-      return [];
-    } catch (err) {
-      console.error('[reconcileUserPRs] Unexpected error:', err);
-      return [];
-    }
-  }
 
   // 12. List Workouts (Protected)
   app.get('/api/workouts', requireAuth, async (req: Request, res: Response) => {
@@ -1063,99 +964,24 @@ async function startServer() {
     const user = (req as any).user;
     const client = (req as any).userClient;
     const workoutId = req.params.id;
-    const { name, durationSeconds, notes, exercises } = req.body;
+    const { exercises } = req.body;
 
     try {
-      // 1. Update workout row
-      const updates: any = { updated_at: new Date().toISOString() };
-      if (name !== undefined) updates.name = name;
-      if (durationSeconds !== undefined) updates.duration_seconds = durationSeconds;
-      if (notes !== undefined) updates.notes = notes;
+      const args = buildSaveWorkoutArgs(workoutId, req.body, { complete: false });
+      const { data: rpcData, error: saveError } = await client.rpc('save_workout_session', args);
 
-      const { data: workout, error: wError } = await client
-        .from('workouts')
-        .update(updates)
-        .eq('id', workoutId)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (wError || !workout) {
-        return res.status(500).json(apiError(`Error updating workout: ${wError?.message}`));
+      if (saveError || !rpcData) {
+        return res.status(500).json(apiError(`Error updating workout: ${saveError?.message || 'Database update error'}`));
       }
 
-      // 2. Sync exercises & sets if provided
-      if (exercises && Array.isArray(exercises)) {
-        // Delete existing exercises (CASCADE cleans sets)
-        await client.from('workout_exercises').delete().eq('workout_id', workoutId);
+      const { workout } = unwrapSaveResult(rpcData);
 
-        const newBuiltExercises: any[] = [];
-        for (let i = 0; i < exercises.length; i++) {
-          const ex = exercises[i];
-          const { data: newWe } = await client
-            .from('workout_exercises')
-            .insert({
-              workout_id: workoutId,
-              exercise_id: ex.exercise_id,
-              order_index: i,
-              notes: ex.notes || '',
-              rest_timer_seconds: ex.rest_timer_seconds,
-            })
-            .select()
-            .single();
-
-          if (newWe) {
-            const setsToInsert = (ex.sets || []).map((s: any, idx: number) => ({
-              workout_exercise_id: newWe.id,
-              set_number: idx + 1,
-              set_type: s.set_type || 'working',
-              weight: s.weight || 0,
-              reps: s.reps || 0,
-              rir: s.rir ?? null,
-              completed: s.completed || false,
-              completed_at: s.completed ? (s.completed_at || new Date().toISOString()) : null,
-            }));
-
-            const { data: insertedSets } = await client
-              .from('workout_sets')
-              .insert(setsToInsert)
-              .select();
-
-            const exMeta = EXERCISE_MAP.get(newWe.exercise_id);
-            newBuiltExercises.push({
-              ...newWe,
-              exerciseName: exMeta ? exMeta.name : newWe.exercise_id,
-              exerciseTargetRegion: exMeta ? exMeta.targetRegionId : '',
-              sets: (insertedSets || []).sort((a: any, b: any) => a.set_number - b.set_number),
-            });
-          }
-        }
-
-        // Recompute total_volume with calculateWorkoutTotals if workout is completed
-        const allSets = newBuiltExercises.flatMap(ex => ex.sets || []);
-        const totalSessionVolume = calculateWorkoutTotals(allSets).totalVolume;
-
-        if (workout.status === 'completed') {
-          const { data: updatedWorkout, error: updateVolumeError } = await client
-            .from('workouts')
-            .update({ total_volume: totalSessionVolume, updated_at: new Date().toISOString() })
-            .eq('id', workoutId)
-            .eq('user_id', user.id)
-            .select()
-            .single();
-
-          if (updateVolumeError || !updatedWorkout) {
-            return res.status(500).json(apiError(`Failed to update workout total volume: ${updateVolumeError?.message || 'Database update error'}`));
-          }
-
-          workout.total_volume = updatedWorkout.total_volume;
-          await reconcileUserPRs(client, user.id);
-        }
-
-        return res.json(apiResponse({ ...workout, exercises: newBuiltExercises }, 1, 1, 1));
+      if (workout.status === 'completed' && Array.isArray(exercises)) {
+        await reconcileUserPRs(client, user.id);
       }
 
-      return res.json(apiResponse(workout, 1, 1, 1));
+      const responsePayload = buildUpdateResponse(rpcData, EXERCISE_MAP);
+      return res.json(apiResponse(responsePayload, 1, 1, 1));
     } catch (err: any) {
       return res.status(500).json(apiError(`Server error updating workout: ${err.message}`));
     }
@@ -1166,7 +992,7 @@ async function startServer() {
     const user = (req as any).user;
     const client = (req as any).userClient;
     const workoutId = req.params.id;
-    const { durationSeconds, notes, exercises } = req.body;
+    const { exercises } = req.body;
 
     try {
       // 0. Check if already completed (idempotent repeat call)
@@ -1188,85 +1014,48 @@ async function startServer() {
         return res.json(apiResponse(repeatResult, 1, 1, 1));
       }
 
-      // 1. Sync exercises/sets if provided
-      if (exercises && Array.isArray(exercises)) {
-        await client.from('workout_exercises').delete().eq('workout_id', workoutId);
-        for (let i = 0; i < exercises.length; i++) {
-          const ex = exercises[i];
-          const { data: newWe } = await client
-            .from('workout_exercises')
-            .insert({
-              workout_id: workoutId,
-              exercise_id: ex.exercise_id,
-              order_index: i,
-              notes: ex.notes || '',
-              rest_timer_seconds: ex.rest_timer_seconds,
-            })
-            .select()
-            .single();
+      // 1. If no exercises sent, read saved sets first and compute volume with calculateWorkoutTotals
+      let calculatedVolume: number | undefined = undefined;
+      if (!Array.isArray(exercises)) {
+        const { data: savedExercises } = await client
+          .from('workout_exercises')
+          .select(`
+            id,
+            workout_sets (
+              weight,
+              reps,
+              completed,
+              set_type
+            )
+          `)
+          .eq('workout_id', workoutId);
 
-          if (newWe && ex.sets) {
-            const setsToInsert = ex.sets.map((s: any, idx: number) => ({
-              workout_exercise_id: newWe.id,
-              set_number: idx + 1,
-              set_type: s.set_type || 'working',
-              weight: s.weight || 0,
-              reps: s.reps || 0,
-              rir: s.rir ?? null,
-              completed: s.completed || false,
-              completed_at: s.completed ? (s.completed_at || new Date().toISOString()) : null,
-            }));
-            await client.from('workout_sets').insert(setsToInsert);
-          }
+        if (savedExercises) {
+          const allSavedSets = savedExercises.flatMap((we: any) => we.workout_sets || []);
+          calculatedVolume = calculateWorkoutTotals(allSavedSets).totalVolume;
         }
       }
 
-      // 2. Fetch all completed sets for authoritative volume calculation
-      const { data: fullWorkout } = await client
-        .from('workouts')
-        .select(`
-          *,
-          workout_exercises (
-            id,
-            exercise_id,
-            workout_sets (*)
-          )
-        `)
-        .eq('id', workoutId)
-        .single();
+      // 2. Build save args and call save_workout_session with p_complete: true
+      const saveBody = {
+        ...req.body,
+        ...(calculatedVolume !== undefined ? { totalVolume: calculatedVolume } : {}),
+      };
+      const args = buildSaveWorkoutArgs(workoutId, saveBody, { complete: true });
+      const { data: rpcData, error: rpcError } = await client.rpc('save_workout_session', args);
 
-      let totalSessionVolume = 0;
-      if (fullWorkout && fullWorkout.workout_exercises) {
-        const allSets = fullWorkout.workout_exercises.flatMap((we: any) => we.workout_sets || []);
-        totalSessionVolume = calculateWorkoutTotals(allSets).totalVolume;
+      if (rpcError || !rpcData) {
+        return res.status(500).json(apiError(`Error completing workout: ${rpcError?.message || 'Database save error'}`));
       }
 
-      // 3. Mark workout as completed
-      const nowIso = new Date().toISOString();
-      const { data: completedWorkout, error: cError } = await client
-        .from('workouts')
-        .update({
-          status: 'completed',
-          completed_at: nowIso,
-          duration_seconds: durationSeconds || fullWorkout?.duration_seconds || 0,
-          total_volume: totalSessionVolume,
-          notes: notes !== undefined ? notes : fullWorkout?.notes || '',
-          updated_at: nowIso,
-        })
-        .eq('id', workoutId)
-        .eq('user_id', user.id)
-        .select()
-        .single();
+      unwrapSaveResult(rpcData);
 
-      if (cError || !completedWorkout) {
-        return res.status(500).json(apiError(`Error completing workout: ${cError?.message}`));
-      }
-
-      // 4. Atomically recalculate PRs for the user
+      // 3. Atomically recalculate PRs for the user
       const allPRs = await reconcileUserPRs(client, user.id);
       const newPRs = selectPRsForWorkout(allPRs, workoutId);
 
-      return res.json(apiResponse({ workout: completedWorkout, newPRs }, 1, 1, 1));
+      const responsePayload = buildCompleteResponse(rpcData, newPRs);
+      return res.json(apiResponse(responsePayload, 1, 1, 1));
     } catch (err: any) {
       return res.status(500).json(apiError(`Server error completing workout: ${err.message}`));
     }
@@ -1279,21 +1068,11 @@ async function startServer() {
     const workoutId = req.params.id;
 
     try {
-      // 1. Delete workout (CASCADE drops workout_exercises and workout_sets)
-      const { error: dError } = await client
-        .from('workouts')
-        .delete()
-        .eq('id', workoutId)
-        .eq('user_id', user.id);
-
-      if (dError) {
-        return res.status(500).json(apiError(`Error deleting workout: ${dError.message}`));
+      const outcome = await deleteWorkoutAndReconcile(client, user.id, workoutId);
+      if (outcome.error) {
+        return res.status(outcome.status).json(apiError(outcome.error));
       }
-
-      // 2. Reconcile PRs across remaining history so no phantom PRs exist!
-      await reconcileUserPRs(client, user.id);
-
-      return res.json(apiResponse({ success: true, deletedId: workoutId }, 1, 1, 1));
+      return res.status(outcome.status).json(apiResponse(outcome.data, 1, 1, 1));
     } catch (err: any) {
       return res.status(500).json(apiError(`Server error deleting workout: ${err.message}`));
     }
